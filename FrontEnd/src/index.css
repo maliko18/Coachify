@@ -1,1 +1,7 @@
 @import "tailwindcss";
+
+:root {
+  --navbar: #167E80;
+  --primary: #0E2A47;
+  --accent: #6CC24A;
+}

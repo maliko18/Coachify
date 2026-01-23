@@ -1,14 +1,28 @@
-import './App.css'
+import { Routes, Route } from "react-router-dom";
+import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import Signup from "./pages/Signup";
 
-function App() {
+import Header from "./components/Header";
+import Hero from "./components/Hero";
+import HowItWorks from "./components/HowItWorks";
+
+export default function App() {
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-100">
-      <h1 className="text-5xl text font-bold text-blue-900">
-        Initialisation du projet
-      </h1>
-    </div>
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <>
+            <Header />
+            <Hero />
+            <HowItWorks />
+          </>
+        }
+      />
+      <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/signup" element={<Signup />} />
+    </Routes>
   );
 }
-
-export default App
-
