@@ -2,6 +2,8 @@ import { Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Signup from "./pages/Signup";
+import UserDashboard from "./pages/UserDashboard";
+
 
 import Header from "./components/Header";
 import Hero from "./components/Hero";
@@ -23,6 +25,8 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/user/dashboard" element={<UserDashboard />} />
+
     </Routes>
   );
 }
