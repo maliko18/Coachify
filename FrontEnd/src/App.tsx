@@ -3,6 +3,8 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Signup from "./pages/Signup";
 import UserDashboard from "./pages/UserDashboard";
+import CoachDashboard from "./pages/CoachDashboard";
+
 
 
 import Header from "./components/Header";
@@ -26,6 +28,8 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/user/dashboard" element={<UserDashboard />} />
+      <Route path="/coach/dashboard" element={<CoachDashboard />} />
+
 
     </Routes>
   );
