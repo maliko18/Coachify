@@ -77,13 +77,13 @@ class User extends Authenticatable
                     ->withTimestamps();
     }
 
-    // /**
-    //  * Profil coach (si l'utilisateur est coach)
-    //  */
-    // public function coach(): HasOne
-    // {
-    //     return $this->hasOne(Coach::class);
-    // }
+    /**
+     * Profil coach (si l'utilisateur est coach)
+     */
+    public function coach(): HasOne
+    {
+        return $this->hasOne(Coach::class);
+    }
 
     // /**
     //  * Profil client (si l'utilisateur est client)
@@ -127,32 +127,32 @@ class User extends Authenticatable
     //     return $this->hasMany(Notification::class);
     // }
 
-    // /**
-    //  * Vérifier si l'utilisateur a un rôle spécifique
-    //  */
-    // public function hasRole(string $roleName): bool
-    // {
-    //     return $this->roles()->where('name', $roleName)->exists();
-    // }
+    /**
+     * Vérifier si l'utilisateur a un rôle spécifique
+     */
+    public function hasRole(string $roleName): bool
+    {
+        return $this->roles()->where('name', $roleName)->exists();
+    }
 
-    // /**
-    //  * Vérifier si l'utilisateur a l'un des rôles spécifiés
-    //  */
-    // public function hasAnyRole(array $roleNames): bool
-    // {
-    //     return $this->roles()->whereIn('name', $roleNames)->exists();
-    // }
+    /**
+     * Vérifier si l'utilisateur a l'un des rôles spécifiés
+     */
+    public function hasAnyRole(array $roleNames): bool
+    {
+        return $this->roles()->whereIn('name', $roleNames)->exists();
+    }
 
-    // /**
-    //  * Assigner un rôle à l'utilisateur
-    //  */
-    // public function assignRole(string $roleName): void
-    // {
-    //     $role = Role::findByName($roleName);
-    //     if ($role && !$this->hasRole($roleName)) {
-    //         $this->roles()->attach($role->id);
-    //     }
-    // }
+    /**
+     * Assigner un rôle à l'utilisateur
+     */
+    public function assignRole(string $roleName): void
+    {
+        $role = Role::findByName($roleName);
+        if ($role && !$this->hasRole($roleName)) {
+            $this->roles()->attach($role->id);
+        }
+    }
 
     // /**
     //  * Retirer un rôle de l'utilisateur
