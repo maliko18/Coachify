@@ -25,9 +25,13 @@ class RegisterController extends Controller
         $data = $request->validated();
 
         $user = User::create([
-            'name' => $data['name'],
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
+            // 'phone' => $data['phone'] ?? null,
+            // 'rgpd_consent' => $data['rgpd_consent'],
+            // 'rgpd_consent_date' => now(),
         ]);
 
         event(new Registered($user));
