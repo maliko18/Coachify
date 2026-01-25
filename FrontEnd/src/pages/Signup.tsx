@@ -8,7 +8,8 @@ export default function Signup() {
   const [role, setRole] = useState<Role>("user");
 
   const [form, setForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -103,10 +104,18 @@ export default function Signup() {
             <form onSubmit={onSubmit} className="mt-8 space-y-4">
               <input
                 className="w-full rounded-xl bg-gray-50 border border-gray-100 px-5 py-4 outline-none focus:ring-2 focus:ring-green-200"
-                placeholder="Full Name"
+                placeholder="First Name"
                 required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                value={form.firstName}
+                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+              />
+
+              <input
+                className="w-full rounded-xl bg-gray-50 border border-gray-100 px-5 py-4 outline-none focus:ring-2 focus:ring-green-200"
+                placeholder="Last Name"
+                required
+                value={form.lastName}
+                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
               />
 
               <input
