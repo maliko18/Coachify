@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Resources\UserResources;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -22,20 +23,20 @@ class LoginController extends Controller
 
         return response()->json([
              'token' => $token,
-            'user' => $user,
+            'user' => new UserResources($user),
             ] );
     }
-    
+
 
     /**
      * Destroy an authenticated session.
      */
     public function destroy(Request $request): Response
-    
+
     {
           /** @var \Laravel\Sanctum\PersonalAccessToken|null $token */
         $token = $request->user()?->currentAccessToken();
-        
+
         if ($token) {
             $token->delete();
         }
