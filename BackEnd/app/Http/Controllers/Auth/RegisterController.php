@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Resources\UserResources;
 use App\Models\Coach;
 use App\Models\Role;
 use App\Models\User;
@@ -43,7 +44,7 @@ class RegisterController extends Controller
 
         return response()->json([
             'message' => 'Inscription réussie',
-            'user' => $user->load('roles'),
+            'user' => new UserResources($user->load('roles')),
             'token' => $token,
         ], 201);
     }
