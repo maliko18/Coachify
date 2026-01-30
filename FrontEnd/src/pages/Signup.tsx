@@ -45,7 +45,7 @@ export default function Signup() {
           <div className="inline-flex items-center gap-3
                           bg-[color:var(--accent)] px-8 py-4 rounded-xl
                           font-extrabold text-[color:var(--primary)] text-2xl">
-            🚀 Create Account
+             Create Account
           </div>
 
           <p className="mt-8 text-white text-lg leading-relaxed">

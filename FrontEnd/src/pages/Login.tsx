@@ -1,32 +1,37 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-type Role = "user" | "coach";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login, isLoading } = useAuth();
 
- // const [role, setRole] = useState<Role>("user");
-  const [emailOrUsername, setEmailOrUsername] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [remember, setRemember] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
 
- /* const roleLabel = useMemo(
-    () => (role === "user" ? "User" : "Coach"),
-    [role]
-  );
- */
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
-    console.log("LOGIN SUBMIT", {
-    //  role,
-      emailOrUsername,
-      password,
-      remember,
-    });
-
-    navigate("/");
+    try {
+      const user = await login(email, password);
+      
+      // Redirect based on role
+      if (user.roles.includes("coach")) {
+        navigate("/coach/dashboard");
+      } else {
+        navigate("/user/dashboard");
+      }
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosError = err as { response?: { data?: { message?: string } } };
+        setError(axiosError.response?.data?.message || "Email ou mot de passe incorrect");
+      } else {
+        setError("Une erreur est survenue. Veuillez réessayer.");
+      }
+    }
   };
 
   const onGoogleSignIn = () => {
@@ -71,14 +76,21 @@ export default function Login() {
             </h1>
             <p className="text-gray-500 mt-2">Login into your account</p>
 
+            {error && (
+              <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+                {error}
+              </div>
+            )}
 
             <form onSubmit={onSubmit} className="mt-8 space-y-4">
               <input
-                value={emailOrUsername}
-                onChange={(e) => setEmailOrUsername(e.target.value)}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl bg-gray-50 border border-gray-100 px-5 py-4 outline-none focus:ring-2 focus:ring-green-200"
-                placeholder="Email / Username"
+                placeholder="Email"
                 required
+                disabled={isLoading}
               />
 
               <input
@@ -88,6 +100,7 @@ export default function Login() {
                 className="w-full rounded-xl bg-gray-50 border border-gray-100 px-5 py-4 outline-none focus:ring-2 focus:ring-green-200"
                 placeholder="Password"
                 required
+                disabled={isLoading}
               />
 
               <div className="flex items-center justify-between text-sm pt-2">
@@ -112,9 +125,10 @@ export default function Login() {
 
               <button
                 type="submit"
-                className="w-full py-4 rounded-xl bg-[color:var(--primary)] hover:bg-[color:var(--accent)] duration-800 text-white font-semibold"
+                disabled={isLoading}
+                className="w-full py-4 rounded-xl bg-[color:var(--primary)] hover:bg-[color:var(--accent)] duration-800 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Sign In →
+                {isLoading ? "Connexion..." : "Sign In →"}
               </button>
             </form>
 
