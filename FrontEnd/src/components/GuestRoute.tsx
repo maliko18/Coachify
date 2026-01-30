@@ -1,0 +1,20 @@
+import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+export default function GuestRoute() {
+  const { token, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[color:var(--primary)]"></div>
+      </div>
+    );
+  }
+
+  if (token) {
+    return <Navigate to="/user/dashboard" replace />;
+  }
+
+  return <Outlet />;
+}
