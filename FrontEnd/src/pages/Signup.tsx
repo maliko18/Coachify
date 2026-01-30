@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axiosClient from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 
 type Role = "user" | "coach";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { setUser, setToken } = useAuth();
   const [role, setRole] = useState<Role>("user");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>("");
 
   const [form, setForm] = useState({
     firstName: "",
@@ -15,17 +20,52 @@ export default function Signup() {
     confirmPassword: "",
   });
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
     if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
 
-    console.log("SIGN UP", { role, ...form });
+    setIsLoading(true);
+    try {
+      const response = await axiosClient.post("/register", {
+        first_name: form.firstName,
+        last_name: form.lastName,
+        email: form.email,
+        password: form.password,
+        password_confirmation: form.confirmPassword,
+        role: role,
+      });
 
-    navigate("/login");
+      const { token, user } = response.data;
+      setToken(token);
+      setUser(user);
+
+      // Redirect based on role
+      if (user.roles.includes("coach")) {
+        navigate("/coach/dashboard");
+      } else {
+        navigate("/user/dashboard");
+      }
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosError = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+        const errors = axiosError.response?.data?.errors;
+        if (errors) {
+          const firstError = Object.values(errors)[0]?.[0];
+          setError(firstError || "Registration failed");
+        } else {
+          setError(axiosError.response?.data?.message || "Registration failed");
+        }
+      } else {
+        setError("An error occurred. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const onGoogleSignup = () => {
@@ -72,6 +112,12 @@ export default function Signup() {
             <p className="text-gray-500 mt-2">
               Sign up as a user or a coach
             </p>
+
+            {error && (
+              <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+                {error}
+              </div>
+            )}
 
             <div className="mt-6 flex gap-4">
               <button
@@ -149,10 +195,11 @@ export default function Signup() {
 
               <button
                 type="submit"
-                className="w-full py-4 rounded-xl bg-[color:var(--primary)] hover:bg-[color:var(--accent)] duration-800 text-white font-semibold"
+                disabled={isLoading}
+                className="w-full py-4 rounded-xl bg-[color:var(--primary)] hover:bg-[color:var(--accent)] duration-800 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
 
               >
-                Create Account →
+                {isLoading ? "Creating Account..." : "Create Account →"}
               </button>
             </form>
 
