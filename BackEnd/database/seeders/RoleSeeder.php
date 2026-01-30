@@ -1,82 +1,46 @@
 <?php
 
-namespace Database\Factories;
+namespace Database\Seeders;
 
 use App\Models\Role;
-use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Role>
- */
-class RoleFactory extends Factory
+class RoleSeeder extends Seeder
 {
-    protected $model = Role::class;
-
     /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
+     * Run the database seeds.
      */
-    public function definition(): array
+    public function run(): void
     {
-        return [
-            'name' => fake()->unique()->randomElement(Role::getAllRoles()),
-            'description' => fake()->sentence(),
+        $roles = [
+            [
+                'name' => Role::PROSPECT,
+                'description' => 'Utilisateur non inscrit ou sans contrat actif',
+            ],
+            [
+                'name' => Role::CLIENT,
+                'description' => 'Client avec un abonnement actif',
+            ],
+            [
+                'name' => Role::COACH,
+                'description' => 'Coach sportif certifié',
+            ],
+            [
+                'name' => Role::GYM_MANAGER,
+                'description' => 'Responsable de salle de sport',
+            ],
+            [
+                'name' => Role::ADMIN,
+                'description' => 'Administrateur de la plateforme',
+            ],
         ];
-    }
 
-    /**
-     * État pour le rôle prospect
-     */
-    public function prospect(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'name' => Role::PROSPECT,
-            'description' => 'Utilisateur non inscrit ou sans contrat actif',
-        ]);
-    }
-
-    /**
-     * État pour le rôle client
-     */
-    public function client(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'name' => Role::CLIENT,
-            'description' => 'Personne ayant acheté une prestation',
-        ]);
-    }
-
-    /**
-     * État pour le rôle coach
-     */
-    public function coach(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'name' => Role::COACH,
-            'description' => 'Prestataire principal de services sportifs',
-        ]);
-    }
-
-    /**
-     * État pour le rôle responsable de salle
-     */
-    public function gymManager(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'name' => Role::GYM_MANAGER,
-            'description' => 'Gestionnaire d\'une structure sportive',
-        ]);
-    }
-
-    /**
-     * État pour le rôle admin
-     */
-    public function admin(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'name' => Role::ADMIN,
-            'description' => 'Administrateur système avec tous les droits',
-        ]);
+        foreach ($roles as $role) {
+            Role::firstOrCreate(
+                ['name' => $role['name']],
+                ['description' => $role['description']]
+            );
+        }
     }
 }
