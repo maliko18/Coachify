@@ -19,6 +19,7 @@ Mise en place de l'infrastructure backend complète avec Laravel, incluant le sy
 ## ✅ Fonctionnalités implémentées
 
 ### 🔐 Authentification (Laravel Sanctum)
+
 - [x] Inscription utilisateur (`POST /api/register`)
 - [x] Connexion (`POST /api/login`)
 - [x] Déconnexion (`POST /api/logout`)
@@ -28,11 +29,13 @@ Mise en place de l'infrastructure backend complète avec Laravel, incluant le sy
 - [x] Renvoi de l'email de vérification (`POST /api/email/verification-notification`)
 
 ### 👤 Gestion des utilisateurs
+
 - [x] Récupération de l'utilisateur connecté (`GET /api/user`)
 - [x] Support des rôles : `prospect`, `coach`, `admin`
 - [x] Profil coach avec spécialités, certifications et tarif horaire
 
 ### 🗄️ Base de données
+
 - [x] Migration `users` - Informations utilisateur complètes
 - [x] Migration `roles` - Système de rôles
 - [x] Migration `role_user` - Relation many-to-many
@@ -40,6 +43,7 @@ Mise en place de l'infrastructure backend complète avec Laravel, incluant le sy
 - [x] Seeders pour données de test
 
 ### 📦 API Resources (Optimisation des réponses JSON)
+
 - [x] `UserResources` - Formatage complet des utilisateurs
 - [x] `RoleResource` - Formatage des rôles
 - [x] `CoachResource` - Formatage avec prix structuré
@@ -48,6 +52,7 @@ Mise en place de l'infrastructure backend complète avec Laravel, incluant le sy
 - [x] Relations conditionnelles avec `whenLoaded()`
 
 ### 📚 Documentation
+
 - [x] README complet avec guide d'installation
 - [x] Documentation de tous les endpoints API
 - [x] Exemples de requêtes/réponses JSON

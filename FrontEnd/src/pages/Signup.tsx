@@ -42,7 +42,7 @@ export default function Signup() {
 
       const { token, user } = response.data;
       setToken(token);
-      
+
       // Store the selected role temporarily since backend doesn't return it
       const userWithRole = { ...user, selectedRole: role };
       setUser(userWithRole);
@@ -55,7 +55,11 @@ export default function Signup() {
       }
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
-        const axiosError = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+        const axiosError = err as {
+          response?: {
+            data?: { message?: string; errors?: Record<string, string[]> };
+          };
+        };
         const errors = axiosError.response?.data?.errors;
         if (errors) {
           const firstError = Object.values(errors)[0]?.[0];
@@ -78,17 +82,23 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="hidden lg:flex items-center justify-center relative
-                      bg-gradient-to-br from-[#0b6f72] via-[#1c8788] to-[#63b07a]">
+      <div
+        className="hidden lg:flex items-center justify-center relative
+                      bg-gradient-to-br from-[#0b6f72] via-[#1c8788] to-[#63b07a]"
+      >
         <div className="absolute -top-32 -left-32 w-[420px] h-[420px] rounded-full bg-white/10" />
         <div className="absolute bottom-20 left-40 w-[320px] h-[320px] rounded-full bg-black/10" />
 
-        <div className="relative z-10 w-[520px] max-w-[80%] rounded-2xl
-                        bg-white/25 backdrop-blur-md border border-white/30 p-10">
-          <div className="inline-flex items-center gap-3
+        <div
+          className="relative z-10 w-[520px] max-w-[80%] rounded-2xl
+                        bg-white/25 backdrop-blur-md border border-white/30 p-10"
+        >
+          <div
+            className="inline-flex items-center gap-3
                           bg-[color:var(--accent)] px-8 py-4 rounded-xl
-                          font-extrabold text-[color:var(--primary)] text-2xl">
-             Create Account
+                          font-extrabold text-[color:var(--primary)] text-2xl"
+          >
+            Create Account
           </div>
 
           <p className="mt-8 text-white text-lg leading-relaxed">
@@ -105,16 +115,13 @@ export default function Signup() {
             <span className="text-2xl font-extrabold text-[color:var(--primary)]">
               Coachify
             </span>
-            
           </div>
 
           <div className="rounded-2xl border border-gray-100 shadow-sm p-10">
             <h1 className="text-3xl font-extrabold text-[color:var(--primary)]">
               Create your account
             </h1>
-            <p className="text-gray-500 mt-2">
-              Sign up as a user or a coach
-            </p>
+            <p className="text-gray-500 mt-2">Sign up as a user or a coach</p>
 
             {error && (
               <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
@@ -156,7 +163,9 @@ export default function Signup() {
                 placeholder="First Name"
                 required
                 value={form.firstName}
-                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, firstName: e.target.value })
+                }
               />
 
               <input
@@ -200,7 +209,6 @@ export default function Signup() {
                 type="submit"
                 disabled={isLoading}
                 className="w-full py-4 rounded-xl bg-[color:var(--primary)] hover:bg-[color:var(--accent)] duration-800 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-
               >
                 {isLoading ? "Creating Account..." : "Create Account →"}
               </button>
@@ -218,7 +226,7 @@ export default function Signup() {
                 className="w-44 py-3 rounded-xl border border-gray-200
                            font-semibold text-gray-700 hover:bg-gray-50 transition"
               >
-                 Google
+                Google
               </button>
             </div>
 
