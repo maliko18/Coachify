@@ -126,12 +126,20 @@ const Header = () => {
             )}
           </div>
         ) : (
-          <button
-            onClick={() => navigate("/login")}
-            className="bg-white text-[color:var(--navbar)] px-5 py-2 rounded-xl font-semibold hover:bg-gray-800 hover:text-white duration-300"
-          >
-            Login / Register
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate("/login")}
+              className="bg-white text-[color:var(--navbar)] px-6 py-2 rounded-xl font-semibold hover:bg-gray-800 hover:text-white duration-300 whitespace-nowrap"
+            >
+              Login
+            </button>
+            <button
+              onClick={() => navigate("/signup")}
+              className="bg-[color:var(--accent)] text-white px-8 py-2 rounded-xl font-semibold hover:bg-green-600 hover:shadow-lg duration-300 whitespace-nowrap"
+            >
+              Register
+            </button>
+          </div>
         )}
       </div>
     </nav>
