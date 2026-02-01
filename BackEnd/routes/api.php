@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ClientController;
 use App\Http\Resources\UserResources;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -17,7 +18,7 @@ require __DIR__.'/auth.php'; // Inscription, connexion, mot de passe oublié
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
-    
+
     // Informations de l'utilisateur connecté
     Route::get('/user', function (Request $request) {
         return new UserResources($request->user()->load('roles', 'coach'));
@@ -39,10 +40,8 @@ Route::middleware('auth:sanctum')->group(function () {
             ]);
         });
 
-        // TODO: Ajouter les routes coach ici
-        // Route::get('/clients', [CoachController::class, 'clients']);
-        // Route::post('/offers', [OfferController::class, 'store']);
-        // Route::get('/statistics', [CoachController::class, 'statistics']);
+        // Routes Clients (CRUD)
+        Route::apiResource('clients', ClientController::class);
     });
 
     /*

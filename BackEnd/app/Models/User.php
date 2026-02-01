@@ -85,13 +85,13 @@ class User extends Authenticatable
         return $this->hasOne(Coach::class);
     }
 
-    // /**
-    //  * Profil client (si l'utilisateur est client)
-    //  */
-    // public function client(): HasOne
-    // {
-    //     return $this->hasOne(Client::class);
-    // }
+    /**
+     * Profil client (si l'utilisateur est client)
+     */
+    public function client(): HasOne
+    {
+        return $this->hasOne(Client::class);
+    }
 
     // /**
     //  * Salles gérées (si l'utilisateur est responsable de salle)

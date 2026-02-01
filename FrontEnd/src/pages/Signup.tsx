@@ -8,7 +8,7 @@ type Role = "prospect" | "coach";
 export default function Signup() {
   const navigate = useNavigate();
   const { setUser, setToken } = useAuth();
-  const [role, setRole] = useState<Role>("user");
+  const [role, setRole] = useState<Role>("prospect");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
