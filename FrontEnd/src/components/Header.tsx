@@ -5,8 +5,9 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const isCoach = user?.roles?.includes("coach");
-  const isUser = user?.roles?.includes("user");
+  // Check roles from backend or fallback to selectedRole from registration
+  const isCoach = user?.roles?.some(role => role.name === "coach") || user?.selectedRole === "coach";
+  const isUser = user?.roles?.some(role => role.name === "user") || user?.selectedRole === "user" || (!isCoach && user);
 
   const handleLogout = async () => {
     await logout();

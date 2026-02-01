@@ -42,10 +42,13 @@ export default function Signup() {
 
       const { token, user } = response.data;
       setToken(token);
-      setUser(user);
+      
+      // Store the selected role temporarily since backend doesn't return it
+      const userWithRole = { ...user, selectedRole: role };
+      setUser(userWithRole);
 
-      // Redirect based on role
-      if (user.roles.includes("coach")) {
+      // Use the role selected during registration for navigation
+      if (role === "coach") {
         navigate("/coach/dashboard");
       } else {
         navigate("/user/dashboard");

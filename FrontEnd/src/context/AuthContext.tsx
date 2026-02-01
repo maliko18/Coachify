@@ -7,13 +7,20 @@ import {
 import type { ReactNode } from "react";
 import axiosClient from "../api/axios";
 
+interface Role {
+  id: number;
+  name: string;
+  description?: string;
+}
+
 interface User {
   id: number;
   first_name: string;
   last_name: string;
   name: string;
   email: string;
-  roles: string[];
+  roles: Role[];
+  selectedRole?: string; // Temporary role from registration
 }
 
 interface AuthContextType {
