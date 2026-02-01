@@ -1,0 +1,143 @@
+###
+# API Tests - Coaching Fitness
+# Utiliser avec l'extension REST Client de VS Code
+# https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+###
+
+@baseUrl = http://127.0.0.1:8000/api
+@token = 
+
+###
+# 1. INSCRIPTION - PROSPECT
+POST {{baseUrl}}/register
+Content-Type: application/json
+Accept: application/json
+
+{
+    "first_name": "Jean",
+    "last_name": "Dupont",
+    "email": "jean.dupont@example.com",
+    "password": "Password123!",
+    "password_confirmation": "Password123!",
+    "role": "prospect"
+}
+
+###
+# 2. INSCRIPTION - COACH
+POST {{baseUrl}}/register
+Content-Type: application/json
+Accept: application/json
+
+{
+    "first_name": "Marie",
+    "last_name": "Martin",
+    "email": "marie.martin@example.com",
+    "password": "Password123!",
+    "password_confirmation": "Password123!",
+    "role": "coach"
+}
+
+###
+# 3. CONNEXION
+# @name login
+POST {{baseUrl}}/login
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "marie.martin@example.com",
+    "password": "Password123!"
+}
+
+###
+# 4. RÉCUPÉRER UTILISATEUR CONNECTÉ
+# Copiez le token de la réponse login ci-dessus dans @token
+GET {{baseUrl}}/user
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# 5. DÉCONNEXION
+POST {{baseUrl}}/logout
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# 6. DASHBOARD COACH (Rôle: coach requis)
+GET {{baseUrl}}/coach/dashboard
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# 7. ADMIN USERS (Rôle: admin requis)
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# 8. DASHBOARD GYM (Rôle: gym_manager requis)
+GET {{baseUrl}}/gym/dashboard
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# 9. STATISTIQUES (Rôle: coach OU admin)
+GET {{baseUrl}}/statistics
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# 10. MOT DE PASSE OUBLIÉ
+POST {{baseUrl}}/forgot-password
+Content-Type: application/json
+Accept: application/json
+
+{
+    "email": "jean.dupont@example.com"
+}
+
+###
+# 11. RÉINITIALISER MOT DE PASSE
+POST {{baseUrl}}/reset-password
+Content-Type: application/json
+Accept: application/json
+
+{
+    "token": "token_recu_par_email",
+    "email": "jean.dupont@example.com",
+    "password": "NouveauPassword123!",
+    "password_confirmation": "NouveauPassword123!"
+}
+
+###
+# 12. TEST ERREUR 401 (sans token)
+GET {{baseUrl}}/user
+Accept: application/json
+
+###
+# 13. TEST ERREUR 403 (mauvais rôle)
+# Se connecter avec un prospect, puis essayer d'accéder au dashboard coach
+GET {{baseUrl}}/coach/dashboard
+Authorization: Bearer {{token}}
+Accept: application/json
+
+###
+# 14. TEST ERREUR 422 (validation)
+POST {{baseUrl}}/register
+Content-Type: application/json
+Accept: application/json
+
+{
+    "first_name": "Test",
+    "email": "invalid-email",
+    "password": "short"
+}
+
+###
+# NOTES:
+# - Remplacer {{token}} par votre token après connexion
+# - Ou utiliser l'extension REST Client qui capture automatiquement les variables
+# - Les erreurs attendues :
+#   - 401: Non authentifié (pas de token ou token invalide)
+#   - 403: Rôle insuffisant (token valide mais pas le bon rôle)
+#   - 422: Erreur de validation (données invalides)

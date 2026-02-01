@@ -4,9 +4,100 @@ use App\Http\Resources\UserResources;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
-    return new UserResources($request->user()->load('roles', 'coach'));
+/*
+|--------------------------------------------------------------------------
+| Routes publiques (sans authentification)
+|--------------------------------------------------------------------------
+*/
+require __DIR__.'/auth.php'; // Inscription, connexion, mot de passe oublié
+
+/*
+|--------------------------------------------------------------------------
+| Routes protégées - Authentification requise
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->group(function () {
+    
+    // Informations de l'utilisateur connecté
+    Route::get('/user', function (Request $request) {
+        return new UserResources($request->user()->load('roles', 'coach'));
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes réservées aux COACHES
+    |--------------------------------------------------------------------------
+    | Middleware : is_coach
+    | Rôle requis : coach
+    */
+    Route::middleware('is_coach')->prefix('coach')->group(function () {
+        // Exemple : Dashboard coach
+        Route::get('/dashboard', function (Request $request) {
+            return response()->json([
+                'message' => 'Bienvenue sur le dashboard coach',
+                'coach' => $request->user()->coach,
+            ]);
+        });
+
+        // TODO: Ajouter les routes coach ici
+        // Route::get('/clients', [CoachController::class, 'clients']);
+        // Route::post('/offers', [OfferController::class, 'store']);
+        // Route::get('/statistics', [CoachController::class, 'statistics']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes réservées aux ADMINS
+    |--------------------------------------------------------------------------
+    | Middleware : is_admin
+    | Rôle requis : admin
+    */
+    Route::middleware('is_admin')->prefix('admin')->group(function () {
+        // Exemple : Liste des utilisateurs
+        Route::get('/users', function (Request $request) {
+            return response()->json([
+                'message' => 'Liste des utilisateurs (admin only)',
+            ]);
+        });
+
+        // TODO: Ajouter les routes admin ici
+        // Route::get('/statistics', [AdminController::class, 'statistics']);
+        // Route::post('/users/{user}/ban', [AdminController::class, 'banUser']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes réservées aux RESPONSABLES DE SALLE
+    |--------------------------------------------------------------------------
+    | Middleware : is_gym_manager
+    | Rôle requis : gym_manager
+    */
+    Route::middleware('is_gym_manager')->prefix('gym')->group(function () {
+        // Exemple : Dashboard salle
+        Route::get('/dashboard', function (Request $request) {
+            return response()->json([
+                'message' => 'Dashboard responsable de salle',
+            ]);
+        });
+
+        // TODO: Ajouter les routes gym manager ici
+        // Route::get('/equipment', [EquipmentController::class, 'index']);
+        // Route::post('/equipment', [EquipmentController::class, 'store']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes multi-rôles
+    |--------------------------------------------------------------------------
+    | Middleware : role:coach,admin
+    | Plusieurs rôles autorisés
+    */
+    Route::middleware('role:coach,admin')->group(function () {
+        // Exemple : Statistiques accessibles aux coaches ET admins
+        Route::get('/statistics', function (Request $request) {
+            return response()->json([
+                'message' => 'Statistiques (coach ou admin)',
+            ]);
+        });
+    });
 });
-
-
-require __DIR__.'/auth.php';

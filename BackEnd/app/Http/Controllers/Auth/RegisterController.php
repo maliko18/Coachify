@@ -29,7 +29,7 @@ class RegisterController extends Controller
             ]);
 
             // 2. Assigner le rôle et créer le profil si coach
-            if ($data['role'] === 'coach') {
+            if ($data['role'] === Role::COACH) {
                 $user->assignRole(Role::COACH);
                 Coach::create(['user_id' => $user->id]);
                 $user->load('coach');
