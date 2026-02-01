@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axiosClient from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
-type Role = "user" | "coach";
+type Role = "prospect" | "coach";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -125,10 +125,10 @@ export default function Signup() {
             <div className="mt-6 flex gap-4">
               <button
                 type="button"
-                onClick={() => setRole("user")}
+                onClick={() => setRole("prospect")}
                 className={`px-6 py-3 rounded-xl font-semibold border-2 transition
                   ${
-                    role === "user"
+                    role === "prospect"
                       ? "border-green-600 text-green-700 bg-green-50"
                       : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                   }`}
