@@ -86,13 +86,13 @@ Authorization: Bearer VOTRE_TOKEN
 
 ### Endpoints
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| `GET` | `/api/coach/offres` | Lister les offres du coach |
-| `POST` | `/api/coach/offres` | Créer une offre |
-| `GET` | `/api/coach/offres/{id}` | Détail d'une offre |
-| `PUT` | `/api/coach/offres/{id}` | Modifier une offre |
-| `DELETE` | `/api/coach/offres/{id}` | Supprimer une offre |
+| Méthode  | URL                      | Description                |
+| -------- | ------------------------ | -------------------------- |
+| `GET`    | `/api/coach/offres`      | Lister les offres du coach |
+| `POST`   | `/api/coach/offres`      | Créer une offre            |
+| `GET`    | `/api/coach/offres/{id}` | Détail d'une offre         |
+| `PUT`    | `/api/coach/offres/{id}` | Modifier une offre         |
+| `DELETE` | `/api/coach/offres/{id}` | Supprimer une offre        |
 
 ### Filtres disponibles (query params)
 
@@ -104,13 +104,13 @@ GET /api/coach/offres?type=abonnement&statut=active
 
 ### Types d'offre possibles
 
-| Valeur | Libellé |
-|--------|---------|
-| `pack_seance` | Pack de séances |
-| `abonnement` | Abonnement |
-| `collectif` | Cours collectif |
+| Valeur                | Libellé             |
+| --------------------- | ------------------- |
+| `pack_seance`         | Pack de séances     |
+| `abonnement`          | Abonnement          |
+| `collectif`           | Cours collectif     |
 | `programme_numerique` | Programme numérique |
-| `produit` | Produit |
+| `produit`             | Produit             |
 
 ### Statuts possibles
 
@@ -123,7 +123,7 @@ GET /api/coach/offres?type=abonnement&statut=active
   "nom": "Pack 10 séances",
   "description": "Pack de 10 séances individuelles de coaching",
   "type": "pack_seance",
-  "prix": 450.00,
+  "prix": 450.0,
   "tva": 20,
   "devise": "EUR",
   "nombre_seances": 10,
@@ -149,8 +149,8 @@ GET /api/coach/offres?type=abonnement&statut=active
   "description": "...",
   "type": "pack_seance",
   "type_label": "Pack de séances",
-  "prix": { "amount": 450.00, "formatted": "450,00 €", "currency": "EUR" },
-  "prix_ttc": { "amount": 540.00, "formatted": "540,00 €", "currency": "EUR" },
+  "prix": { "amount": 450.0, "formatted": "450,00 €", "currency": "EUR" },
+  "prix_ttc": { "amount": 540.0, "formatted": "540,00 €", "currency": "EUR" },
   "tva": 20.0,
   "devise": "EUR",
   "nombre_seances": 10,
@@ -161,7 +161,11 @@ GET /api/coach/offres?type=abonnement&statut=active
   "est_visible": true,
   "en_promotion": false,
   "prix_promotion": null,
-  "prix_effectif": { "amount": 450.00, "formatted": "450,00 €", "currency": "EUR" },
+  "prix_effectif": {
+    "amount": 450.0,
+    "formatted": "450,00 €",
+    "currency": "EUR"
+  },
   "date_debut_promotion": null,
   "date_fin_promotion": null,
   "coach": { "id": 1, "bio": "..." },
@@ -179,14 +183,14 @@ GET /api/coach/offres?type=abonnement&statut=active
 
 ### Endpoints
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| `GET` | `/api/coach/contrats` | Lister les contrats |
-| `POST` | `/api/coach/contrats` | Créer un contrat |
-| `GET` | `/api/coach/contrats/{id}` | Détail d'un contrat |
-| `PUT` | `/api/coach/contrats/{id}` | Modifier un contrat |
-| `DELETE` | `/api/coach/contrats/{id}` | Supprimer un contrat |
-| `GET` | `/api/coach/contrats-expiration` | Contrats expirant bientôt |
+| Méthode  | URL                              | Description               |
+| -------- | -------------------------------- | ------------------------- |
+| `GET`    | `/api/coach/contrats`            | Lister les contrats       |
+| `POST`   | `/api/coach/contrats`            | Créer un contrat          |
+| `GET`    | `/api/coach/contrats/{id}`       | Détail d'un contrat       |
+| `PUT`    | `/api/coach/contrats/{id}`       | Modifier un contrat       |
+| `DELETE` | `/api/coach/contrats/{id}`       | Supprimer un contrat      |
+| `GET`    | `/api/coach/contrats-expiration` | Contrats expirant bientôt |
 
 ### Filtres disponibles
 
@@ -211,7 +215,7 @@ GET /api/coach/contrats-expiration?jours=7     (défaut: 7 jours)
   "date_fin": "2026-06-01",
   "statut": "actif",
   "seances_totales": 10,
-  "montant_total": 450.00,
+  "montant_total": 450.0,
   "montant_paye": 0,
   "notes": "Contrat initial",
   "renouvellement_auto": false
@@ -232,17 +236,34 @@ GET /api/coach/contrats-expiration?jours=7     (défaut: 7 jours)
   "seances_totales": 10,
   "seances_consommees": 3,
   "seances_restantes": 7,
-  "montant_total": { "amount": 450.00, "formatted": "450,00 €", "currency": "EUR" },
-  "montant_paye": { "amount": 200.00, "formatted": "200,00 €", "currency": "EUR" },
-  "montant_restant": { "amount": 250.00, "formatted": "250,00 €", "currency": "EUR" },
+  "montant_total": {
+    "amount": 450.0,
+    "formatted": "450,00 €",
+    "currency": "EUR"
+  },
+  "montant_paye": {
+    "amount": 200.0,
+    "formatted": "200,00 €",
+    "currency": "EUR"
+  },
+  "montant_restant": {
+    "amount": 250.0,
+    "formatted": "250,00 €",
+    "currency": "EUR"
+  },
   "est_paye_integralement": false,
   "renouvellement_auto": false,
   "date_prochain_renouvellement": null,
   "notes": "Contrat initial",
   "is_actif": true,
   "is_expire": false,
-  "client": { "id": 1, "first_name": "Jean", "last_name": "Dupont", "email": "..." },
-  "offre": { "id": 1, "nom": "Pack 10 séances", "..." : "..." },
+  "client": {
+    "id": 1,
+    "first_name": "Jean",
+    "last_name": "Dupont",
+    "email": "..."
+  },
+  "offre": { "id": 1, "nom": "Pack 10 séances", "...": "..." },
   "coach": { "id": 1, "bio": "..." },
   "created_at": "2026-02-28T10:00:00.000000Z",
   "updated_at": "2026-02-28T10:00:00.000000Z"
@@ -257,12 +278,12 @@ GET /api/coach/contrats-expiration?jours=7     (défaut: 7 jours)
 
 ### Endpoints
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| `GET` | `/api/coach/exercices` | Lister les exercices |
-| `POST` | `/api/coach/exercices` | Créer un exercice |
-| `GET` | `/api/coach/exercices/{id}` | Détail d'un exercice |
-| `PUT` | `/api/coach/exercices/{id}` | Modifier un exercice |
+| Méthode  | URL                         | Description           |
+| -------- | --------------------------- | --------------------- |
+| `GET`    | `/api/coach/exercices`      | Lister les exercices  |
+| `POST`   | `/api/coach/exercices`      | Créer un exercice     |
+| `GET`    | `/api/coach/exercices/{id}` | Détail d'un exercice  |
+| `PUT`    | `/api/coach/exercices/{id}` | Modifier un exercice  |
 | `DELETE` | `/api/coach/exercices/{id}` | Supprimer un exercice |
 
 ### Filtres disponibles
@@ -340,7 +361,9 @@ GET /api/coach/exercices?search=squat
 
 ```json
 {
-  "data": [ /* tableau d'exercices */ ],
+  "data": [
+    /* tableau d'exercices */
+  ],
   "meta": {
     "total": 15,
     "categories": ["musculation", "cardio"],
@@ -357,17 +380,17 @@ GET /api/coach/exercices?search=squat
 
 ### Endpoints
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| `GET` | `/api/coach/paiements` | Lister les paiements |
-| `POST` | `/api/coach/paiements` | Créer un paiement |
-| `GET` | `/api/coach/paiements/{id}` | Détail d'un paiement |
-| `PUT` | `/api/coach/paiements/{id}` | Modifier un paiement |
-| `DELETE` | `/api/coach/paiements/{id}` | Supprimer un paiement |
-| `POST` | `/api/coach/paiements/{id}/valider` | Valider (en_attente → validé) |
-| `POST` | `/api/coach/paiements/{id}/rembourser` | Rembourser (partiel ou total) |
-| `POST` | `/api/coach/paiements/{id}/annuler` | Annuler |
-| `GET` | `/api/coach/paiements-statistiques` | Statistiques des paiements |
+| Méthode  | URL                                    | Description                   |
+| -------- | -------------------------------------- | ----------------------------- |
+| `GET`    | `/api/coach/paiements`                 | Lister les paiements          |
+| `POST`   | `/api/coach/paiements`                 | Créer un paiement             |
+| `GET`    | `/api/coach/paiements/{id}`            | Détail d'un paiement          |
+| `PUT`    | `/api/coach/paiements/{id}`            | Modifier un paiement          |
+| `DELETE` | `/api/coach/paiements/{id}`            | Supprimer un paiement         |
+| `POST`   | `/api/coach/paiements/{id}/valider`    | Valider (en_attente → validé) |
+| `POST`   | `/api/coach/paiements/{id}/rembourser` | Rembourser (partiel ou total) |
+| `POST`   | `/api/coach/paiements/{id}/annuler`    | Annuler                       |
+| `GET`    | `/api/coach/paiements-statistiques`    | Statistiques des paiements    |
 
 ### Filtres disponibles
 
@@ -393,7 +416,7 @@ GET /api/coach/paiements?date_debut=2026-02-01&date_fin=2026-02-28
 {
   "client_id": 1,
   "contrat_id": 1,
-  "montant": 150.00,
+  "montant": 150.0,
   "devise": "EUR",
   "date_paiement": "2026-02-28",
   "methode": "carte_bancaire",
@@ -410,7 +433,7 @@ GET /api/coach/paiements?date_debut=2026-02-01&date_fin=2026-02-28
 
 ```json
 {
-  "montant": 50.00,
+  "montant": 50.0,
   "motif": "Annulation de séance"
 }
 ```
@@ -426,15 +449,19 @@ GET /api/coach/paiements-statistiques?date_debut=2026-02-01&date_fin=2026-02-28
 ```json
 {
   "periode": { "debut": "2026-02-01", "fin": "2026-02-28" },
-  "chiffre_affaires": 5000.00,
-  "total_rembourse": 200.00,
-  "ca_net": 4800.00,
-  "en_attente": 1500.00,
+  "chiffre_affaires": 5000.0,
+  "total_rembourse": 200.0,
+  "ca_net": 4800.0,
+  "en_attente": 1500.0,
   "nombre_paiements": 25,
   "nombre_valides": 20,
   "repartition_methode": {
-    "carte_bancaire": { "nombre": 15, "total": 3500.00, "label": "Carte bancaire" },
-    "virement": { "nombre": 5, "total": 1500.00, "label": "Virement bancaire" }
+    "carte_bancaire": {
+      "nombre": 15,
+      "total": 3500.0,
+      "label": "Carte bancaire"
+    },
+    "virement": { "nombre": 5, "total": 1500.0, "label": "Virement bancaire" }
   }
 }
 ```
@@ -444,7 +471,7 @@ GET /api/coach/paiements-statistiques?date_debut=2026-02-01&date_fin=2026-02-28
 ```json
 {
   "id": 1,
-  "montant": { "amount": 150.00, "formatted": "150,00 €", "currency": "EUR" },
+  "montant": { "amount": 150.0, "formatted": "150,00 €", "currency": "EUR" },
   "devise": "EUR",
   "date_paiement": "2026-02-28T00:00:00.000000Z",
   "methode": "carte_bancaire",
@@ -456,14 +483,18 @@ GET /api/coach/paiements-statistiques?date_debut=2026-02-01&date_fin=2026-02-28
   "description": "Paiement séance",
   "notes": "",
   "montant_rembourse": null,
-  "montant_net": { "amount": 150.00, "formatted": "150,00 €", "currency": "EUR" },
+  "montant_net": {
+    "amount": 150.0,
+    "formatted": "150,00 €",
+    "currency": "EUR"
+  },
   "date_remboursement": null,
   "motif_remboursement": null,
   "is_remboursable": false,
   "is_valide": false,
-  "client": { "..." : "..." },
-  "contrat": { "..." : "..." },
-  "coach": { "..." : "..." },
+  "client": { "...": "..." },
+  "contrat": { "...": "..." },
+  "coach": { "...": "..." },
   "created_at": "2026-02-28T10:00:00.000000Z",
   "updated_at": "2026-02-28T10:00:00.000000Z"
 }
@@ -477,24 +508,24 @@ GET /api/coach/paiements-statistiques?date_debut=2026-02-01&date_fin=2026-02-28
 
 ### Endpoints Coach
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| `GET` | `/api/coach/seances` | Lister les séances du coach |
-| `POST` | `/api/coach/seances` | Créer une séance |
-| `GET` | `/api/coach/seances/{id}` | Détail d'une séance |
-| `PUT` | `/api/coach/seances/{id}` | Modifier une séance |
-| `DELETE` | `/api/coach/seances/{id}` | Supprimer une séance |
-| `POST` | `/api/coach/seances/{id}/inscrire` | Inscrire un client |
-| `DELETE` | `/api/coach/seances/{id}/desinscrire/{clientId}` | Désinscrire un client |
-| `PUT` | `/api/coach/seances/{id}/presence/{clientId}` | Marquer la présence |
-| `PUT` | `/api/coach/seances/{id}/feedback-coach/{clientId}` | Ajouter feedback coach |
+| Méthode  | URL                                                 | Description                 |
+| -------- | --------------------------------------------------- | --------------------------- |
+| `GET`    | `/api/coach/seances`                                | Lister les séances du coach |
+| `POST`   | `/api/coach/seances`                                | Créer une séance            |
+| `GET`    | `/api/coach/seances/{id}`                           | Détail d'une séance         |
+| `PUT`    | `/api/coach/seances/{id}`                           | Modifier une séance         |
+| `DELETE` | `/api/coach/seances/{id}`                           | Supprimer une séance        |
+| `POST`   | `/api/coach/seances/{id}/inscrire`                  | Inscrire un client          |
+| `DELETE` | `/api/coach/seances/{id}/desinscrire/{clientId}`    | Désinscrire un client       |
+| `PUT`    | `/api/coach/seances/{id}/presence/{clientId}`       | Marquer la présence         |
+| `PUT`    | `/api/coach/seances/{id}/feedback-coach/{clientId}` | Ajouter feedback coach      |
 
 ### Endpoints Client
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| `GET` | `/api/client/seances` | Mes séances (en tant que client) |
-| `POST` | `/api/client/seances/{id}/feedback` | Donner un feedback client |
+| Méthode | URL                                 | Description                      |
+| ------- | ----------------------------------- | -------------------------------- |
+| `GET`   | `/api/client/seances`               | Mes séances (en tant que client) |
+| `POST`  | `/api/client/seances/{id}/feedback` | Donner un feedback client        |
 
 ### Types de séance possibles
 
@@ -583,7 +614,11 @@ GET /api/coach/paiements-statistiques?date_debut=2026-02-01&date_fin=2026-02-28
   "clients": [
     {
       "id": 3,
-      "user": { "id": 5, "full_name": "Jean Dupont", "email": "jean@example.com" },
+      "user": {
+        "id": 5,
+        "full_name": "Jean Dupont",
+        "email": "jean@example.com"
+      },
       "statut_presence": "inscrit",
       "feedback_client": null,
       "feedback_coach": null,
@@ -604,20 +639,20 @@ GET /api/coach/paiements-statistiques?date_debut=2026-02-01&date_fin=2026-02-28
 
 ### Endpoints
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| `GET` | `/api/coach/programmes` | Lister les programmes |
-| `POST` | `/api/coach/programmes` | Créer un programme |
-| `GET` | `/api/coach/programmes/{id}` | Détail d'un programme |
-| `PUT` | `/api/coach/programmes/{id}` | Modifier un programme |
-| `DELETE` | `/api/coach/programmes/{id}` | Supprimer un programme |
-| `POST` | `/api/coach/programmes/{id}/exercices` | Ajouter exercice au programme |
-| `PUT` | `/api/coach/programmes/{id}/exercices/{exerciceId}` | Modifier exercice dans le programme |
-| `DELETE` | `/api/coach/programmes/{id}/exercices/{exerciceId}` | Retirer exercice du programme |
-| `POST` | `/api/coach/programmes/{id}/publier` | Publier (brouillon → publié) |
-| `POST` | `/api/coach/programmes/{id}/depublier` | Dépublier (publié → brouillon) |
-| `POST` | `/api/coach/programmes/{id}/archiver` | Archiver |
-| `POST` | `/api/coach/programmes/{id}/dupliquer` | Dupliquer le programme |
+| Méthode  | URL                                                 | Description                         |
+| -------- | --------------------------------------------------- | ----------------------------------- |
+| `GET`    | `/api/coach/programmes`                             | Lister les programmes               |
+| `POST`   | `/api/coach/programmes`                             | Créer un programme                  |
+| `GET`    | `/api/coach/programmes/{id}`                        | Détail d'un programme               |
+| `PUT`    | `/api/coach/programmes/{id}`                        | Modifier un programme               |
+| `DELETE` | `/api/coach/programmes/{id}`                        | Supprimer un programme              |
+| `POST`   | `/api/coach/programmes/{id}/exercices`              | Ajouter exercice au programme       |
+| `PUT`    | `/api/coach/programmes/{id}/exercices/{exerciceId}` | Modifier exercice dans le programme |
+| `DELETE` | `/api/coach/programmes/{id}/exercices/{exerciceId}` | Retirer exercice du programme       |
+| `POST`   | `/api/coach/programmes/{id}/publier`                | Publier (brouillon → publié)        |
+| `POST`   | `/api/coach/programmes/{id}/depublier`              | Dépublier (publié → brouillon)      |
+| `POST`   | `/api/coach/programmes/{id}/archiver`               | Archiver                            |
+| `POST`   | `/api/coach/programmes/{id}/dupliquer`              | Dupliquer le programme              |
 
 ### Filtres disponibles
 
@@ -682,11 +717,11 @@ GET /api/coach/programmes?statut=publie
 
 ### Actions spéciales
 
-| Action | Condition requise |
-|--------|-------------------|
-| **Publier** | Le programme doit être en `brouillon` et contenir au moins 1 exercice |
-| **Dépublier** | Le programme doit être `publie` |
-| **Archiver** | Le programme ne doit pas être déjà `archive` |
+| Action        | Condition requise                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------ |
+| **Publier**   | Le programme doit être en `brouillon` et contenir au moins 1 exercice                                  |
+| **Dépublier** | Le programme doit être `publie`                                                                        |
+| **Archiver**  | Le programme ne doit pas être déjà `archive`                                                           |
 | **Dupliquer** | Crée une copie avec le titre + " (copie)", statut `brouillon`, et duplique tous les exercices associés |
 
 ### Réponse JSON
@@ -732,7 +767,9 @@ GET /api/coach/programmes?statut=publie
 
 ```json
 {
-  "data": [ /* tableau de programmes */ ],
+  "data": [
+    /* tableau de programmes */
+  ],
   "meta": {
     "total": 3,
     "types": ["perte_de_poids", "force"],
@@ -749,19 +786,19 @@ GET /api/coach/programmes?statut=publie
 
 ### Endpoints
 
-| Méthode | URL | Description |
-|---------|-----|-------------|
-| `GET` | `/api/coach/factures` | Lister les factures |
-| `POST` | `/api/coach/factures` | Créer une facture |
-| `GET` | `/api/coach/factures/{id}` | Détail d'une facture |
-| `PUT` | `/api/coach/factures/{id}` | Modifier une facture |
-| `DELETE` | `/api/coach/factures/{id}` | Supprimer (interdit si payée) |
-| `POST` | `/api/coach/factures/{id}/emettre` | Émettre (brouillon → émise) |
-| `POST` | `/api/coach/factures/{id}/payer` | Marquer comme payée |
-| `POST` | `/api/coach/factures/{id}/annuler` | Annuler (interdit si payée) |
-| `GET` | `/api/coach/factures/{id}/pdf` | Exporter en PDF |
-| `GET` | `/api/coach/factures-en-retard` | Factures en retard |
-| `GET` | `/api/coach/factures-stats` | Statistiques des factures |
+| Méthode  | URL                                | Description                   |
+| -------- | ---------------------------------- | ----------------------------- |
+| `GET`    | `/api/coach/factures`              | Lister les factures           |
+| `POST`   | `/api/coach/factures`              | Créer une facture             |
+| `GET`    | `/api/coach/factures/{id}`         | Détail d'une facture          |
+| `PUT`    | `/api/coach/factures/{id}`         | Modifier une facture          |
+| `DELETE` | `/api/coach/factures/{id}`         | Supprimer (interdit si payée) |
+| `POST`   | `/api/coach/factures/{id}/emettre` | Émettre (brouillon → émise)   |
+| `POST`   | `/api/coach/factures/{id}/payer`   | Marquer comme payée           |
+| `POST`   | `/api/coach/factures/{id}/annuler` | Annuler (interdit si payée)   |
+| `GET`    | `/api/coach/factures/{id}/pdf`     | Exporter en PDF               |
+| `GET`    | `/api/coach/factures-en-retard`    | Factures en retard            |
+| `GET`    | `/api/coach/factures-stats`        | Statistiques des factures     |
 
 ### Filtres disponibles
 
@@ -789,8 +826,8 @@ brouillon → (émettre) → emise → (payer) → payee
 ```json
 {
   "client_id": 1,
-  "montant_ht": 100.00,
-  "tva": 20.00,
+  "montant_ht": 100.0,
+  "tva": 20.0,
   "date_emission": "2026-02-28",
   "date_echeance": "2026-03-28",
   "statut": "brouillon",
@@ -806,20 +843,20 @@ brouillon → (émettre) → emise → (payer) → payee
 
 ### Règles de suppression / annulation
 
-| Action | Condition |
-|--------|-----------|
-| Supprimer | ❌ Interdit si statut = `payee` |
-| Annuler | ❌ Interdit si statut = `payee` ou `annulee` |
-| Émettre | ✅ Uniquement si statut = `brouillon` |
-| Payer | ❌ Interdit si statut = `payee` ou `annulee` |
+| Action    | Condition                                    |
+| --------- | -------------------------------------------- |
+| Supprimer | ❌ Interdit si statut = `payee`              |
+| Annuler   | ❌ Interdit si statut = `payee` ou `annulee` |
+| Émettre   | ✅ Uniquement si statut = `brouillon`        |
+| Payer     | ❌ Interdit si statut = `payee` ou `annulee` |
 
 ### Statistiques — Réponse
 
 ```json
 {
   "total_factures": 50,
-  "total_ht": 25000.00,
-  "total_ttc": 30000.00,
+  "total_ht": 25000.0,
+  "total_ttc": 30000.0,
   "par_statut": {
     "brouillon": 5,
     "emise": 10,
@@ -827,8 +864,8 @@ brouillon → (émettre) → emise → (payer) → payee
     "annulee": 3,
     "en_retard": 2
   },
-  "montant_paye": 18000.00,
-  "montant_en_attente": 7200.00
+  "montant_paye": 18000.0,
+  "montant_en_attente": 7200.0
 }
 ```
 
@@ -840,9 +877,9 @@ brouillon → (émettre) → emise → (payer) → payee
   "numero": "FAC-2026-0001",
   "client_id": 1,
   "paiement_id": null,
-  "montant_ht": 100.00,
-  "tva": 20.00,
-  "montant_ttc": 120.00,
+  "montant_ht": 100.0,
+  "tva": 20.0,
+  "montant_ttc": 120.0,
   "date_emission": "2026-02-28",
   "date_echeance": "2026-03-28",
   "statut": "brouillon",
@@ -850,7 +887,12 @@ brouillon → (émettre) → emise → (payer) → payee
   "pdf_path": null,
   "notes": "Coaching février 2026",
   "est_en_retard": false,
-  "client": { "id": 1, "first_name": "Jean", "last_name": "Dupont", "..." : "..." },
+  "client": {
+    "id": 1,
+    "first_name": "Jean",
+    "last_name": "Dupont",
+    "...": "..."
+  },
   "created_at": "2026-02-28T10:00:00.000000Z",
   "updated_at": "2026-02-28T10:00:00.000000Z"
 }
@@ -863,10 +905,12 @@ brouillon → (émettre) → emise → (payer) → payee
 ### Prérequis
 
 1. **Lancer le backend** :
+
    ```bash
    cd BackEnd
    php artisan serve
    ```
+
    Le serveur tourne sur `http://localhost:8000`
 
 2. **Seed de la base de données** (données de test) :
@@ -927,7 +971,7 @@ Tous les montants sont formatés ainsi :
 
 ```json
 {
-  "amount": 100.00,
+  "amount": 100.0,
   "formatted": "100,00 €",
   "currency": "EUR"
 }
@@ -973,83 +1017,83 @@ Tous les modèles utilisent le **soft delete** (suppression logique). Les donné
 
 ### Routes Coach (`/api/coach/...`) — Authentification requise + rôle coach
 
-| # | Méthode | URL | Module |
-|---|---------|-----|--------|
-| 1 | `GET` | `/api/coach/offres` | Offre |
-| 2 | `POST` | `/api/coach/offres` | Offre |
-| 3 | `GET` | `/api/coach/offres/{id}` | Offre |
-| 4 | `PUT` | `/api/coach/offres/{id}` | Offre |
-| 5 | `DELETE` | `/api/coach/offres/{id}` | Offre |
-| 6 | `GET` | `/api/coach/contrats` | Contrat |
-| 7 | `POST` | `/api/coach/contrats` | Contrat |
-| 8 | `GET` | `/api/coach/contrats/{id}` | Contrat |
-| 9 | `PUT` | `/api/coach/contrats/{id}` | Contrat |
-| 10 | `DELETE` | `/api/coach/contrats/{id}` | Contrat |
-| 11 | `GET` | `/api/coach/contrats-expiration` | Contrat |
-| 12 | `GET` | `/api/coach/seances` | Séance |
-| 13 | `POST` | `/api/coach/seances` | Séance |
-| 14 | `GET` | `/api/coach/seances/{id}` | Séance |
-| 15 | `PUT` | `/api/coach/seances/{id}` | Séance |
-| 16 | `DELETE` | `/api/coach/seances/{id}` | Séance |
-| 17 | `POST` | `/api/coach/seances/{id}/inscrire` | Séance |
-| 18 | `DELETE` | `/api/coach/seances/{id}/desinscrire/{clientId}` | Séance |
-| 19 | `PUT` | `/api/coach/seances/{id}/presence/{clientId}` | Séance |
-| 20 | `PUT` | `/api/coach/seances/{id}/feedback-coach/{clientId}` | Séance |
-| 21 | `GET` | `/api/coach/exercices` | Exercice |
-| 22 | `POST` | `/api/coach/exercices` | Exercice |
-| 23 | `GET` | `/api/coach/exercices/{id}` | Exercice |
-| 24 | `PUT` | `/api/coach/exercices/{id}` | Exercice |
-| 25 | `DELETE` | `/api/coach/exercices/{id}` | Exercice |
-| 26 | `GET` | `/api/coach/paiements` | Paiement |
-| 27 | `POST` | `/api/coach/paiements` | Paiement |
-| 28 | `GET` | `/api/coach/paiements/{id}` | Paiement |
-| 29 | `PUT` | `/api/coach/paiements/{id}` | Paiement |
-| 30 | `DELETE` | `/api/coach/paiements/{id}` | Paiement |
-| 31 | `POST` | `/api/coach/paiements/{id}/valider` | Paiement |
-| 32 | `POST` | `/api/coach/paiements/{id}/rembourser` | Paiement |
-| 33 | `POST` | `/api/coach/paiements/{id}/annuler` | Paiement |
-| 34 | `GET` | `/api/coach/paiements-statistiques` | Paiement |
-| 35 | `GET` | `/api/coach/programmes` | Programme |
-| 36 | `POST` | `/api/coach/programmes` | Programme |
-| 37 | `GET` | `/api/coach/programmes/{id}` | Programme |
-| 38 | `PUT` | `/api/coach/programmes/{id}` | Programme |
-| 39 | `DELETE` | `/api/coach/programmes/{id}` | Programme |
-| 40 | `POST` | `/api/coach/programmes/{id}/exercices` | Programme |
-| 41 | `PUT` | `/api/coach/programmes/{id}/exercices/{exId}` | Programme |
-| 42 | `DELETE` | `/api/coach/programmes/{id}/exercices/{exId}` | Programme |
-| 43 | `POST` | `/api/coach/programmes/{id}/publier` | Programme |
-| 44 | `POST` | `/api/coach/programmes/{id}/depublier` | Programme |
-| 45 | `POST` | `/api/coach/programmes/{id}/archiver` | Programme |
-| 46 | `POST` | `/api/coach/programmes/{id}/dupliquer` | Programme |
-| 47 | `GET` | `/api/coach/factures` | Facture |
-| 48 | `POST` | `/api/coach/factures` | Facture |
-| 49 | `GET` | `/api/coach/factures/{id}` | Facture |
-| 50 | `PUT` | `/api/coach/factures/{id}` | Facture |
-| 51 | `DELETE` | `/api/coach/factures/{id}` | Facture |
-| 52 | `POST` | `/api/coach/factures/{id}/emettre` | Facture |
-| 53 | `POST` | `/api/coach/factures/{id}/payer` | Facture |
-| 54 | `POST` | `/api/coach/factures/{id}/annuler` | Facture |
-| 55 | `GET` | `/api/coach/factures/{id}/pdf` | Facture |
-| 56 | `GET` | `/api/coach/factures-en-retard` | Facture |
-| 57 | `GET` | `/api/coach/factures-stats` | Facture |
+| #   | Méthode  | URL                                                 | Module    |
+| --- | -------- | --------------------------------------------------- | --------- |
+| 1   | `GET`    | `/api/coach/offres`                                 | Offre     |
+| 2   | `POST`   | `/api/coach/offres`                                 | Offre     |
+| 3   | `GET`    | `/api/coach/offres/{id}`                            | Offre     |
+| 4   | `PUT`    | `/api/coach/offres/{id}`                            | Offre     |
+| 5   | `DELETE` | `/api/coach/offres/{id}`                            | Offre     |
+| 6   | `GET`    | `/api/coach/contrats`                               | Contrat   |
+| 7   | `POST`   | `/api/coach/contrats`                               | Contrat   |
+| 8   | `GET`    | `/api/coach/contrats/{id}`                          | Contrat   |
+| 9   | `PUT`    | `/api/coach/contrats/{id}`                          | Contrat   |
+| 10  | `DELETE` | `/api/coach/contrats/{id}`                          | Contrat   |
+| 11  | `GET`    | `/api/coach/contrats-expiration`                    | Contrat   |
+| 12  | `GET`    | `/api/coach/seances`                                | Séance    |
+| 13  | `POST`   | `/api/coach/seances`                                | Séance    |
+| 14  | `GET`    | `/api/coach/seances/{id}`                           | Séance    |
+| 15  | `PUT`    | `/api/coach/seances/{id}`                           | Séance    |
+| 16  | `DELETE` | `/api/coach/seances/{id}`                           | Séance    |
+| 17  | `POST`   | `/api/coach/seances/{id}/inscrire`                  | Séance    |
+| 18  | `DELETE` | `/api/coach/seances/{id}/desinscrire/{clientId}`    | Séance    |
+| 19  | `PUT`    | `/api/coach/seances/{id}/presence/{clientId}`       | Séance    |
+| 20  | `PUT`    | `/api/coach/seances/{id}/feedback-coach/{clientId}` | Séance    |
+| 21  | `GET`    | `/api/coach/exercices`                              | Exercice  |
+| 22  | `POST`   | `/api/coach/exercices`                              | Exercice  |
+| 23  | `GET`    | `/api/coach/exercices/{id}`                         | Exercice  |
+| 24  | `PUT`    | `/api/coach/exercices/{id}`                         | Exercice  |
+| 25  | `DELETE` | `/api/coach/exercices/{id}`                         | Exercice  |
+| 26  | `GET`    | `/api/coach/paiements`                              | Paiement  |
+| 27  | `POST`   | `/api/coach/paiements`                              | Paiement  |
+| 28  | `GET`    | `/api/coach/paiements/{id}`                         | Paiement  |
+| 29  | `PUT`    | `/api/coach/paiements/{id}`                         | Paiement  |
+| 30  | `DELETE` | `/api/coach/paiements/{id}`                         | Paiement  |
+| 31  | `POST`   | `/api/coach/paiements/{id}/valider`                 | Paiement  |
+| 32  | `POST`   | `/api/coach/paiements/{id}/rembourser`              | Paiement  |
+| 33  | `POST`   | `/api/coach/paiements/{id}/annuler`                 | Paiement  |
+| 34  | `GET`    | `/api/coach/paiements-statistiques`                 | Paiement  |
+| 35  | `GET`    | `/api/coach/programmes`                             | Programme |
+| 36  | `POST`   | `/api/coach/programmes`                             | Programme |
+| 37  | `GET`    | `/api/coach/programmes/{id}`                        | Programme |
+| 38  | `PUT`    | `/api/coach/programmes/{id}`                        | Programme |
+| 39  | `DELETE` | `/api/coach/programmes/{id}`                        | Programme |
+| 40  | `POST`   | `/api/coach/programmes/{id}/exercices`              | Programme |
+| 41  | `PUT`    | `/api/coach/programmes/{id}/exercices/{exId}`       | Programme |
+| 42  | `DELETE` | `/api/coach/programmes/{id}/exercices/{exId}`       | Programme |
+| 43  | `POST`   | `/api/coach/programmes/{id}/publier`                | Programme |
+| 44  | `POST`   | `/api/coach/programmes/{id}/depublier`              | Programme |
+| 45  | `POST`   | `/api/coach/programmes/{id}/archiver`               | Programme |
+| 46  | `POST`   | `/api/coach/programmes/{id}/dupliquer`              | Programme |
+| 47  | `GET`    | `/api/coach/factures`                               | Facture   |
+| 48  | `POST`   | `/api/coach/factures`                               | Facture   |
+| 49  | `GET`    | `/api/coach/factures/{id}`                          | Facture   |
+| 50  | `PUT`    | `/api/coach/factures/{id}`                          | Facture   |
+| 51  | `DELETE` | `/api/coach/factures/{id}`                          | Facture   |
+| 52  | `POST`   | `/api/coach/factures/{id}/emettre`                  | Facture   |
+| 53  | `POST`   | `/api/coach/factures/{id}/payer`                    | Facture   |
+| 54  | `POST`   | `/api/coach/factures/{id}/annuler`                  | Facture   |
+| 55  | `GET`    | `/api/coach/factures/{id}/pdf`                      | Facture   |
+| 56  | `GET`    | `/api/coach/factures-en-retard`                     | Facture   |
+| 57  | `GET`    | `/api/coach/factures-stats`                         | Facture   |
 
 ### Routes Client (`/api/client/...`) — Authentification requise + rôle client
 
-| # | Méthode | URL | Module |
-|---|---------|-----|--------|
-| 58 | `GET` | `/api/client/seances` | Séance |
-| 59 | `POST` | `/api/client/seances/{id}/feedback` | Séance |
+| #   | Méthode | URL                                 | Module |
+| --- | ------- | ----------------------------------- | ------ |
+| 58  | `GET`   | `/api/client/seances`               | Séance |
+| 59  | `POST`  | `/api/client/seances/{id}/feedback` | Séance |
 
 ### Routes Auth (`/api/...`) — Publiques
 
-| # | Méthode | URL | Description |
-|---|---------|-----|-------------|
-| 60 | `POST` | `/api/register` | Inscription |
-| 61 | `POST` | `/api/login` | Connexion |
-| 62 | `POST` | `/api/forgot-password` | Mot de passe oublié |
-| 63 | `POST` | `/api/reset-password` | Réinitialiser mot de passe |
-| 64 | `POST` | `/api/logout` | Déconnexion (auth) |
-| 65 | `GET` | `/api/user` | Utilisateur connecté (auth) |
+| #   | Méthode | URL                    | Description                 |
+| --- | ------- | ---------------------- | --------------------------- |
+| 60  | `POST`  | `/api/register`        | Inscription                 |
+| 61  | `POST`  | `/api/login`           | Connexion                   |
+| 62  | `POST`  | `/api/forgot-password` | Mot de passe oublié         |
+| 63  | `POST`  | `/api/reset-password`  | Réinitialiser mot de passe  |
+| 64  | `POST`  | `/api/logout`          | Déconnexion (auth)          |
+| 65  | `GET`   | `/api/user`            | Utilisateur connecté (auth) |
 
 ---
 
