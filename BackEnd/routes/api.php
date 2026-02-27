@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContratController;
+use App\Http\Controllers\ExerciceController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\SeanceController;
 use App\Http\Resources\UserResources;
@@ -64,6 +65,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Feedback du coach sur un client
         Route::put('/seances/{seance}/feedback-coach/{clientId}', [SeanceController::class, 'feedbackCoach']);
+
+        // Routes Exercices (CRUD)
+        Route::apiResource('exercices', ExerciceController::class);
     });
 
     /*
