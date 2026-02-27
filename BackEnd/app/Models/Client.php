@@ -70,6 +70,14 @@ class Client extends Model
     }
 
     /**
+     * Les contrats du client
+     */
+    public function contrats(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Contrat::class);
+    }
+
+    /**
      * Obtenir le nom complet via l'utilisateur
      */
     public function getFullNameAttribute(): string

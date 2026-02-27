@@ -76,21 +76,21 @@ class Coach extends Model
     //                 ->withTimestamps();
     // }
 
-    // /**
-    //  * Les offres du coach
-    //  */
-    // public function offers(): HasMany
-    // {
-    //     return $this->hasMany(Offer::class);
-    // }
+    /**
+     * Les offres du coach
+     */
+    public function offres(): HasMany
+    {
+        return $this->hasMany(Offre::class);
+    }
 
-    // /**
-    //  * Les contrats du coach
-    //  */
-    // public function contracts(): HasMany
-    // {
-    //     return $this->hasMany(Contract::class);
-    // }
+    /**
+     * Les contrats du coach
+     */
+    public function contrats(): HasMany
+    {
+        return $this->hasMany(Contrat::class);
+    }
 
     // /**
     //  * Les exercices créés par le coach

@@ -21,6 +21,9 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             // UserSeeder::class,
             // CoachSeeder::class,
+            // ClientSeeder::class,
+            // OffreSeeder::class,
+            // ContratSeeder::class,
             // Autres seeders...
         ]);
     }
