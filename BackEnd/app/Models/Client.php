@@ -79,6 +79,14 @@ class Client extends Model
     }
 
     /**
+     * Les factures du client
+     */
+    public function factures(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Facture::class);
+    }
+
+    /**
      * Les séances auxquelles le client est inscrit
      */
     public function seances(): BelongsToMany

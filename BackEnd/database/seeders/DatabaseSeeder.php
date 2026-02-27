@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             // ContratSeeder::class,
             // ExerciceSeeder::class,
             // ProgrammeSeeder::class,
+            // FactureSeeder::class,
             // Autres seeders...
         ]);
     }

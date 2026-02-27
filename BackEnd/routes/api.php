@@ -3,6 +3,7 @@
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContratController;
 use App\Http\Controllers\ExerciceController;
+use App\Http\Controllers\FactureController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\ProgrammeController;
 use App\Http\Controllers\SeanceController;
@@ -83,6 +84,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/programmes/{programme}/depublier', [ProgrammeController::class, 'depublier']);
         Route::post('/programmes/{programme}/archiver', [ProgrammeController::class, 'archiver']);
         Route::post('/programmes/{programme}/dupliquer', [ProgrammeController::class, 'dupliquer']);
+
+        // ── Routes Factures (CRUD + Actions) ──
+        Route::apiResource('factures', FactureController::class);
+
+        // Actions sur les factures
+        Route::post('/factures/{facture}/emettre', [FactureController::class, 'emettre']);
+        Route::post('/factures/{facture}/payer', [FactureController::class, 'payer']);
+        Route::post('/factures/{facture}/annuler', [FactureController::class, 'annuler']);
+        Route::get('/factures/{facture}/pdf', [FactureController::class, 'exportPdf']);
+
+        // Factures en retard et statistiques
+        Route::get('/factures-en-retard', [FactureController::class, 'enRetard']);
+        Route::get('/factures-stats', [FactureController::class, 'statistiques']);
     });
 
     /*
