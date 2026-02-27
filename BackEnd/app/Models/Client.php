@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
@@ -67,6 +68,16 @@ class Client extends Model
     public function coach(): BelongsTo
     {
         return $this->belongsTo(Coach::class);
+    }
+
+    /**
+     * Les séances auxquelles le client est inscrit
+     */
+    public function seances(): BelongsToMany
+    {
+        return $this->belongsToMany(Seance::class, 'seance_client')
+                    ->withPivot(['statut_presence', 'feedback_client', 'feedback_coach', 'note'])
+                    ->withTimestamps();
     }
 
     /**

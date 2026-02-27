@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\SeanceController;
 use App\Http\Resources\UserResources;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -42,6 +43,34 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Routes Clients (CRUD)
         Route::apiResource('clients', ClientController::class);
+
+        // ── Routes Séances (CRUD) ──
+        Route::apiResource('seances', SeanceController::class);
+
+        // Gestion des inscriptions
+        Route::post('/seances/{seance}/inscrire', [SeanceController::class, 'inscrireClient']);
+        Route::delete('/seances/{seance}/desinscrire/{clientId}', [SeanceController::class, 'desinscrireClient']);
+
+        // Gestion de la présence
+        Route::put('/seances/{seance}/presence/{clientId}', [SeanceController::class, 'marquerPresence']);
+
+        // Feedback du coach sur un client
+        Route::put('/seances/{seance}/feedback-coach/{clientId}', [SeanceController::class, 'feedbackCoach']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes réservées aux CLIENTS
+    |--------------------------------------------------------------------------
+    | Middleware : is_client
+    | Rôle requis : client
+    */
+    Route::middleware('is_client')->prefix('client')->group(function () {
+        // Mes séances (le client voit ses séances)
+        Route::get('/seances', [SeanceController::class, 'mesSeances']);
+
+        // Feedback du client sur une séance
+        Route::post('/seances/{seance}/feedback', [SeanceController::class, 'feedbackClient']);
     });
 
     /*
