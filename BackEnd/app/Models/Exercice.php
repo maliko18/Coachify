@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Exercice extends Model
@@ -138,5 +139,15 @@ class Exercice extends Model
     public function scopeMuscleCible($query, string $muscle)
     {
         return $query->whereJsonContains('muscles_cibles', $muscle);
+    }
+
+    /**
+     * Les programmes qui contiennent cet exercice
+     */
+    public function programmes(): BelongsToMany
+    {
+        return $this->belongsToMany(Programme::class, 'programme_exercice')
+            ->withPivot(['ordre', 'jour_semaine', 'series', 'repetitions', 'duree_minutes', 'repos_secondes', 'instructions'])
+            ->withTimestamps();
     }
 }
