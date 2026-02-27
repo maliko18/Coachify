@@ -79,6 +79,14 @@ class Client extends Model
     }
 
     /**
+     * Les paiements du client
+     */
+    public function paiements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Paiement::class);
+    }
+
+    /**
      * Les séances auxquelles le client est inscrit
      */
     public function seances(): BelongsToMany
