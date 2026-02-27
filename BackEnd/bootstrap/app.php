@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'is_coach' => \App\Http\Middleware\EnsureUserIsCoach::class,
+            'is_client' => \App\Http\Middleware\IsClient::class,
             'is_admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'is_gym_manager' => \App\Http\Middleware\EnsureUserIsGymManager::class,
         ]);
