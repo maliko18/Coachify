@@ -100,13 +100,13 @@ class Coach extends Model
         return $this->hasMany(Contrat::class);
     }
 
-    // /**
-    //  * Les exercices créés par le coach
-    //  */
-    // public function exercises(): HasMany
-    // {
-    //     return $this->hasMany(Exercise::class);
-    // }
+    /**
+     * Les exercices créés par le coach
+     */
+    public function exercices(): HasMany
+    {
+        return $this->hasMany(Exercice::class);
+    }
 
     // /**
     //  * Les modèles de séances du coach
