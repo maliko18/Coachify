@@ -67,6 +67,14 @@ class Coach extends Model
     }
 
     /**
+     * Les programmes du coach
+     */
+    public function programmes(): HasMany
+    {
+        return $this->hasMany(Programme::class);
+    }
+
+    /**
      * Les clients du coach
      */
     // public function clients(): HasMany
