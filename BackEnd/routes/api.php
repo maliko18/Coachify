@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ContratController;
+use App\Http\Controllers\OffreController;
 use App\Http\Controllers\SeanceController;
 use App\Http\Resources\UserResources;
 use Illuminate\Http\Request;
@@ -44,6 +46,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Routes Clients (CRUD)
         Route::apiResource('clients', ClientController::class);
 
+        // Routes Offres (CRUD)
+        Route::apiResource('offres', OffreController::class);
+
+        // Routes Contrats (CRUD)
+        Route::apiResource('contrats', ContratController::class);
+        Route::get('contrats-expiration', [ContratController::class, 'expirationProche']);
         // ── Routes Séances (CRUD) ──
         Route::apiResource('seances', SeanceController::class);
 
