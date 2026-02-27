@@ -84,6 +84,11 @@ class Client extends Model
     public function factures(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Facture::class);
+     * Les paiements du client
+     */
+    public function paiements(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Paiement::class);
     }
 
     /**

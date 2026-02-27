@@ -5,6 +5,7 @@ use App\Http\Controllers\ContratController;
 use App\Http\Controllers\ExerciceController;
 use App\Http\Controllers\FactureController;
 use App\Http\Controllers\OffreController;
+use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\ProgrammeController;
 use App\Http\Controllers\SeanceController;
 use App\Http\Resources\UserResources;
@@ -70,6 +71,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Routes Exercices (CRUD)
         Route::apiResource('exercices', ExerciceController::class);
+
+        // Routes Paiements (CRUD)
+        Route::apiResource('paiements', PaiementController::class);
+        Route::post('paiements/{paiement}/valider', [PaiementController::class, 'valider']);
+        Route::post('paiements/{paiement}/rembourser', [PaiementController::class, 'rembourser']);
+        Route::post('paiements/{paiement}/annuler', [PaiementController::class, 'annuler']);
+        Route::get('paiements-statistiques', [PaiementController::class, 'statistiques']);
 
         // ── Routes Programmes (CRUD) ──
         Route::apiResource('programmes', ProgrammeController::class);

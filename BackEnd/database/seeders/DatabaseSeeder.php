@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             // ExerciceSeeder::class,
             // ProgrammeSeeder::class,
             // FactureSeeder::class,
+            // PaiementSeeder::class,
             // Autres seeders...
         ]);
     }

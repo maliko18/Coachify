@@ -116,6 +116,14 @@ class Coach extends Model
         return $this->hasMany(Exercice::class);
     }
 
+    /**
+     * Les paiements reçus par le coach
+     */
+    public function paiements(): HasMany
+    {
+        return $this->hasMany(Paiement::class);
+    }
+
     // /**
     //  * Les modèles de séances du coach
     //  */
