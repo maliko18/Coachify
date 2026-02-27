@@ -70,6 +70,14 @@ class Client extends Model
         return $this->belongsTo(Coach::class);
     }
 
+     /**
+     * Les contrats du client
+     */
+    public function contrats(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Contrat::class);
+    }
+
     /**
      * Les séances auxquelles le client est inscrit
      */
