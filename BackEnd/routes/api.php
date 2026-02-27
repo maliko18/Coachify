@@ -4,6 +4,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ContratController;
 use App\Http\Controllers\ExerciceController;
 use App\Http\Controllers\OffreController;
+use App\Http\Controllers\ProgrammeController;
 use App\Http\Controllers\SeanceController;
 use App\Http\Resources\UserResources;
 use Illuminate\Http\Request;
@@ -68,6 +69,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Routes Exercices (CRUD)
         Route::apiResource('exercices', ExerciceController::class);
+
+        // ── Routes Programmes (CRUD) ──
+        Route::apiResource('programmes', ProgrammeController::class);
+
+        // Gestion des exercices dans un programme
+        Route::post('/programmes/{programme}/exercices', [ProgrammeController::class, 'ajouterExercice']);
+        Route::put('/programmes/{programme}/exercices/{exercice}', [ProgrammeController::class, 'modifierExercice']);
+        Route::delete('/programmes/{programme}/exercices/{exercice}', [ProgrammeController::class, 'retirerExercice']);
+
+        // Actions sur les programmes
+        Route::post('/programmes/{programme}/publier', [ProgrammeController::class, 'publier']);
+        Route::post('/programmes/{programme}/depublier', [ProgrammeController::class, 'depublier']);
+        Route::post('/programmes/{programme}/archiver', [ProgrammeController::class, 'archiver']);
+        Route::post('/programmes/{programme}/dupliquer', [ProgrammeController::class, 'dupliquer']);
     });
 
     /*
