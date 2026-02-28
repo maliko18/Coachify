@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import heroBg from "../assets/breadcrumb-bg2.jpg";
@@ -55,6 +55,7 @@ type RevenueStat = {
 export default function CoachDashboard() {
 
   function BookingRow({
+  id,
   img,
   name,
   type,
@@ -62,6 +63,7 @@ export default function CoachDashboard() {
   time,
   price,
 }: {
+  id: string;
   img: string;
   name: string;
   type: string;
@@ -87,9 +89,32 @@ export default function CoachDashboard() {
 
       <div className="flex items-center gap-4">
         <p className="text-lg font-extrabold text-green-600">{price}</p>
-        <button className="w-8 h-8 rounded-full border border-gray-200 text-gray-400">
-          ...
-        </button>
+        <div className="relative">
+  <button
+    type="button"
+    onClick={() =>
+      setOpenBookingMenuId(openBookingMenuId === id ? null : id)
+    }
+    className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center"
+  >
+    •••
+  </button>
+
+  {openBookingMenuId === id && (
+    <div className="absolute right-0 top-12 w-40 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20">
+      <button
+  type="button"
+  onClick={() => {
+    alert("Cancel clicked (UI only)");
+    setOpenBookingMenuId(null);
+  }}
+  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+>
+  ⓧ Cancel
+</button>
+    </div>
+  )}
+</div>
       </div>
     </div>
   );
@@ -273,6 +298,157 @@ function BadgeTodo({ label }: { label: string }) {
     []
   );
 
+    // ✅ Booking Requests tabs
+  const [bookingTab, setBookingTab] = useState<"court" | "coaching">("court");
+
+  const bookingRequestsCourt = [
+    { img: booking2, name: "Wing Sports Academy", court: "Court 1" },
+    { img: booking3, name: "Feather Badminton", court: "Court 1" },
+    { img: booking4, name: "Bwing Sports Academy", court: "Court 3" },
+  ];
+
+  // ✅ This matches your screenshot (Coaching tab)
+  const bookingRequestsCoaching = [
+    { img: coachImg, name: "Kevin Anderson", court: "Court 1" },
+    { img: fav2, name: "Kevin Anderson", court: "Court 2" },
+    { img: fav3, name: "Kevin Anderson", court: "Court 3" },
+  ];
+
+  const bookingRequestsData =
+    bookingTab === "court" ? bookingRequestsCourt : bookingRequestsCoaching;
+  
+  const [earningsHover, setEarningsHover] = useState<null | "court" | "coaching">(null);
+
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+const [walletAmount, setWalletAmount] = useState("");
+const [selectedValue, setSelectedValue] = useState<null | "v1" | "v2" | "v3" | "v4">("v1");
+const [gateway, setGateway] = useState<"card" | "paypal">("paypal");
+
+const [myBookingsTab, setMyBookingsTab] = useState<"court" | "coaching">("court");
+const [openBookingMenuId, setOpenBookingMenuId] = useState<string | null>(null);
+
+const myBookingsCourt = [
+  { id: "court-1", img: booking2, title: "Leap Sports Academy", subtitle: "Court 1", guests: "Guests : 4", duration: "2 Hrs", date: "Mon, Jul 11", time: "06:00 PM - 08:00 PM", price: "$400" },
+  { id: "court-2", img: booking3, title: "Wing Sports Academy", subtitle: "Court 2", guests: "Guests : 3", duration: "1 Hr",  date: "Tue, Jul 12", time: "07:00 PM - 08:00 PM", price: "$240" },
+  { id: "court-3", img: booking4, title: "Feather Badminton",   subtitle: "Court 1", guests: "Guests : 1", duration: "4 Hrs", date: "Wed, Jul 13", time: "10:00 PM - 11:00 PM", price: "$320" },
+  { id: "court-4", img: booking5, title: "Bwing Sports Academy", subtitle: "Court 3", guests: "Guests : 5", duration: "6 Hrs", date: "Thu, Jul 14", time: "09:00 AM - 10:00 AM", price: "$710" },
+  { id: "court-5", img: booking6, title: "Wing Sports Academy",  subtitle: "Court 2", guests: "Guests : 3", duration: "1 Hr",  date: "Tue, Jul 12", time: "07:00 PM - 08:00 PM", price: "$240" },
+  { id: "court-6", img: bookingImg, title: "Marsh Academy",      subtitle: "Court 2", guests: "Guests : 3", duration: "2 Hrs", date: "Fri, Jul 15", time: "11:00 AM - 12:00 PM", price: "$820" },
+];
+
+const myBookingsCoaching = [
+  { id: "coach-1", img: coachImg, title: "Kevin Anderson",    subtitle: "Onetime",        guests: "Guests : 4", duration: "2 Hrs", date: "Mon, Jul 11", time: "06:00 PM - 08:00 PM", price: "$400" },
+  { id: "coach-2", img: fav2,     title: "Angela Roudrigez",  subtitle: "Single Lesson",  guests: "Guests : 3", duration: "1 Hr",  date: "Tue, Jul 12", time: "07:00 PM - 08:00 PM", price: "$240" },
+  { id: "coach-3", img: fav3,     title: "Evon Raddick",      subtitle: "Onetime",        guests: "Guests : 1", duration: "4 Hrs", date: "Wed, Jul 13", time: "10:00 PM - 11:00 PM", price: "$320" },
+  { id: "coach-4", img: fav2,     title: "Angela Roudrigez",  subtitle: "Single Lesson",  guests: "Guests : 3", duration: "1 Hr",  date: "Tue, Jul 12", time: "07:00 PM - 08:00 PM", price: "$240" },
+  { id: "coach-5", img: fav4,     title: "Harry Richardson",  subtitle: "Onetime",        guests: "Guests : 5", duration: "6 Hrs", date: "Thu, Jul 14", time: "09:00 AM - 10:00 AM", price: "$710" },
+  { id: "coach-6", img: fav1,     title: "Pete Hill",         subtitle: "Onetime",        guests: "Guests : 3", duration: "2 Hrs", date: "Fri, Jul 15", time: "11:00 AM - 12:00 PM", price: "$820" },
+];
+
+const myBookingsData = myBookingsTab === "court" ? myBookingsCourt : myBookingsCoaching;
+
+const [invoiceTab, setInvoiceTab] = useState<"court" | "coaching">("court");
+
+const invoicesCourt = [
+  {
+    id: "inv-court-1",
+    img: bookingImg,
+    name: "Leap Sports Academy",
+    sub: "Court 1",
+    date: "Mon, Jul 11",
+    time: "06:00 PM - 08:00 PM",
+    payment: "$800",
+    paidOn: "Jul 11, 2023",
+    status: "Paid",
+  },
+  {
+    id: "inv-court-2",
+    img: booking2,
+    name: "Wing Sports Academy",
+    sub: "Court 2",
+    date: "Tue, Jul 12",
+    time: "05:00 PM - 06:00 PM",
+    payment: "$120",
+    paidOn: "Jul 12, 2023",
+    status: "Paid",
+  },
+  {
+    id: "inv-court-3",
+    img: booking3,
+    name: "Feather Badminton",
+    sub: "Court 3",
+    date: "Wed, Jul 13",
+    time: "10:00 AM - 11:00 AM",
+    payment: "$470",
+    paidOn: "Jul 13, 2023",
+    status: "Paid",
+  },
+  {
+    id: "inv-court-4",
+    img: booking4,
+    name: "Bwing Sports Academy",
+    sub: "Court 4",
+    date: "Thu, Jul 14",
+    time: "12:00 PM - 01:00 PM",
+    payment: "$200",
+    paidOn: "Jul 14, 2023",
+    status: "Paid",
+  },
+];
+
+const invoicesCoaching = [
+  {
+    id: "inv-coach-1",
+    img: coachImg,
+    name: "Kevin Anderson",
+    sub: "Booked on : 25 May 2023",
+    invoice: "Onetime",
+    date: "Mon, Jul 11",
+    time: "06:00 PM - 08:00 PM",
+    payment: "$800",
+    paidOn: "Jul 11, 2023",
+    status: "Paid",
+  },
+  {
+    id: "inv-coach-2",
+    img: fav2,
+    name: "Angela Roudrigez",
+    sub: "Booked on : 26 May 2023",
+    invoice: "Single Lesson",
+    date: "Tue, Jul 12",
+    time: "05:00 PM - 06:00 PM",
+    payment: "$120",
+    paidOn: "Jul 12, 2023",
+    status: "Paid",
+  },
+  {
+    id: "inv-coach-3",
+    img: fav3,
+    name: "Evon Raddickz",
+    sub: "Booked on : 27 May 2023",
+    invoice: "Onetime",
+    date: "Wed, Jul 13",
+    time: "10:00 AM - 11:00 AM",
+    payment: "$470",
+    paidOn: "Jul 13, 2023",
+    status: "Paid",
+  },
+  {
+    id: "inv-coach-4",
+    img: fav4,
+    name: "Harry Richardson",
+    sub: "Booked on : 28 May 2023",
+    invoice: "Onetime",
+    date: "Thu, Jul 14",
+    time: "12:00 PM - 01:00 PM",
+    payment: "$200",
+    paidOn: "Jul 14, 2023",
+    status: "Paid",
+  },
+];
+
+const invoicesData = invoiceTab === "court" ? invoicesCourt : invoicesCoaching;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ================= HEADER (same as User, Coach active) ================= */}
@@ -443,10 +619,10 @@ function BadgeTodo({ label }: { label: string }) {
     <div className="mt-6">
       <div className="flex justify-between text-sm font-semibold text-gray-700">
         <span>Today</span>
-        <span>100%</span>
+        <span>70%</span>
       </div>
       <div className="mt-2 h-2 rounded-full bg-gray-200 overflow-hidden">
-        <div className="h-full bg-green-600 w-full" />
+        <div className="h-full bg-green-600 w-[70%]" />
       </div>
     </div>
 
@@ -478,16 +654,16 @@ function BadgeTodo({ label }: { label: string }) {
   <div className="flex items-start justify-between gap-4">
     <div>
       <h2 className="text-xl font-extrabold text-gray-900">
-        Upcoming Appointment
+        Ongoing Appointment
       </h2>
       <p className="text-gray-500 mt-1">
-        Manage your next scheduled session
+        Manage appointments with our convenient scheduling system
       </p>
     </div>
 
-    <span className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-semibold">
-      Upcoming
-    </span>
+    <span className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition duration-200">
+  Complete
+</span>
   </div>
 
   <div className="mt-6 grid grid-cols-1 md:grid-cols-7 gap-6 items-center">
@@ -560,22 +736,33 @@ function BadgeTodo({ label }: { label: string }) {
       </p>
     </div>
 
-    <div className="flex gap-2">
-      <button className="bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
-        Court
-      </button>
-      <button className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
-        Coaching
-      </button>
-    </div>
+    <div className="flex gap-2 bg-gray-50 p-1 rounded-full">
+  <button
+    onClick={() => setBookingTab("court")}
+    className={
+      bookingTab === "court"
+        ? "bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full"
+        : "bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full"
+    }
+  >
+    Court
+  </button>
+
+  <button
+    onClick={() => setBookingTab("coaching")}
+    className={
+      bookingTab === "coaching"
+        ? "bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full"
+        : "bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full"
+    }
+  >
+    Coaching
+  </button>
+</div>
   </div>
 
   <div className="mt-5 divide-y">
-    {[
-      { img: booking2, name: "Wing Sports Academy", court: "Court 1" },
-      { img: booking3, name: "Feather Badminton", court: "Court 1" },
-      { img: booking4, name: "Bwing Sports Academy", court: "Court 3" },
-    ].map((b, i) => (
+    {bookingRequestsData.map((b, i) => (
       <div key={i} className="py-3 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <img src={b.img} className="w-10 h-10 rounded-lg object-cover" />
@@ -652,19 +839,58 @@ function BadgeTodo({ label }: { label: string }) {
     </div>
 
     <div className="mt-8 flex justify-center">
-      <div
-        className="w-40 h-40 rounded-full flex items-center justify-center"
-        style={{
-          background:
-            "conic-gradient(#22c55e 0% 65%, #86efac 65% 80%, #e5e7eb 80% 100%)",
-        }}
-      >
-        <div className="w-28 h-28 bg-white rounded-full flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-sm text-gray-500">Total Earnings</p>
-            <p className="text-2xl font-extrabold text-gray-900">4050</p>
-          </div>
-        </div>
+  <div className="relative w-40 h-40 flex items-center justify-center">
+    {/* SVG donut */}
+    <svg viewBox="0 0 36 36" className="w-40 h-40">
+      {/* Background ring */}
+      <path
+        d="M18 2 a 16 16 0 1 1 0 32 a 16 16 0 1 1 0 -32"
+        fill="none"
+        stroke="#e5e7eb"
+        strokeWidth="4"
+      />
+
+      {/* Courts segment (example: 65%) */}
+      <path
+        d="M18 2 a 16 16 0 1 1 0 32 a 16 16 0 1 1 0 -32"
+        fill="none"
+        stroke="#22c55e"
+        strokeWidth="4"
+        strokeDasharray="65 35"
+        strokeDashoffset="0"
+        onMouseEnter={() => setEarningsHover("court")}
+        onMouseLeave={() => setEarningsHover(null)}
+        style={{ cursor: "pointer" }}
+      />
+
+      {/* Coaching segment (example: 15%) */}
+      {/* 65% already used, so this starts after it => dashoffset -65 */}
+      <path
+        d="M18 2 a 16 16 0 1 1 0 32 a 16 16 0 1 1 0 -32"
+        fill="none"
+        stroke="#86efac"
+        strokeWidth="4"
+        strokeDasharray="15 85"
+        strokeDashoffset="-65"
+        onMouseEnter={() => setEarningsHover("coaching")}
+        onMouseLeave={() => setEarningsHover(null)}
+        style={{ cursor: "pointer" }}
+      />
+    </svg>
+
+    {/* Center label */}
+    <div className="absolute w-28 h-28 bg-white rounded-full flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-sm text-gray-500">
+          {earningsHover === "court"
+            ? "Courts (65%)"
+            : earningsHover === "coaching"
+            ? "Coaching (15%)"
+            : "Total Earnings"}
+        </p>
+        <p className="text-2xl font-extrabold text-gray-900">4050</p>
+      </div>
+    </div>
       </div>
     </div>
   </div>
@@ -730,63 +956,114 @@ function BadgeTodo({ label }: { label: string }) {
 <div className="mt-10 grid gap-6 lg:grid-cols-3">
   
   {/* LEFT – MY BOOKINGS */}
-  <div className="lg:col-span-2 rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
-    <h2 className="text-xl font-extrabold text-[color:var(--primary)]">
-      My Bookings
-    </h2>
-    <p className="text-gray-500 mt-1">Expertly manage coaching bookings</p>
+<div className="lg:col-span-2 rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
+  {/* Header + Tabs */}
+  <div className="flex items-start justify-between gap-4">
+    <div>
+      <h2 className="text-xl font-extrabold text-[color:var(--primary)]">
+        My Bookings
+      </h2>
+      <p className="text-gray-500 mt-1">Expertly manage court bookings</p>
+    </div>
 
-    <div className="mt-6 divide-y divide-gray-100">
-      <BookingRow
-        img={coachImg}
-        name="Kevin Anderson"
-        type="Onetime"
-        date="Mon, Jul 11"
-        time="06:00 PM - 08:00 PM"
-        price="$400"
-      />
-      <BookingRow
-        img={fav2}
-        name="Angela Roudrigez"
-        type="Single Lesson"
-        date="Tue, Jul 12"
-        time="07:00 PM - 08:00 PM"
-        price="$240"
-      />
-      <BookingRow
-        img={fav3}
-        name="Evon Raddick"
-        type="Onetime"
-        date="Wed, Jul 13"
-        time="10:00 PM - 11:00 PM"
-        price="$320"
-      />
-      <BookingRow
-        img={fav4}
-        name="Angela Roudrigez"
-        type="Single Lesson"
-        date="Tue, Jul 12"
-        time="07:00 PM - 08:00 PM"
-        price="$240"
-      />
-      <BookingRow
-        img={fav5}
-        name="Harry Richardson"
-        type="Onetime"
-        date="Thu, Jul 14"
-        time="09:00 AM - 10:00 AM"
-        price="$710"
-      />
-      <BookingRow
-        img={fav1}
-        name="Pete Hill"
-        type="Onetime"
-        date="Fri, Jul 15"
-        time="11:00 AM - 12:00 PM"
-        price="$820"
-      />
+    {/* Tabs */}
+    <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
+      <button
+        type="button"
+        onClick={() => {
+          setMyBookingsTab("court");
+          setOpenBookingMenuId(null);
+        }}
+        className={
+          myBookingsTab === "court"
+            ? "px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold"
+            : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+        }
+      >
+        Court
+      </button>
+
+      <button
+        type="button"
+        onClick={() => {
+          setMyBookingsTab("coaching");
+          setOpenBookingMenuId(null);
+        }}
+        className={
+          myBookingsTab === "coaching"
+            ? "px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold"
+            : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+        }
+      >
+        Coaching
+      </button>
     </div>
   </div>
+
+  {/* Rows */}
+  <div className="mt-6 divide-y divide-gray-100">
+    {myBookingsData.map((b) => (
+      <div
+        key={b.id}
+        className="py-4 flex items-center justify-between relative"
+      >
+        {/* Left */}
+        <div className="flex items-center gap-4">
+          <img src={b.img} className="w-16 h-16 rounded-xl object-cover" />
+          <div>
+            <p className="font-bold text-gray-900">{b.title}</p>
+            <p className="text-sm text-green-600">{b.subtitle}</p>
+
+            <div className="mt-2 flex items-center gap-3 text-sm text-gray-500">
+              <span>{b.guests}</span>
+              <span className="w-1 h-1 bg-gray-300 rounded-full" />
+              <span>{b.duration}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle */}
+        <div className="text-sm text-gray-500">
+          <p className="font-semibold text-gray-900">Date & Time</p>
+          <p>{b.date}</p>
+          <p>{b.time}</p>
+        </div>
+
+        {/* Right */}
+        <div className="flex items-center gap-4 relative">
+          <p className="text-lg font-extrabold text-green-600">{b.price}</p>
+
+          {/* 3 dots */}
+          <button
+            type="button"
+            onClick={() =>
+              setOpenBookingMenuId((prev) => (prev === b.id ? null : b.id))
+            }
+            className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center"
+          >
+            •••
+          </button>
+
+          {/* Dropdown */}
+          {openBookingMenuId === b.id && (
+            <div className="absolute right-0 top-12 w-40 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20">
+              <button
+                type="button"
+                onClick={() => {
+                  alert(`Cancel booking: ${b.id} (UI only)`);
+                  setOpenBookingMenuId(null);
+                }}
+                className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              >
+                ⓧ Cancel
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
 
   {/* RIGHT SIDEBAR */}
 <div className="space-y-6">
@@ -806,10 +1083,166 @@ function BadgeTodo({ label }: { label: string }) {
         <p className="text-3xl font-extrabold mt-1">$4,544</p>
       </div>
 
-      <button className="px-4 py-2 rounded-xl border border-lime-300 text-lime-200 font-semibold">
-        Add Payment
-      </button>
+      <button
+  onClick={() => setIsWalletModalOpen(true)}
+  className="px-4 py-2 rounded-xl border border-lime-300 text-lime-200 font-semibold"
+>
+  Add Payment
+</button>
     </div>
+    {isWalletModalOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    {/* Overlay */}
+    <button
+  type="button"
+  className="absolute inset-0 bg-black/50"
+  onClick={() => setIsWalletModalOpen(false)}
+  aria-label="Close modal"
+/>
+
+    {/* Modal */}
+    <div className="relative z-10 w-[92%] max-w-md rounded-2xl bg-white shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b">
+        <h3 className="text-lg font-extrabold text-gray-900">Add Payment to Wallet</h3>
+        <button
+          onClick={() => setIsWalletModalOpen(false)}
+          className="text-red-500 text-xl font-bold leading-none"
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
+        {/* Wallet balance card */}
+        <div className="rounded-2xl bg-emerald-700 text-white p-5">
+          <p className="text-sm opacity-90 font-semibold">Your Wallet Balance</p>
+          <p className="text-4xl font-extrabold mt-2">$4,544</p>
+        </div>
+
+        {/* Amount */}
+        <div>
+          <label className="block text-sm font-bold text-gray-900 mb-2">Amount</label>
+         <input
+  type="number"
+  min="0"
+  value={walletAmount}
+  onChange={(e) => setWalletAmount(e.target.value)}
+  placeholder="Enter Amount"
+  className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-200"
+/>
+        </div>
+
+        {/* OR */}
+        <div className="text-sm font-extrabold text-gray-900">OR</div>
+
+        {/* Quick values */}
+        <div className="space-y-3">
+          {[
+            { key: "v1", label: "Add Value 1", amount: 80 },
+            { key: "v2", label: "Add Value 2", amount: 60 },
+            { key: "v3", label: "Add Value 3", amount: 120 },
+            { key: "v4", label: "Add Value 4", amount: 120 },
+          ].map((v) => {
+            const active = selectedValue === (v.key as any);
+            return (
+              <button
+                key={v.key}
+                type="button"
+                onClick={() => {
+                  setSelectedValue(v.key as any);
+                  setWalletAmount(String(v.amount));
+                }}
+                className={`w-full flex items-center justify-between rounded-xl border px-4 py-4 transition
+                  ${active ? "border-emerald-600 bg-emerald-50" : "border-gray-200 bg-gray-50"}
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`h-5 w-5 rounded border flex items-center justify-center text-white text-xs font-black
+                      ${active ? "bg-emerald-600 border-emerald-600" : "bg-white border-gray-300"}
+                    `}
+                  >
+                    {active ? "✓" : ""}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-700">{v.label}</span>
+                </div>
+
+                <span
+                  className={`px-4 py-2 rounded-xl text-sm font-extrabold
+                    ${active ? "bg-sky-500 text-white" : "bg-white text-gray-400 border border-gray-200"}
+                  `}
+                >
+                  + ${v.amount}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Gateway */}
+        <div className="rounded-2xl bg-amber-50/40 border border-amber-100 p-4">
+          <p className="font-extrabold text-gray-900 mb-3">Select Payment Gateway</p>
+
+          <button
+            type="button"
+            onClick={() => setGateway("card")}
+            className={`w-full flex items-center gap-3 rounded-xl border px-4 py-4 bg-white
+              ${gateway === "card" ? "border-emerald-600" : "border-gray-200"}
+            `}
+          >
+            <span className={`h-4 w-4 rounded-full border flex items-center justify-center
+              ${gateway === "card" ? "border-emerald-600" : "border-gray-300"}
+            `}>
+              {gateway === "card" && <span className="h-2 w-2 rounded-full bg-emerald-600" />}
+            </span>
+            <span className="text-sm font-semibold text-gray-700">Credit Card</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setGateway("paypal")}
+            className={`mt-3 w-full flex items-center gap-3 rounded-xl border px-4 py-4 bg-white
+              ${gateway === "paypal" ? "border-emerald-600" : "border-gray-200"}
+            `}
+          >
+            <span className={`h-4 w-4 rounded-full border flex items-center justify-center
+              ${gateway === "paypal" ? "border-emerald-600" : "border-gray-300"}
+            `}>
+              {gateway === "paypal" && <span className="h-2 w-2 rounded-full bg-emerald-600" />}
+            </span>
+            <span className="text-sm font-semibold text-gray-700">Paypal</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-6 py-4 border-t flex items-center justify-end gap-3">
+        <button
+          onClick={() => {
+            setWalletAmount("");
+            setSelectedValue(null);
+            setGateway("paypal");
+          }}
+          className="px-5 py-2 rounded-xl bg-gray-900 text-white font-semibold"
+        >
+          Reset
+        </button>
+
+        <button
+          onClick={() => {
+            // UI only for now
+            setIsWalletModalOpen(false);
+          }}
+          className="px-5 py-2 rounded-xl bg-emerald-700 text-white font-semibold"
+        >
+          Submit
+        </button>
+      </div>
+    </div>
+  </div>
+)}
   </div>
 
   {/* NOTIFICATIONS */}
@@ -911,19 +1344,35 @@ function BadgeTodo({ label }: { label: string }) {
   {/* Header */}
   <div className="flex items-start justify-between gap-4">
     <div>
-      <h2 className="text-xl font-extrabold text-gray-900">
-        Recent Invoices
-      </h2>
+      <h2 className="text-xl font-extrabold text-gray-900">Recent Invoices</h2>
       <p className="text-gray-500 mt-1">
         Lorem Ipsum is simply dummy text of the printing
       </p>
     </div>
 
+    {/* Tabs */}
     <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
-      <button className="px-4 py-2 rounded-lg bg-[color:var(--primary)] text-white text-sm font-semibold">
+      <button
+        type="button"
+        onClick={() => setInvoiceTab("court")}
+        className={
+          invoiceTab === "court"
+            ? "px-4 py-2 rounded-lg bg-[color:var(--primary)] text-white text-sm font-semibold"
+            : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+        }
+      >
         Court
       </button>
-      <button className="px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold">
+
+      <button
+        type="button"
+        onClick={() => setInvoiceTab("coaching")}
+        className={
+          invoiceTab === "coaching"
+            ? "px-4 py-2 rounded-lg bg-[color:var(--primary)] text-white text-sm font-semibold"
+            : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+        }
+      >
         Coaching
       </button>
     </div>
@@ -932,125 +1381,52 @@ function BadgeTodo({ label }: { label: string }) {
   {/* Table header */}
   <div className="mt-6 grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl">
     <div className="col-span-4">Court Name</div>
+    <div className="col-span-2">Invoice</div>
     <div className="col-span-3">Date & Time</div>
-    <div className="col-span-2">Payment</div>
-    <div className="col-span-2">Paid On</div>
+    <div className="col-span-1">Payment</div>
+    <div className="col-span-1">Paid On</div>
     <div className="col-span-1">Status</div>
   </div>
 
   {/* Rows */}
   <div className="divide-y divide-gray-100">
+    {invoicesData.map((row) => (
+      <div key={row.id} className="grid grid-cols-12 gap-4 items-center px-4 py-4">
+        {/* Name + image */}
+        <div className="col-span-4 flex items-center gap-3">
+          <img src={row.img} className="w-12 h-12 rounded-lg object-cover" />
+          <div>
+            <p className="font-bold text-gray-900">{row.name}</p>
+            <p className="text-sm text-green-600">{row.sub}</p>
+          </div>
+        </div>
 
-    {/* Row 1 */}
-    <div className="grid grid-cols-12 gap-4 items-center px-4 py-4">
-      <div className="col-span-4 flex items-center gap-3">
-        <img src={bookingImg} className="w-12 h-12 rounded-lg object-cover" />
-        <div>
-          <p className="font-bold text-gray-900">Leap Sports Academy</p>
-          <p className="text-sm text-[color:var(--primary)]">Court 1</p>
+        {/* Invoice type */}
+        <div className="col-span-2 text-sm text-gray-700">
+          {invoiceTab === "coaching" ? (row as any).invoice : "—"}
+        </div>
+
+        {/* Date & time */}
+        <div className="col-span-3 text-sm text-gray-700">
+          <p>{row.date}</p>
+          <p className="text-gray-500">{row.time}</p>
+        </div>
+
+        {/* Payment */}
+        <div className="col-span-1 font-semibold">{row.payment}</div>
+
+        {/* Paid on */}
+        <div className="col-span-1 text-sm text-gray-700">{row.paidOn}</div>
+
+        {/* Status */}
+        <div className="col-span-1">
+          <span className="px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-bold inline-flex items-center gap-2">
+            <span className="inline-block w-3 h-3 bg-green-600 rounded-sm" />
+            {row.status}
+          </span>
         </div>
       </div>
-      <div className="col-span-3 text-sm text-gray-700">
-        <p>Mon, Jul 11</p>
-        <p className="text-gray-500">06:00 PM - 08:00 PM</p>
-      </div>
-      <div className="col-span-2 font-semibold">$800</div>
-      <div className="col-span-2 text-sm text-gray-700">Jul 11, 2023</div>
-      <div className="col-span-1">
-        <span className="px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-bold">
-          Paid
-        </span>
-      </div>
-    </div>
-
-    {/* Row 2 */}
-    <div className="grid grid-cols-12 gap-4 items-center px-4 py-4">
-      <div className="col-span-4 flex items-center gap-3">
-        <img src={booking2} className="w-12 h-12 rounded-lg object-cover" />
-        <div>
-          <p className="font-bold text-gray-900">Wing Sports Academy</p>
-          <p className="text-sm text-[color:var(--primary)]">Court 2</p>
-        </div>
-      </div>
-      <div className="col-span-3 text-sm text-gray-700">
-        <p>Tue, Jul 12</p>
-        <p className="text-gray-500">05:00 PM - 06:00 PM</p>
-      </div>
-      <div className="col-span-2 font-semibold">$120</div>
-      <div className="col-span-2 text-sm text-gray-700">Jul 12, 2023</div>
-      <div className="col-span-1">
-        <span className="px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-bold">
-          Paid
-        </span>
-      </div>
-    </div>
-
-    {/* Row 3 */}
-    <div className="grid grid-cols-12 gap-4 items-center px-4 py-4">
-      <div className="col-span-4 flex items-center gap-3">
-        <img src={booking3} className="w-12 h-12 rounded-lg object-cover" />
-        <div>
-          <p className="font-bold text-gray-900">Feather Badminton</p>
-          <p className="text-sm text-[color:var(--primary)]">Court 3</p>
-        </div>
-      </div>
-      <div className="col-span-3 text-sm text-gray-700">
-        <p>Wed, Jul 13</p>
-        <p className="text-gray-500">10:00 AM - 11:00 AM</p>
-      </div>
-      <div className="col-span-2 font-semibold">$470</div>
-      <div className="col-span-2 text-sm text-gray-700">Jul 13, 2023</div>
-      <div className="col-span-1">
-        <span className="px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-bold">
-          Paid
-        </span>
-      </div>
-    </div>
-
-    {/* Row 4 */}
-    <div className="grid grid-cols-12 gap-4 items-center px-4 py-4">
-      <div className="col-span-4 flex items-center gap-3">
-        <img src={booking4} className="w-12 h-12 rounded-lg object-cover" />
-        <div>
-          <p className="font-bold text-gray-900">Bwing Sports Academy</p>
-          <p className="text-sm text-[color:var(--primary)]">Court 4</p>
-        </div>
-      </div>
-      <div className="col-span-3 text-sm text-gray-700">
-        <p>Thu, Jul 14</p>
-        <p className="text-gray-500">12:00 PM - 01:00 PM</p>
-      </div>
-      <div className="col-span-2 font-semibold">$200</div>
-      <div className="col-span-2 text-sm text-gray-700">Jul 14, 2023</div>
-      <div className="col-span-1">
-        <span className="px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-bold">
-          Paid
-        </span>
-      </div>
-    </div>
-
-    {/* Row 5 */}
-    <div className="grid grid-cols-12 gap-4 items-center px-4 py-4">
-      <div className="col-span-4 flex items-center gap-3">
-        <img src={booking5} className="w-12 h-12 rounded-lg object-cover" />
-        <div>
-          <p className="font-bold text-gray-900">Marsh Academy</p>
-          <p className="text-sm text-[color:var(--primary)]">Court 5</p>
-        </div>
-      </div>
-      <div className="col-span-3 text-sm text-gray-700">
-        <p>Fri, Jul 15</p>
-        <p className="text-gray-500">08:00 AM - 09:00 AM</p>
-      </div>
-      <div className="col-span-2 font-semibold">$150</div>
-      <div className="col-span-2 text-sm text-gray-700">Jul 15, 2023</div>
-      <div className="col-span-1">
-        <span className="px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-bold">
-          Paid
-        </span>
-      </div>
-    </div>
-
+    ))}
   </div>
 </div>
 {/* ================= END RECENT INVOICES ================= */}
