@@ -59,6 +59,22 @@ class Coach extends Model
     }
 
     /**
+     * Les séances du coach
+     */
+    public function seances(): HasMany
+    {
+        return $this->hasMany(Seance::class);
+    }
+
+    /**
+     * Les programmes du coach
+     */
+    public function programmes(): HasMany
+    {
+        return $this->hasMany(Programme::class);
+    }
+
+    /**
      * Les clients du coach
      */
     // public function clients(): HasMany
@@ -76,29 +92,37 @@ class Coach extends Model
     //                 ->withTimestamps();
     // }
 
-    // /**
-    //  * Les offres du coach
-    //  */
-    // public function offers(): HasMany
-    // {
-    //     return $this->hasMany(Offer::class);
-    // }
+    /**
+     * Les offres du coach
+     */
+    public function offres(): HasMany
+    {
+        return $this->hasMany(Offre::class);
+    }
 
-    // /**
-    //  * Les contrats du coach
-    //  */
-    // public function contracts(): HasMany
-    // {
-    //     return $this->hasMany(Contract::class);
-    // }
+    /**
+     * Les contrats du coach
+     */
+    public function contrats(): HasMany
+    {
+        return $this->hasMany(Contrat::class);
+    }
 
-    // /**
-    //  * Les exercices créés par le coach
-    //  */
-    // public function exercises(): HasMany
-    // {
-    //     return $this->hasMany(Exercise::class);
-    // }
+    /**
+     * Les exercices créés par le coach
+     */
+    public function exercices(): HasMany
+    {
+        return $this->hasMany(Exercice::class);
+    }
+
+    /**
+     * Les paiements reçus par le coach
+     */
+    public function paiements(): HasMany
+    {
+        return $this->hasMany(Paiement::class);
+    }
 
     // /**
     //  * Les modèles de séances du coach
