@@ -4,6 +4,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Signup from "./pages/Signup";
 import UserDashboard from "./pages/UserDashboard";
 import CoachDashboard from "./pages/CoachDashboard";
+import WalletPage from "./pages/WalletPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
 import Header from "./components/Header";
@@ -34,6 +35,7 @@ export default function App() {
       {/* Routes protégées (connectés) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/user/dashboard" element={<UserDashboard />} />
+        <Route path="/user/wallet" element={<WalletPage />} />
         <Route path="/coach/dashboard" element={<CoachDashboard />} />
 
       </Route>
