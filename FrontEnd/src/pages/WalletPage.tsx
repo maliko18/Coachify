@@ -70,14 +70,203 @@ function StatusBadge({ status }: { status: TransactionStatus }) {
   );
 }
 
+const presetAmounts = [
+  { label: "Add Value 1", value: 80 },
+  { label: "Add Value 2", value: 60 },
+  { label: "Add Value 3", value: 120 },
+  { label: "Add Value 4", value: 120 },
+];
+
+function AddPaymentModal({ onClose }: { onClose: () => void }) {
+  const [amount, setAmount] = useState("");
+  const [selected, setSelected] = useState<number | null>(0);
+  const [gateway, setGateway] = useState<"credit" | "paypal">("paypal");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4">
+          <h2 className="text-lg font-extrabold text-gray-900">Add Payment to Wallet</h2>
+          <button onClick={onClose} className="text-red-500 hover:text-red-700 text-xl font-bold leading-none">✕</button>
+        </div>
+
+        <div className="px-6 pb-6 space-y-5">
+          {/* Mini balance card */}
+          <div className="relative rounded-xl bg-green-700 p-5 overflow-hidden text-white">
+            <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full bg-green-600/50" />
+            <div className="absolute -bottom-2 left-16 h-20 w-20 rounded-full bg-green-600/40" />
+            <p className="text-xs font-semibold text-green-100 relative z-10">Your Wallet Balance</p>
+            <p className="text-3xl font-extrabold mt-1 relative z-10">$4,544</p>
+          </div>
+
+          {/* Manual amount */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Amount</label>
+            <input
+              type="number"
+              placeholder="Enter Amount"
+              value={amount}
+              onChange={(e) => { setAmount(e.target.value); setSelected(null); }}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+            />
+          </div>
+
+          {/* OR divider */}
+          <p className="text-sm font-bold text-gray-500">OR</p>
+
+          {/* Preset amounts */}
+          <div className="space-y-2">
+            {presetAmounts.map((p, i) => (
+              <label
+                key={i}
+                className={`flex items-center justify-between px-4 py-3 rounded-xl border cursor-pointer transition ${
+                  selected === i ? "border-green-500 bg-green-50" : "border-gray-200 bg-gray-50 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected === i}
+                    onChange={() => { setSelected(i); setAmount(""); }}
+                    className="h-4 w-4 rounded accent-green-600"
+                  />
+                  <span className="text-sm font-semibold text-gray-700">{p.label}</span>
+                </div>
+                <span className={`text-sm font-bold ${ selected === i ? "bg-blue-500 text-white px-3 py-1 rounded-lg" : "text-gray-400" }`}>
+                  + ${p.value}
+                </span>
+              </label>
+            ))}
+          </div>
+
+          {/* Payment gateway */}
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm font-bold text-gray-700 mb-3">Select Payment Gateway</p>
+            <div className="space-y-2">
+              {(["credit", "paypal"] as const).map((g) => (
+                <label key={g} className="flex items-center gap-3 cursor-pointer px-2 py-1 rounded-lg hover:bg-gray-100 transition">
+                  <input
+                    type="radio"
+                    name="gateway"
+                    checked={gateway === g}
+                    onChange={() => setGateway(g)}
+                    className="h-4 w-4 accent-green-600"
+                  />
+                  <span className="text-sm text-gray-700 capitalize">{g === "credit" ? "Credit Card" : "Paypal"}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button onClick={onClose} className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition">Reset</button>
+            <button className="px-6 py-2.5 rounded-xl bg-green-700 text-white text-sm font-semibold hover:bg-green-800 transition">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddCardModal({ onClose }: { onClose: () => void }) {
+  const [cardNumber, setCardNumber] = useState("43576777687998998");
+  const [nameOnCard, setNameOnCard] = useState("Sport");
+  const [expiry, setExpiry] = useState("06/2023");
+  const [cvv, setCvv] = useState("099");
+  const [save, setSave] = useState(false);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4">
+          <h2 className="text-lg font-extrabold text-gray-900">Add New Card</h2>
+          <button onClick={onClose} className="text-red-500 hover:text-red-700 text-xl font-bold leading-none">✕</button>
+        </div>
+
+        <div className="px-6 pb-6 space-y-4">
+          {/* Card Number */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Card Number</label>
+            <input
+              type="text"
+              value={cardNumber}
+              onChange={(e) => setCardNumber(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+            />
+          </div>
+
+          {/* Name on Card */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Name On Card Number</label>
+            <input
+              type="text"
+              value={nameOnCard}
+              onChange={(e) => setNameOnCard(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+            />
+          </div>
+
+          {/* Expiry + CVV */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Expiry Date</label>
+              <input
+                type="text"
+                value={expiry}
+                onChange={(e) => setExpiry(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">CVV</label>
+              <input
+                type="text"
+                value={cvv}
+                onChange={(e) => setCvv(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+              />
+            </div>
+          </div>
+
+          {/* Save checkbox */}
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={save}
+              onChange={(e) => setSave(e.target.checked)}
+              className="h-4 w-4 rounded accent-green-600"
+            />
+            <span className="text-sm text-gray-600">Save for Next Payment</span>
+          </label>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button onClick={onClose} className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition">Reset</button>
+            <button className="px-6 py-2.5 rounded-xl bg-green-700 text-white text-sm font-semibold hover:bg-green-800 transition">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WalletPage() {
   const navigate = useNavigate();
   const [txFilter, setTxFilter] = useState<"week" | "all">("week");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCardModal, setShowCardModal] = useState(false);
 
   const transactions = txFilter === "week" ? thisWeekTransactions : allTransactions;
 
   return (
     <div className="min-h-screen bg-gray-50">
+
+      {/* ── MODALS ── */}
+      {showPaymentModal && <AddPaymentModal onClose={() => setShowPaymentModal(false)} />}
+      {showCardModal && <AddCardModal onClose={() => setShowCardModal(false)} />}
 
       {/* ── TOP NAVBAR ── */}
       <div className="bg-white border-b border-gray-100">
@@ -170,7 +359,10 @@ export default function WalletPage() {
             <div className="relative z-10">
               <div className="flex items-start justify-between">
                 <p className="text-sm font-semibold text-green-100">Your Wallet Balance</p>
-                <button className="border border-yellow-400 text-yellow-400 text-xs font-semibold px-4 py-2 rounded-lg hover:bg-yellow-400 hover:text-green-900 transition">
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="border border-yellow-400 text-yellow-400 text-xs font-semibold px-4 py-2 rounded-lg hover:bg-yellow-400 hover:text-green-900 transition"
+                >
                   Add Payment
                 </button>
               </div>
@@ -198,7 +390,10 @@ export default function WalletPage() {
           <div className="rounded-2xl bg-white border border-gray-100 p-8 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-extrabold text-gray-900">Your Cards</h3>
-              <button className="bg-gray-900 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+              <button
+                onClick={() => setShowCardModal(true)}
+                className="bg-gray-900 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-gray-700 transition"
+              >
                 Add New Card
               </button>
             </div>
