@@ -470,7 +470,7 @@ function BookingRow({
 
     {/* My Bookings */}
     <button
-      onClick={() => alert("My Bookings — coming soon")}
+      onClick={() => navigate("/user/bookings")}
       className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
     >
       <img src={bookingsIcon} alt="My Bookings" className="h-7 w-7" />
@@ -501,7 +501,7 @@ function BookingRow({
 
     {/* Wallet */}
     <button
-      onClick={() => alert("Wallet — coming soon")}
+      onClick={() => navigate("/user/wallet")}
       className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
     >
       <img src={walletIcon} alt="Wallet" className="h-7 w-7" />
@@ -510,7 +510,7 @@ function BookingRow({
 
     {/* Profile Setting */}
     <button
-      onClick={() => alert("Profile Setting — coming soon")}
+      onClick={() => navigate("/user/profile")}
       className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
     >
       <img src={profileIcon} alt="Profile Setting" className="h-7 w-7" />
