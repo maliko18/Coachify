@@ -1,6 +1,30 @@
 # 🏋️ API Backend - Coaching Fitness
 
-API REST Laravel pour l'application de coaching fitness.
+API REST Laravel pour l'application de coaching fitness avec authentification JWT et système de rôles.
+
+> **📚 [INDEX DE LA DOCUMENTATION](../documentation/backend_doc/INDEX.md)** - Navigation complète de toute la documentation
+
+---
+
+## 📚 Documentation
+
+### 📱 Pour l'Équipe Frontend
+
+- **📧 [Message pour le Frontend](../documentation/backend_doc/MESSAGE_FRONTEND.md)** - ⭐ **Commencez ici !**
+- **🚀 [Quick Start](../documentation/backend_doc/FRONTEND_QUICKSTART.md)** - Intégration en 3 minutes
+- **📖 [Guide d'Intégration](../documentation/backend_doc/API_INTEGRATION_GUIDE.md)** - Fetch, Axios, React Context
+- **📄 [Exemples de Réponses](../documentation/backend_doc/API_EXAMPLES.md)** - Toutes les réponses JSON
+- **📘 [Types TypeScript](../documentation/backend_doc/api-types.ts)** - Interfaces TypeScript complètes
+- **🧪 [Tests REST Client](../documentation/backend_doc/api-tests.http)** - Tester l'API dans VS Code
+
+### 🔧 Documentation Technique Backend
+
+- **🛣️ Routes** : Voir [routes/api.php](./routes/api.php)
+- **🔐 Middlewares** : [app/Http/Middleware/](./app/Http/Middleware/)
+- **✅ Tests** : [tests/Feature/](./tests/Feature/)
+- **📊 Modèles** : [app/Models/](./app/Models/)
+
+---
 
 ## 📋 Prérequis
 
@@ -92,11 +116,10 @@ php artisan db:seed
 ### 7. Lancer le serveur de développement
 
 ```bash
-php artisan serve
+
 ```
 
 L'API sera accessible sur : **http://127.0.0.1:8000**
-
 
 ## 📡 Endpoints API
 
@@ -104,21 +127,122 @@ Base URL : `http://127.0.0.1:8000/api`
 
 ### 🔐 Authentification
 
-| Méthode | Endpoint                           | Description                         | Auth |
-| ------- | ---------------------------------- | ----------------------------------- | ---- |
-| `POST`  | `/register`                        | Inscription d'un nouvel utilisateur | ❌   |
-| `POST`  | `/login`                           | Connexion                           | ❌   |
-| `POST`  | `/logout`                          | Déconnexion                         | ✅   |
-| `POST`  | `/forgot-password`                 | Demande de réinitialisation         | ❌   |
-| `POST`  | `/reset-password`                  | Réinitialiser le mot de passe       | ❌   |
-| `GET`   | `/verify-email/{id}/{hash}`        | Vérifier l'email                    | ✅   |
-| `POST`  | `/email/verification-notification` | Renvoyer l'email de vérification    | ✅   |
+| Méthode | Endpoint                           | Description                         | Auth | Rôle |
+| ------- | ---------------------------------- | ----------------------------------- | ---- | ---- |
+| `POST`  | `/register`                        | Inscription d'un nouvel utilisateur | ❌   | -    |
+| `POST`  | `/login`                           | Connexion                           | ❌   | -    |
+| `POST`  | `/logout`                          | Déconnexion                         | ✅   | -    |
+| `POST`  | `/forgot-password`                 | Demande de réinitialisation         | ❌   | -    |
+| `POST`  | `/reset-password`                  | Réinitialiser le mot de passe       | ❌   | -    |
+| `GET`   | `/verify-email/{id}/{hash}`        | Vérifier l'email                    | ✅   | -    |
+| `POST`  | `/email/verification-notification` | Renvoyer l'email de vérification    | ✅   | -    |
 
 ### 👤 Utilisateur
 
-| Méthode | Endpoint | Description                      | Auth |
-| ------- | -------- | -------------------------------- | ---- |
-| `GET`   | `/user`  | Récupérer l'utilisateur connecté | ✅   |
+| Méthode | Endpoint | Description                      | Auth | Rôle |
+| ------- | -------- | -------------------------------- | ---- | ---- |
+| `GET`   | `/user`  | Récupérer l'utilisateur connecté | ✅   | -    |
+
+### 🏋️ Routes Coach
+
+| Méthode | Endpoint            | Description     | Auth | Rôle    |
+| ------- | ------------------- | --------------- | ---- | ------- |
+| `GET`   | `/coach/dashboard`  | Dashboard coach | ✅   | `coach` |
+| `GET`   | `/coach/clients`    | Liste clients   | ✅   | `coach` |
+| `GET`   | `/coach/statistics` | Statistiques    | ✅   | `coach` |
+| `POST`  | `/coach/offers`     | Créer une offre | ✅   | `coach` |
+
+### 👑 Routes Admin
+
+| Méthode | Endpoint                | Description           | Auth | Rôle    |
+| ------- | ----------------------- | --------------------- | ---- | ------- |
+| `GET`   | `/admin/users`          | Liste utilisateurs    | ✅   | `admin` |
+| `GET`   | `/admin/statistics`     | Statistiques globales | ✅   | `admin` |
+| `POST`  | `/admin/users/{id}/ban` | Bannir un utilisateur | ✅   | `admin` |
+
+### 🏢 Routes Responsable de Salle
+
+| Méthode | Endpoint         | Description        | Auth | Rôle          |
+| ------- | ---------------- | ------------------ | ---- | ------------- |
+| `GET`   | `/gym/dashboard` | Dashboard salle    | ✅   | `gym_manager` |
+| `GET`   | `/gym/equipment` | Liste équipements  | ✅   | `gym_manager` |
+| `POST`  | `/gym/equipment` | Ajouter équipement | ✅   | `gym_manager` |
+
+### 📊 Routes Multi-rôles
+
+| Méthode | Endpoint      | Description  | Auth | Rôle            |
+| ------- | ------------- | ------------ | ---- | --------------- |
+| `GET`   | `/statistics` | Statistiques | ✅   | `coach`/`admin` |
+
+---
+
+## 🎯 Système de Rôles
+
+### Rôles disponibles :
+
+| Rôle          | Description                    | Inscription |
+| ------------- | ------------------------------ | ----------- |
+| `prospect`    | Utilisateur sans contrat actif | ✅ Oui      |
+| `client`      | Client avec contrat actif      | ❌ Non      |
+| `coach`       | Coach sportif                  | ✅ Oui      |
+| `gym_manager` | Responsable de salle de sport  | ❌ Non      |
+| `admin`       | Administrateur système         | ❌ Non      |
+
+### Protection des routes
+
+Les routes sont protégées par des **middlewares de rôles** :
+
+```php
+// Route accessible uniquement aux coaches
+Route::middleware(['auth:sanctum', 'is_coach'])->get('/coach/dashboard', ...);
+
+// Route accessible aux coaches OU admins
+Route::middleware(['auth:sanctum', 'role:coach,admin'])->get('/statistics', ...);
+```
+
+### Réponses d'erreur
+
+**401 Unauthorized (Non authentifié) :**
+
+```json
+{
+    "success": false,
+    "message": "Non authentifié.",
+    "error": {
+        "code": "UNAUTHENTICATED",
+        "status": 401
+    }
+}
+```
+
+**403 Forbidden (Mauvais rôle) :**
+
+```json
+{
+    "success": false,
+    "message": "Accès réservé aux coachs.",
+    "error": {
+        "code": "FORBIDDEN",
+        "status": 403
+    }
+}
+```
+
+**422 Validation Error :**
+
+```json
+{
+    "success": false,
+    "message": "Les données fournies sont invalides.",
+    "error": {
+        "code": "VALIDATION_ERROR",
+        "status": 422,
+        "errors": {
+            "email": ["Ce champ est requis."]
+        }
+    }
+}
+```
 
 ---
 
@@ -148,7 +272,7 @@ Inscription d'un nouvel utilisateur (prospect ou coach).
 | `email`                 | string | ✅     | Email unique                    |
 | `password`              | string | ✅     | Mot de passe (min 8 caractères) |
 | `password_confirmation` | string | ✅     | Confirmation du mot de passe    |
-| `role`                  | string | ✅     | `user` ou `coach`               |
+| `role`                  | string | ✅     | `prospect` ou `coach`           |
 
 **Response (201 Created) :**
 
@@ -340,30 +464,296 @@ Réinitialiser le mot de passe.
 
 ## 🔑 Authentification avec le Token
 
-Pour les routes protégées, incluez le token dans les headers :
+Toutes les routes protégées (✅) nécessitent un **Bearer Token** dans les headers.
+
+### Comment obtenir un token ?
+
+1. **Inscription** : `POST /api/register` → retourne `token`
+2. **Connexion** : `POST /api/login` → retourne `token`
+
+### Envoyer le token dans les requêtes
+
+**Headers requis :**
+
+```
+Authorization: Bearer {votre_token_ici}
+Content-Type: application/json
+Accept: application/json
+```
+
+### Exemples d'intégration Frontend
+
+#### 🟦 **Fetch API (JavaScript vanilla)**
 
 ```javascript
-// Exemple avec Fetch API
-fetch("http://127.0.0.1:8000/api/user", {
-    method: "GET",
+// 1. Connexion et récupération du token
+const login = async () => {
+    const response = await fetch("http://127.0.0.1:8000/api/login", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+        },
+        body: JSON.stringify({
+            email: "user@example.com",
+            password: "Password123!",
+        }),
+    });
+
+    const data = await response.json();
+
+    // Sauvegarder le token
+    localStorage.setItem("auth_token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    return data;
+};
+
+// 2. Utiliser le token pour les requêtes protégées
+const getUser = async () => {
+    const token = localStorage.getItem("auth_token");
+
+    const response = await fetch("http://127.0.0.1:8000/api/user", {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+    });
+
+    if (response.status === 401) {
+        // Token invalide ou expiré
+        localStorage.removeItem("auth_token");
+        window.location.href = "/login";
+        return;
+    }
+
+    return await response.json();
+};
+
+// 3. Route protégée par rôle (coach)
+const getCoachDashboard = async () => {
+    const token = localStorage.getItem("auth_token");
+
+    const response = await fetch("http://127.0.0.1:8000/api/coach/dashboard", {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+        },
+    });
+
+    if (response.status === 403) {
+        // Rôle insuffisant
+        alert("Accès réservé aux coachs");
+        return;
+    }
+
+    return await response.json();
+};
+```
+
+#### 🔷 **Axios (Recommandé pour React/Vue)**
+
+```javascript
+import axios from "axios";
+
+// Configuration globale
+const api = axios.create({
+    baseURL: "http://127.0.0.1:8000/api",
     headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        Authorization: "Bearer " + token,
     },
 });
+
+// Interceptor pour ajouter le token automatiquement
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// Interceptor pour gérer les erreurs d'authentification
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            // Token expiré
+            localStorage.removeItem("auth_token");
+            window.location.href = "/login";
+        }
+
+        if (error.response?.status === 403) {
+            // Rôle insuffisant
+            console.error("Accès refusé:", error.response.data.message);
+        }
+
+        return Promise.reject(error);
+    },
+);
+
+// Utilisation
+export const authService = {
+    // Connexion
+    login: async (email, password) => {
+        const { data } = await api.post("/login", { email, password });
+        localStorage.setItem("auth_token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        return data;
+    },
+
+    // Inscription
+    register: async (userData) => {
+        const { data } = await api.post("/register", userData);
+        localStorage.setItem("auth_token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        return data;
+    },
+
+    // Déconnexion
+    logout: async () => {
+        await api.post("/logout");
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user");
+    },
+
+    // Récupérer l'utilisateur
+    getUser: async () => {
+        const { data } = await api.get("/user");
+        return data;
+    },
+};
+
+// Routes coach
+export const coachService = {
+    getDashboard: async () => {
+        const { data } = await api.get("/coach/dashboard");
+        return data;
+    },
+};
+
+// Routes admin
+export const adminService = {
+    getUsers: async () => {
+        const { data } = await api.get("/admin/users");
+        return data;
+    },
+};
 ```
 
-```javascript
-// Exemple avec Axios
-axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+#### ⚛️ **React Context pour l'authentification**
 
-// Ou par requête
-axios.get("/api/user", {
-    headers: {
-        Authorization: `Bearer ${token}`,
-    },
-});
+```javascript
+// AuthContext.jsx
+import { createContext, useState, useEffect } from "react";
+import { authService } from "./api";
+
+export const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+    const [token, setToken] = useState(localStorage.getItem("auth_token"));
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (token) {
+            authService
+                .getUser()
+                .then((data) => setUser(data))
+                .catch(() => {
+                    setToken(null);
+                    localStorage.removeItem("auth_token");
+                })
+                .finally(() => setLoading(false));
+        } else {
+            setLoading(false);
+        }
+    }, [token]);
+
+    const login = async (email, password) => {
+        const data = await authService.login(email, password);
+        setToken(data.token);
+        setUser(data.user);
+    };
+
+    const logout = async () => {
+        await authService.logout();
+        setToken(null);
+        setUser(null);
+    };
+
+    // Vérifier si l'utilisateur a un rôle
+    const hasRole = (role) => {
+        return user?.roles?.some((r) => r.name === role) || false;
+    };
+
+    return (
+        <AuthContext.Provider
+            value={{ user, token, login, logout, hasRole, loading }}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
+};
+
+// Utilisation dans un composant
+import { useContext } from "react";
+import { AuthContext } from "./AuthContext";
+
+function CoachDashboard() {
+    const { user, hasRole } = useContext(AuthContext);
+
+    if (!hasRole("coach")) {
+        return <div>Accès réservé aux coachs</div>;
+    }
+
+    return <div>Dashboard Coach - Bienvenue {user.full_name}</div>;
+}
+```
+
+### 🔒 Gestion des rôles côté Frontend
+
+```javascript
+// Vérifier le rôle de l'utilisateur
+const user = JSON.parse(localStorage.getItem("user"));
+const isCoach = user?.roles?.some((role) => role.name === "coach");
+const isAdmin = user?.roles?.some((role) => role.name === "admin");
+
+// Affichage conditionnel
+{
+    isCoach && <Link to="/coach/dashboard">Dashboard Coach</Link>;
+}
+{
+    isAdmin && <Link to="/admin/users">Gestion Utilisateurs</Link>;
+}
+
+// Protection de routes (React Router)
+import { Navigate } from "react-router-dom";
+
+function ProtectedRoute({ children, requiredRole }) {
+    const user = JSON.parse(localStorage.getItem("user"));
+    const hasRole = user?.roles?.some((r) => r.name === requiredRole);
+
+    if (!hasRole) {
+        return <Navigate to="/unauthorized" />;
+    }
+
+    return children;
+}
+
+// Utilisation
+<Route
+    path="/coach/dashboard"
+    element={
+        <ProtectedRoute requiredRole="coach">
+            <CoachDashboard />
+        </ProtectedRoute>
+    }
+/>;
 ```
 
 ---
