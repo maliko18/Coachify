@@ -322,7 +322,7 @@ export default function WalletPage() {
             <img src={dashboardIcon} alt="Dashboard" className="h-7 w-7" />
             <span className="font-semibold text-sm text-gray-700">Dashboard</span>
           </button>
-          <button onClick={() => navigate("/user/dashboard")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
+          <button onClick={() => navigate("/user/bookings")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
             <img src={bookingsIcon} alt="My Bookings" className="h-7 w-7" />
             <span className="font-semibold text-sm text-gray-700">My Bookings</span>
           </button>
@@ -339,7 +339,7 @@ export default function WalletPage() {
             <img src={walletIcon} alt="Wallet" className="h-7 w-7 brightness-0 invert" />
             <span className="font-semibold text-sm">Wallet</span>
           </button>
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
+          <button onClick={() => navigate("/user/profile")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
             <img src={profileIcon} alt="Profile Setting" className="h-7 w-7" />
             <span className="font-semibold text-sm text-gray-700">Profile Setting</span>
           </button>
