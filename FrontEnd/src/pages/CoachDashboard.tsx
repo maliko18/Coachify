@@ -27,6 +27,7 @@ import booking4 from "../assets/booking-04.jpg";
 import booking5 from "../assets/booking-05.jpg";
 import booking6 from "../assets/booking-06.jpg";
 import walletbkg from "../assets/walletbg.png"; 
+import Header from "../components/Header";
 
 
 type Client = {
@@ -1064,46 +1065,7 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ================= HEADER (same as User, Coach active) ================= */}
-<div className="bg-white border-b border-gray-100">
-  <div className="max-w-7xl mx-auto px-6 h-24 flex items-center">
-    {/* Logo */}
-    <div className="flex items-center gap-3 shrink-0">
-      <span className="text-xl">🏋️</span>
-      <span className="text-2xl font-extrabold text-gray-900">
-        Coachify
-      </span>
-    </div>
-
-    {/* Menu center */}
-    <div className="flex-1 flex justify-center">
-      <nav className="flex items-center gap-8 text-sm font-semibold text-gray-700">
-        <button onClick={() => navigate("/")}>Home</button>
-
-        <button className="text-green-700 font-extrabold">
-          Coaches
-        </button>
-
-        <button onClick={() => navigate("/user/dashboard")}>
-          User
-        </button>
-
-        <button>Pages</button>
-        <button>Blog</button>
-        <button>Contact Us</button>
-      </nav>
-    </div>
-
-    {/* Right icons */}
-    <div className="flex items-center gap-3 shrink-0">
-      <button className="h-10 w-10 rounded-xl bg-gray-100">🔎</button>
-      <button className="h-10 w-10 rounded-xl bg-gray-100">🔔</button>
-      <div className="h-10 w-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold">
-        C
-      </div>
-    </div>
-  </div>
-</div>
+      <Header />
 
 {/* ================= HERO ================= */}
 <div

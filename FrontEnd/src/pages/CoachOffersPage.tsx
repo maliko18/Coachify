@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import offresApi from "../api/offres";
 import type {
@@ -9,6 +8,7 @@ import type {
   OffreType,
 } from "../api/offres";
 import { useAuth } from "../context/AuthContext";
+import Header from "../components/Header";
 
 type FormState = {
   nom: string;
@@ -55,7 +55,6 @@ const typeOptions: OffreType[] = [
 const statutOptions: OffreStatut[] = ["active", "inactive", "archivee"];
 
 export default function CoachOffersPage() {
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   const isCoach = useMemo(
@@ -199,31 +198,7 @@ export default function CoachOffersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center">
-          <div className="flex items-center gap-3 shrink-0">
-            <span className="text-xl">🏋️</span>
-            <span className="text-2xl font-extrabold text-gray-900">Coachify</span>
-          </div>
-
-          <div className="flex-1 flex justify-center">
-            <nav className="flex items-center gap-8 text-sm font-semibold text-gray-700">
-              <button onClick={() => navigate("/")}>Home</button>
-              <button onClick={() => navigate("/coach/dashboard")}>Coach Dashboard</button>
-              <button className="text-green-700 font-extrabold">Offres</button>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              className="h-10 px-4 rounded-xl bg-gray-900 text-white text-sm font-semibold"
-              onClick={() => navigate("/coach/dashboard")}
-            >
-              Retour
-            </button>
-          </div>
-        </div>
-      </div>
+      <Header />
 
       <div
         className="relative w-full h-[220px] flex items-center"

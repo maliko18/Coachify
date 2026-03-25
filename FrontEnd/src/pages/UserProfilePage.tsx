@@ -7,6 +7,7 @@ import chatIcon from "../assets/chat-icon.svg";
 import invoicesIcon from "../assets/invoice-icon.svg";
 import walletIcon from "../assets/wallet-icon.svg";
 import profileIcon from "../assets/profile-icon.svg";
+import Header from "../components/Header";
 
 type Tab = "profile" | "password" | "settings";
 
@@ -62,32 +63,7 @@ export default function UserProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* ── TOP NAVBAR ── */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🏋️‍♀️</span>
-            <span className="text-2xl font-extrabold tracking-wide text-gray-900">Coachify</span>
-          </div>
-          <nav className="flex-1 flex justify-center items-center gap-8 text-sm font-semibold text-gray-600">
-            <button onClick={() => navigate("/")} className="hover:text-gray-900 transition">Home</button>
-            <button className="hover:text-gray-900 transition">Coaches</button>
-            <button className="font-extrabold text-lime-500">User</button>
-            <button className="hover:text-gray-900 transition">Pages</button>
-            <button className="hover:text-gray-900 transition">Blog</button>
-            <button className="hover:text-gray-900 transition">Contact Us</button>
-          </nav>
-          <div className="flex items-center gap-4">
-            <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-lg">🔍</button>
-            <button className="relative h-10 w-10 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-lg">
-              🔔
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">1</span>
-            </button>
-            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-700">U</div>
-          </div>
-        </div>
-      </div>
+      <Header />
 
       {/* ── HERO BANNER ── */}
       <div
