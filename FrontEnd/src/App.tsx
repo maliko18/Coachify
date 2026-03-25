@@ -8,6 +8,8 @@ import CoachOffersPage from "./pages/CoachOffersPage";
 import WalletPage from "./pages/WalletPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import BookingsPage from "./pages/BookingsPage";
+import CoachesPage from "./pages/CoachesPage";
+import BookCoachPage from "./pages/BookCoachPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
 import Header from "./components/Header";
@@ -27,6 +29,7 @@ export default function App() {
           </>
         }
       />
+      <Route path="/coaches" element={<CoachesPage />} />
       
       {/* Routes pour les visiteurs (non connectés) */}
       <Route element={<GuestRoute />}>
@@ -43,6 +46,7 @@ export default function App() {
         <Route path="/user/profile" element={<UserProfilePage />} />
         <Route path="/coach/dashboard" element={<CoachDashboard />} />
         <Route path="/coach/offres" element={<CoachOffersPage />} />
+        <Route path="/book-coach/:coachId" element={<BookCoachPage />} />
 
       </Route>
     </Routes>

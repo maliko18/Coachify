@@ -9,7 +9,10 @@ const Header = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isCoach = (user?.roles && user.roles.length > 0 && user.roles.some(role => role.name === "coach")) || user?.selectedRole === "coach";
-  const isUser = (user?.roles && user.roles.length > 0 && user.roles.some(role => role.name === "user")) || user?.selectedRole === "user" || (!isCoach && user);
+  const isUserRole =
+    !!user?.roles?.some((role) => ["user", "client", "prospect"].includes(role.name)) ||
+    ["user", "client", "prospect"].includes(user?.selectedRole || "");
+  const isUser = isUserRole || (!!user && !isCoach);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -53,11 +56,13 @@ const Header = () => {
 
       <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-white">
         <li className="text-[color:var(--accent)] cursor-pointer" onClick={() => navigate("/")}>Home</li>
+        {isUser && (
+          <li className="cursor-pointer hover:text-[color:var(--accent)]" onClick={() => navigate("/coaches")}>
+            Coaches 
+          </li>
+        )}
         {!user && (
           <>
-            <li className="cursor-pointer hover:text-[color:var(--accent)]">
-              Coaches 
-            </li>
             <li className="cursor-pointer hover:text-[color:var(--accent)]">
               User 
             </li>
