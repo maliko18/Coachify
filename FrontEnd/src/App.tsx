@@ -4,6 +4,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Signup from "./pages/Signup";
 import UserDashboard from "./pages/UserDashboard";
 import CoachDashboard from "./pages/CoachDashboard";
+import CoachOffersPage from "./pages/CoachOffersPage";
 import WalletPage from "./pages/WalletPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import BookingsPage from "./pages/BookingsPage";
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/user/bookings" element={<BookingsPage />} />
         <Route path="/user/profile" element={<UserProfilePage />} />
         <Route path="/coach/dashboard" element={<CoachDashboard />} />
+        <Route path="/coach/offres" element={<CoachOffersPage />} />
 
       </Route>
     </Routes>

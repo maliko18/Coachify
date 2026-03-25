@@ -67,10 +67,24 @@ export interface OffreFilters {
   statut?: OffreStatut;
 }
 
+const normalizeListResponse = (payload: unknown): Offre[] => {
+  if (Array.isArray(payload)) {
+    return payload as Offre[];
+  }
+
+  if (payload && typeof payload === "object" && Array.isArray((payload as { data?: unknown }).data)) {
+    return (payload as { data: Offre[] }).data;
+  }
+
+  return [];
+};
+
 const offresApi = {
   /** GET /api/coach/offres */
   list: (filters?: OffreFilters) =>
-    axiosClient.get<Offre[]>("/coach/offres", { params: filters }).then((r) => r.data),
+    axiosClient
+      .get<Offre[] | { data: Offre[] }>("/coach/offres", { params: filters })
+      .then((r) => normalizeListResponse(r.data)),
 
   /** GET /api/coach/offres/:id */
   get: (id: number) =>

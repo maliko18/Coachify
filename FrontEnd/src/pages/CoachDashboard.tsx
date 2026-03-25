@@ -1155,6 +1155,12 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
       />
 
       <QuickNavCard
+        title="Offers"
+        icon={requestsIcon}
+        onClick={() => navigate("/coach/offres")}
+      />
+
+      <QuickNavCard
   title="Bookings"
   icon={bookingsIcon}
   active={activeSection === "bookings"}
