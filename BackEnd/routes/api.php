@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\AdminAuditController;
 use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\ContratController;
 use App\Http\Controllers\DashboardController;
@@ -31,7 +32,7 @@ require __DIR__.'/auth.php'; // Inscription, connexion, mot de passe oublié
 | Routes protégées - Authentification requise
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions'])->group(function () {
 
     // Boutique V3 (catalogue + stock + commandes)
     Route::get('/produits', [ShopController::class, 'index']);
@@ -39,9 +40,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/produits/{produit}/stock', [ShopController::class, 'stock']);
     Route::middleware('is_coach')->group(function () {
         Route::post('/produits', [ShopController::class, 'store']);
-        Route::put('/produits/{produit}', [ShopController::class, 'update']);
-        Route::delete('/produits/{produit}', [ShopController::class, 'destroy']);
-        Route::put('/commandes/{commande}/status', [CommandeController::class, 'updateStatus']);
+        Route::put('/produits/{produit}', [ShopController::class, 'update'])
+            ->middleware('check_resource_ownership:produit,coach,coach_id');
+        Route::delete('/produits/{produit}', [ShopController::class, 'destroy'])
+            ->middleware('check_resource_ownership:produit,coach,coach_id');
+        Route::put('/commandes/{commande}/status', [CommandeController::class, 'updateStatus'])
+            ->middleware('check_resource_ownership:commande,coach,coach_id');
     });
 
     Route::get('/commandes', [CommandeController::class, 'index']);
@@ -59,7 +63,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Notifications utilisateur
     Route::get('/notifications', [NotificationController::class, 'index']);
-    Route::put('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+    Route::put('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
+        ->middleware('check_resource_ownership:notification,user,user_id');
 
     // Messagerie V3 (1-to-1 + groupe)
     Route::get('/conversations', [MessageController::class, 'indexConversations']);
@@ -205,6 +210,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // TODO: Ajouter les routes admin ici
+        Route::get('/audit-log', [AdminAuditController::class, 'index']);
         // Route::get('/statistics', [AdminController::class, 'statistics']);
         // Route::post('/users/{user}/ban', [AdminController::class, 'banUser']);
     });

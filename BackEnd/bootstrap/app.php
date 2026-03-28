@@ -34,6 +34,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'check_contrat_access' => \App\Http\Middleware\CheckContratAccess::class,
             'check_client_access' => \App\Http\Middleware\CheckClientAccess::class,
             'check_conversation_access' => \App\Http\Middleware\CheckConversationAccess::class,
+            'check_resource_ownership' => \App\Http\Middleware\CheckResourceOwnership::class,
+            'api_rate_limit' => \App\Http\Middleware\RateLimit::class,
+            'audit_api_actions' => \App\Http\Middleware\AuditApiActions::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

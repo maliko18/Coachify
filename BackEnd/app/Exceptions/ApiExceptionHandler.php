@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -58,6 +59,11 @@ class ApiExceptionHandler extends ExceptionHandler
 
         // Authentication errors
         if ($exception instanceof AuthenticationException) {
+            Log::channel('audit')->warning('authentication_failed', [
+                'path' => $request->path(),
+                'ip' => $request->ip(),
+            ]);
+
             return $this->errorResponse(
                 'Non authentifié.',
                 'UNAUTHENTICATED',
@@ -67,6 +73,14 @@ class ApiExceptionHandler extends ExceptionHandler
 
         // Authorization errors
         if ($exception instanceof AuthorizationException) {
+            Log::channel('audit')->warning('unauthorized_access_attempt', [
+                'user_id' => $request->user()?->id,
+                'path' => $request->path(),
+                'method' => $request->method(),
+                'ip' => $request->ip(),
+                'message' => $exception->getMessage(),
+            ]);
+
             return $this->errorResponse(
                 'Accès non autorisé.',
                 'FORBIDDEN',
@@ -104,6 +118,12 @@ class ApiExceptionHandler extends ExceptionHandler
 
         // Too many requests
         if ($exception instanceof TooManyRequestsHttpException) {
+            Log::channel('audit')->warning('rate_limit_exceeded', [
+                'user_id' => $request->user()?->id,
+                'path' => $request->path(),
+                'ip' => $request->ip(),
+            ]);
+
             return $this->errorResponse(
                 'Trop de requêtes. Veuillez réessayer plus tard.',
                 'TOO_MANY_REQUESTS',
@@ -121,6 +141,15 @@ class ApiExceptionHandler extends ExceptionHandler
         }
 
         // Server error (500)
+        Log::channel('audit')->error('api_server_error', [
+            'user_id' => $request->user()?->id,
+            'path' => $request->path(),
+            'method' => $request->method(),
+            'ip' => $request->ip(),
+            'exception' => get_class($exception),
+            'message' => $exception->getMessage(),
+        ]);
+
         return $this->errorResponse(
             config('app.debug') ? $exception->getMessage() : 'Erreur serveur interne.',
             'SERVER_ERROR',
