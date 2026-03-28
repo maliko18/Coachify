@@ -65,6 +65,14 @@ class Seance extends Model
     }
 
     /**
+     * Sessions sportives corrélées à cette séance.
+     */
+    public function workoutSessions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WorkoutSession::class);
+    }
+
+    /**
      * Vérifier si la séance est complète
      */
     public function estComplete(): bool
@@ -245,5 +253,35 @@ class Seance extends Model
     public function scopeDeType($query, string $type)
     {
         return $query->where('type', $type);
+    }
+
+    /**
+     * Données performance agrégées pour cette séance.
+     */
+    public function getPerformanceData(): array
+    {
+        $sessions = $this->workoutSessions()->with('sportsData')->get();
+
+        if ($sessions->isEmpty()) {
+            return [
+                'samples' => 0,
+                'avg_heart_rate' => null,
+                'total_calories' => 0,
+                'total_duration_minutes' => 0,
+                'total_distance_km' => 0.0,
+            ];
+        }
+
+        $sports = $sessions->pluck('sportsData')->filter();
+
+        return [
+            'samples' => $sports->count(),
+            'avg_heart_rate' => $sports->count() > 0
+                ? round((float) $sports->avg('heart_rate_avg'), 2)
+                : null,
+            'total_calories' => (int) $sports->sum('calories'),
+            'total_duration_minutes' => (int) $sports->sum('duration_minutes'),
+            'total_distance_km' => round((float) $sports->sum('distance_km'), 2),
+        ];
     }
 }

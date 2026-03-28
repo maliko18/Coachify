@@ -14,6 +14,7 @@ use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\ProgrammeController;
 use App\Http\Controllers\SeanceController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\SportsDataController;
 use App\Http\Resources\UserResources;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +46,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/commandes', [CommandeController::class, 'index']);
     Route::post('/commandes', [CommandeController::class, 'store']);
+
+    // Sports Data V3 (mock Garmin/Strava)
+    Route::post('/sports-data/import', [SportsDataController::class, 'import']);
 
     // Export CSV des offres (coach)
     Route::middleware('is_coach')->get('/offres/export/csv', [OffreController::class, 'exportCsv']);
@@ -179,6 +183,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Dashboard client (Issue #23)
         Route::get('/dashboard/progression', [DashboardController::class, 'clientProgression']);
         Route::get('/dashboard/historique', [DashboardController::class, 'clientHistorique']);
+        Route::get('/analytics/progression', [SportsDataController::class, 'analyticsProgression']);
 
         // Feedback du client sur une séance
         Route::post('/seances/{seance}/feedback', [SeanceController::class, 'feedbackClient']);

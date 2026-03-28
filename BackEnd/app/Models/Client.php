@@ -104,6 +104,22 @@ class Client extends Model
     }
 
     /**
+     * Données sportives importées (Garmin/Strava mock)
+     */
+    public function sportsData(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(SportsData::class);
+    }
+
+    /**
+     * Sessions d'entrainement corrélées
+     */
+    public function workoutSessions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(WorkoutSession::class);
+    }
+
+    /**
      * Les séances auxquelles le client est inscrit
      */
     public function seances(): BelongsToMany
@@ -262,5 +278,52 @@ class Client extends Model
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Métriques de progression sportives (distance, durée, calories, FC).
+     */
+    public function getProgressionMetrics(int $days = 90): array
+    {
+        $from = now()->subDays($days);
+
+        $rows = $this->sportsData()
+            ->where('recorded_at', '>=', $from)
+            ->orderBy('recorded_at')
+            ->get();
+
+        $series = $rows
+            ->groupBy(fn ($row) => $row->recorded_at->format('Y-m-W'))
+            ->map(function ($items, $week) {
+                $count = $items->count();
+
+                return [
+                    'week' => $week,
+                    'count' => $count,
+                    'distance_km' => round((float) $items->sum('distance_km'), 2),
+                    'duration_minutes' => (int) $items->sum('duration_minutes'),
+                    'calories' => (int) $items->sum('calories'),
+                    'avg_heart_rate' => $count > 0
+                        ? round((float) $items->avg('heart_rate_avg'), 2)
+                        : null,
+                ];
+            })
+            ->values();
+
+        $totalDistance = (float) $rows->sum('distance_km');
+        $totalDuration = (int) $rows->sum('duration_minutes');
+        $totalCalories = (int) $rows->sum('calories');
+        $avgHr = $rows->count() > 0 ? round((float) $rows->avg('heart_rate_avg'), 2) : null;
+
+        return [
+            'summary' => [
+                'samples' => $rows->count(),
+                'total_distance_km' => round($totalDistance, 2),
+                'total_duration_minutes' => $totalDuration,
+                'total_calories' => $totalCalories,
+                'avg_heart_rate' => $avgHr,
+            ],
+            'series' => $series,
+        ];
     }
 }
