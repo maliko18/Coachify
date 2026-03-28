@@ -70,14 +70,101 @@ class Programme extends Model
     }
 
     /**
+     * Ajouter un exercice au programme.
+     *
+     * @param int $exerciceId
+     * @param int $ordre
+     * @param array<string, mixed> $details
+     */
+    public function ajouterExercice(int $exerciceId, int $ordre = 1, array $details = []): void
+    {
+        $exercice = Exercice::query()->find($exerciceId);
+
+        if (!$exercice) {
+            throw new \InvalidArgumentException('Exercice introuvable.');
+        }
+
+        if ($exercice->coach_id !== $this->coach_id) {
+            throw new \InvalidArgumentException('Un programme ne peut contenir que des exercices du meme coach.');
+        }
+
+        $pivotData = [
+            'ordre' => $ordre,
+            'semaine' => (int) ($details['semaine'] ?? 1),
+            'jour' => $details['jour'] ?? null,
+            'sets' => $details['sets'] ?? null,
+            'reps' => $details['reps'] ?? null,
+            'repos' => $details['repos'] ?? null,
+            'notes' => $details['notes'] ?? null,
+        ];
+
+        if ($pivotData['jour'] !== null && !in_array($pivotData['jour'], self::JOURS, true)) {
+            throw new \InvalidArgumentException('Jour invalide pour le programme.');
+        }
+
+        $existeDeja = $this->exercices()
+            ->where('exercice_id', $exerciceId)
+            ->wherePivot('semaine', $pivotData['semaine'])
+            ->wherePivot('jour', $pivotData['jour'])
+            ->exists();
+
+        if ($existeDeja) {
+            throw new \InvalidArgumentException('Cet exercice existe deja pour cette semaine/jour.');
+        }
+
+        $this->exercices()->attach($exerciceId, $pivotData);
+    }
+
+    /**
+     * Alias attendu par l'issue (#17)
+     *
+     * @param int $exerciceId
+     * @param int $ordre
+     * @param array<string, mixed> $details
+     */
+    public function ajouter_exercice(int $exerciceId, int $ordre = 1, array $details = []): void
+    {
+        $this->ajouterExercice($exerciceId, $ordre, $details);
+    }
+
+    /**
+     * Retirer un exercice du programme.
+     */
+    public function retirerExercice(int $exerciceId): void
+    {
+        $this->exercices()->detach($exerciceId);
+    }
+
+    /**
+     * Alias attendu par l'issue (#17)
+     */
+    public function retirer_exercice(int $exerciceId): void
+    {
+        $this->retirerExercice($exerciceId);
+    }
+
+    /**
      * Publier le programme (brouillon → publié)
      */
     public function publier(): bool
     {
-        if ($this->statut === 'brouillon') {
-            return $this->update(['statut' => 'publie']);
+        if ($this->statut !== 'brouillon') {
+            return false;
         }
-        return false;
+
+        if (!$this->estPubliable()) {
+            return false;
+        }
+
+        return $this->update(['statut' => 'publie']);
+    }
+
+    /**
+     * Alias attendu par l'issue (#17)
+     */
+    public function publier_programme(): bool
+    {
+        return $this->publier();
     }
 
     /**
@@ -105,6 +192,29 @@ class Programme extends Model
     public function estPubliable(): bool
     {
         return $this->exercices()->count() > 0;
+    }
+
+    /**
+     * Retourner les exercices groupés par semaine.
+     *
+     * @return \Illuminate\Support\Collection<int, \Illuminate\Support\Collection<int, Exercice>>
+     */
+    public function getExercicesParSemaine()
+    {
+        return $this->exercices()
+            ->get()
+            ->groupBy(fn ($exercice) => (int) $exercice->pivot->semaine)
+            ->sortKeys();
+    }
+
+    /**
+     * Alias attendu par l'issue (#17)
+     *
+     * @return \Illuminate\Support\Collection<int, \Illuminate\Support\Collection<int, Exercice>>
+     */
+    public function get_exercices_par_semaine()
+    {
+        return $this->getExercicesParSemaine();
     }
 
     /**

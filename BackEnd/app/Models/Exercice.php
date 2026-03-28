@@ -147,7 +147,7 @@ class Exercice extends Model
     public function programmes(): BelongsToMany
     {
         return $this->belongsToMany(Programme::class, 'programme_exercice')
-            ->withPivot(['ordre', 'jour_semaine', 'series', 'repetitions', 'duree_minutes', 'repos_secondes', 'instructions'])
+            ->withPivot(['ordre', 'semaine', 'jour', 'sets', 'reps', 'repos', 'notes'])
             ->withTimestamps();
     }
 }
