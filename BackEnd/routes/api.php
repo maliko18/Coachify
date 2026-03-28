@@ -48,13 +48,13 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Routes Clients (CRUD)
-        Route::apiResource('clients', ClientController::class);
+        Route::middleware('check_client_access')->apiResource('clients', ClientController::class);
 
         // Routes Offres (CRUD)
-        Route::apiResource('offres', OffreController::class);
+        Route::middleware('check_offre_ownership')->apiResource('offres', OffreController::class);
 
         // Routes Contrats (CRUD)
-        Route::apiResource('contrats', ContratController::class);
+        Route::middleware('check_contrat_access')->apiResource('contrats', ContratController::class);
         Route::get('contrats-expiration', [ContratController::class, 'expirationProche']);
         // ── Routes Séances (CRUD) ──
         Route::apiResource('seances', SeanceController::class);
@@ -115,6 +115,16 @@ Route::middleware('auth:sanctum')->group(function () {
     | Rôle requis : client
     */
     Route::middleware('is_client')->prefix('client')->group(function () {
+        // Mes informations
+        Route::get('/info', [ClientController::class, 'info']);
+
+        // Mes contrats
+        Route::middleware('check_contrat_access')->apiResource('contrats', ContratController::class, ['only' => ['index', 'show']]);
+
+        // Les offres disponibles (lecture seule)
+        Route::get('/offres', [OffreController::class, 'index']);
+        Route::get('/offres/{offre}', [OffreController::class, 'show']);
+
         // Mes séances (le client voit ses séances)
         Route::get('/seances', [SeanceController::class, 'mesSeances']);
 

@@ -30,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'is_client' => \App\Http\Middleware\IsClient::class,
             'is_admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'is_gym_manager' => \App\Http\Middleware\EnsureUserIsGymManager::class,
+            'check_offre_ownership' => \App\Http\Middleware\CheckOffreOwnership::class,
+            'check_contrat_access' => \App\Http\Middleware\CheckContratAccess::class,
+            'check_client_access' => \App\Http\Middleware\CheckClientAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

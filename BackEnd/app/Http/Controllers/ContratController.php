@@ -22,6 +22,11 @@ class ContratController extends Controller
             $query->where('coach_id', $user->coach->id);
         }
 
+        // Client : uniquement ses contrats
+        if ($user->hasRole('client')) {
+            $query->where('client_id', $user->client->id);
+        }
+
         // Filtre par statut
         if ($request->has('statut')) {
             $query->where('statut', $request->statut);
