@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\ContratController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExerciceController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\OffreController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\ProgrammeController;
 use App\Http\Controllers\SeanceController;
+use App\Http\Controllers\ShopController;
 use App\Http\Resources\UserResources;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +31,20 @@ require __DIR__.'/auth.php'; // Inscription, connexion, mot de passe oublié
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
+
+    // Boutique V3 (catalogue + stock + commandes)
+    Route::get('/produits', [ShopController::class, 'index']);
+    Route::get('/produits/{produit}', [ShopController::class, 'show']);
+    Route::get('/produits/{produit}/stock', [ShopController::class, 'stock']);
+    Route::middleware('is_coach')->group(function () {
+        Route::post('/produits', [ShopController::class, 'store']);
+        Route::put('/produits/{produit}', [ShopController::class, 'update']);
+        Route::delete('/produits/{produit}', [ShopController::class, 'destroy']);
+        Route::put('/commandes/{commande}/status', [CommandeController::class, 'updateStatus']);
+    });
+
+    Route::get('/commandes', [CommandeController::class, 'index']);
+    Route::post('/commandes', [CommandeController::class, 'store']);
 
     // Export CSV des offres (coach)
     Route::middleware('is_coach')->get('/offres/export/csv', [OffreController::class, 'exportCsv']);

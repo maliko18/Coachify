@@ -96,6 +96,14 @@ class Client extends Model
     }
 
     /**
+     * Les commandes du client
+     */
+    public function commandes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Commande::class);
+    }
+
+    /**
      * Les séances auxquelles le client est inscrit
      */
     public function seances(): BelongsToMany
