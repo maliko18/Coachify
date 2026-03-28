@@ -15,6 +15,11 @@ import GuestRoute from "./components/GuestRoute";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import HowItWorks from "./components/HowItWorks";
+import CoachProgrammesPage from "./pages/CoachProgrammesPage";
+import CoachPublicProgrammesPage from "./pages/CoachPublicProgrammesPage";
+import MyProgrammeReservationsPage from "./pages/MyProgrammeReservationsPage";
+
+
 
 export default function App() {
   return (
@@ -29,7 +34,9 @@ export default function App() {
           </>
         }
       />
-      <Route path="/coaches" element={<CoachesPage />} />
+      <Route element={<ProtectedRoute />}>
+  <Route path="/coaches" element={<CoachesPage />} />
+</Route>
       
       {/* Routes pour les visiteurs (non connectés) */}
       <Route element={<GuestRoute />}>
@@ -47,7 +54,16 @@ export default function App() {
         <Route path="/coach/dashboard" element={<CoachDashboard />} />
         <Route path="/coach/offres" element={<CoachOffersPage />} />
         <Route path="/book-coach/:coachId" element={<BookCoachPage />} />
+        <Route path="/coach/programmes" element={<CoachProgrammesPage />} />
+        <Route
+  path="/client/coaches/:coachId/programmes"
+  element={<CoachPublicProgrammesPage />}
+/>
 
+<Route
+  path="/client/programmes/reservations"
+  element={<MyProgrammeReservationsPage />}
+/>
       </Route>
     </Routes>
     

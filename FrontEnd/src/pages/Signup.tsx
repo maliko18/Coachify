@@ -45,6 +45,8 @@ export default function Signup() {
 
       // Store the selected role temporarily since backend doesn't return it
       const userWithRole = { ...user, selectedRole: role };
+
+      localStorage.setItem("role", role);
       setUser(userWithRole);
 
       // Use the role selected during registration for navigation

@@ -19,6 +19,8 @@ import booking4 from "../assets/booking-05.jpg";
 import booking5 from "../assets/booking-06.jpg";
 import walletbg from "../assets/walletbg.png";
 import Header from "../components/Header";
+import programmesIcon from "../assets/programmes.svg";
+import axiosClient from "../api/axios";
 
 
 
@@ -279,6 +281,7 @@ function BookingRow({
     ],
     []
   );
+  const [stravaLoading, setStravaLoading] = useState(false);
 
   const payments: Payment[] = useMemo(
     () => [
@@ -337,6 +340,18 @@ function BookingRow({
       prev.map((s) => (s.id === id ? { ...s, status: "cancelled" } : s))
     );
   };
+
+  const handleConnectStrava = async () => {
+  try {
+    setStravaLoading(true);
+    const res = await axiosClient.get("/integrations/strava/connect");
+    window.location.href = res.data.url;
+  } catch (error) {
+    console.error("Erreur connexion Strava:", error);
+  } finally {
+    setStravaLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -430,6 +445,17 @@ function BookingRow({
       <span className="font-semibold text-sm text-gray-700">Wallet</span>
     </button>
 
+{/* My Programmes */}
+<button
+  onClick={() => navigate("/client/programmes/reservations")}
+  className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
+>
+  <img src={programmesIcon} alt="My Programmes" className="h-7 w-7" />
+  <span className="font-semibold text-sm text-gray-700">
+    My Programmes
+  </span>
+</button>
+
     {/* Profile Setting */}
     <button
       onClick={() => navigate("/user/profile")}
@@ -440,6 +466,15 @@ function BookingRow({
         Profile Setting
       </span>
     </button>
+
+    <button
+  onClick={handleConnectStrava}
+  className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
+>
+  <span className="font-semibold text-sm text-gray-700">
+    {stravaLoading ? "Connexion..." : "Connect Strava"}
+  </span>
+</button>
 
   </div>
 </div>

@@ -9,6 +9,7 @@ import bookingsIcon from "../assets/booking-icon.svg";
 import chatIcon from "../assets/chat-icon.svg";
 import earningsIcon from "../assets/invoice-icon.svg";
 import walletIcon from "../assets/wallet-icon.svg";
+import programmesIcon from "../assets/programmes.svg";
 import profileIcon from "../assets/profile-icon.svg";
 import stat01 from "../assets/statistics-01.svg";
 import stat02 from "../assets/statistics-02.svg";
@@ -265,7 +266,7 @@ const [activeSection, setActiveSection] = useState<CoachSection>("dashboard");
 
 type StatusTab = "upcoming" | "completed" | "cancelled";
 type TypeTab = "court" | "coaching";
-type CoachSection = "dashboard" | "bookings" | "earnings" | "wallet";
+type CoachSection = "dashboard" | "bookings" | "earnings" | "wallet" | "programmes";
 
 const [bookingsStatus, setBookingsStatus] = useState<StatusTab>("upcoming");
 const [bookingsType, setBookingsType] = useState<TypeTab>("coaching");
@@ -1162,6 +1163,16 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
         title="Profile Setting"
         icon={profileIcon}
       />
+
+      <QuickNavCard
+        title="Programmes"
+        icon={programmesIcon}
+        active={activeSection === "programmes"}
+        onClick={() => {
+    setActiveSection("programmes");
+    navigate("/coach/programmes");
+  }}
+/>
 
     </div>
   </div>

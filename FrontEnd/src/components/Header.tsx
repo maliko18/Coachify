@@ -9,6 +9,9 @@ const Header = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isCoach = (user?.roles && user.roles.length > 0 && user.roles.some(role => role.name === "coach")) || user?.selectedRole === "coach";
+  const isClient =
+  !!user?.roles?.some((role) => role.name === "client") ||
+  user?.selectedRole === "client";
   const isUserRole =
     !!user?.roles?.some((role) => ["user", "client", "prospect"].includes(role.name)) ||
     ["user", "client", "prospect"].includes(user?.selectedRole || "");
@@ -56,11 +59,22 @@ const Header = () => {
 
       <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-white">
         <li className="text-[color:var(--accent)] cursor-pointer" onClick={() => navigate("/")}>Home</li>
-        {isUser && (
-          <li className="cursor-pointer hover:text-[color:var(--accent)]" onClick={() => navigate("/coaches")}>
-            Coaches 
-          </li>
-        )}
+{isClient && (
+  <li
+    className="cursor-pointer hover:text-[color:var(--accent)]"
+    onClick={() => navigate("/coaches")}
+  >
+    Coaches
+  </li>
+)}
+        {isClient && (
+  <li
+    className="cursor-pointer hover:text-[color:var(--accent)]"
+    onClick={() => navigate("/client/programmes/reservations")}
+  >
+    My Programmes
+  </li>
+)}
         {!user && (
           <>
             <li className="cursor-pointer hover:text-[color:var(--accent)]">

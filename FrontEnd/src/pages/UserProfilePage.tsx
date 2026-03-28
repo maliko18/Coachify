@@ -9,6 +9,7 @@ import walletIcon from "../assets/wallet-icon.svg";
 import profileIcon from "../assets/profile-icon.svg";
 import Header from "../components/Header";
 
+
 type Tab = "profile" | "password" | "settings";
 
 const countries = [
@@ -92,6 +93,7 @@ export default function UserProfilePage() {
             <img src={bookingsIcon} alt="My Bookings" className="h-7 w-7" />
             <span className="font-semibold text-sm text-gray-700">My Bookings</span>
           </button>
+          
           <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
             <img src={chatIcon} alt="Chat" className="h-7 w-7" />
             <span className="font-semibold text-sm text-gray-700">Chat</span>

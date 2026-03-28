@@ -1,9 +1,21 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
-import { coachesData } from "../data/coaches";
+import axiosClient from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+
+type Coach = {
+  id: number;
+  full_name: string;
+  email: string;
+  bio?: string;
+  specialties?: string[];
+  experience_years?: number;
+  hourly_rate?: number;
+  avatar?: string | null;
+  city?: string | null;
+};
 
 export default function CoachesPage() {
   const navigate = useNavigate();
@@ -15,34 +27,72 @@ export default function CoachesPage() {
     ["user", "client", "prospect"].includes(user?.selectedRole || "");
   const isUser = isUserRole || (!!user && !isCoach);
 
-  const [search, setSearch] = useState("");
-  const [lessonType, setLessonType] = useState("all");
-  const [location, setLocation] = useState("all");
-  const [radius, setRadius] = useState("10");
-  const [maxPrice, setMaxPrice] = useState("250");
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
+
+const [search, setSearch] = useState("");
+const [lessonType, setLessonType] = useState("all");
+const [location, setLocation] = useState("all");
+const [radius, setRadius] = useState("10");
+const [maxPrice, setMaxPrice] = useState("250");
+
+useEffect(() => {
+  axiosClient
+    .get("/client/coaches")
+    .then((res) => {
+      setCoaches(res.data.data || []);
+    })
+    .catch((err) => {
+      console.error(err);
+      setError("Impossible de charger les coachs.");
+    })
+    .finally(() => setLoading(false));
+}, []);
 
   const lessonTypes = useMemo(
-    () => ["all", ...Array.from(new Set(coachesData.map((coach) => coach.lessonType)))],
-    []
-  );
+  () => [
+    "all",
+    ...Array.from(
+      new Set(
+        coaches.flatMap((coach) => coach.specialties || [])
+      )
+    ),
+  ],
+  [coaches]
+);
 
-  const locations = useMemo(
-    () => ["all", ...Array.from(new Set(coachesData.map((coach) => coach.location)))],
-    []
-  );
+const locations = useMemo(() => {
+  const cities = coaches
+    .map((coach) => coach.city)
+    .filter((city): city is string => typeof city === "string" && city.trim() !== "");
+
+  return ["all", ...Array.from(new Set(cities))];
+}, [coaches]);
 
   const filteredCoaches = useMemo(() => {
-    return coachesData.filter((coach) => {
-      const minPrice = Math.min(...coach.offers.map((offer) => offer.pricePerHour));
-      const matchesSearch =
-        coach.name.toLowerCase().includes(search.toLowerCase()) ||
-        coach.bio.toLowerCase().includes(search.toLowerCase());
-      const matchesLesson = lessonType === "all" || coach.lessonType === lessonType;
-      const matchesLocation = location === "all" || coach.location === location;
-      const matchesPrice = minPrice <= Number(maxPrice);
-      return matchesSearch && matchesLesson && matchesLocation && matchesPrice;
-    });
-  }, [search, lessonType, location, maxPrice]);
+  return coaches.filter((coach) => {
+    const coachName = coach.full_name || "";
+    const coachBio = coach.bio || "";
+    const coachCity = coach.city || "";
+    const coachPrice = Number(coach.hourly_rate || 0);
+
+    const matchesSearch =
+      coachName.toLowerCase().includes(search.toLowerCase()) ||
+      coachBio.toLowerCase().includes(search.toLowerCase());
+
+    const matchesLesson =
+      lessonType === "all" ||
+      (coach.specialties || []).includes(lessonType);
+
+    const matchesLocation =
+      location === "all" || coachCity === location;
+
+    const matchesPrice = coachPrice <= Number(maxPrice);
+
+    return matchesSearch && matchesLesson && matchesLocation && matchesPrice;
+  });
+}, [coaches, search, lessonType, location, maxPrice]);
 
   const clearAll = () => {
     setSearch("");
@@ -51,6 +101,24 @@ export default function CoachesPage() {
     setRadius("10");
     setMaxPrice("250");
   };
+
+  if (loading) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="p-10 text-center text-gray-600">Chargement des coachs...</div>
+    </div>
+  );
+}
+
+if (error) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="p-10 text-center text-red-600">{error}</div>
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -102,7 +170,7 @@ export default function CoachesPage() {
                 >
                   {lessonTypes.map((item) => (
                     <option key={item} value={item}>
-                      {item === "all" ? "All lessons" : item}
+                      {item === "all" ? "All specialties" : item}
                     </option>
                   ))}
                 </select>
@@ -161,45 +229,48 @@ export default function CoachesPage() {
               >
                 <div className="grid grid-cols-1 md:grid-cols-[250px_1fr]">
                   <div className="relative">
-                    <img
-                      src={coach.image}
-                      alt={coach.name}
-                      className="w-full h-full min-h-[230px] object-cover"
-                    />
+                    <div className="w-full h-full min-h-[230px] bg-slate-200 flex items-center justify-center text-5xl font-bold text-slate-600">
+  {coach.full_name?.charAt(0) || "C"}
+</div>
                     <span className="absolute top-4 left-4 px-3 py-1 rounded-lg bg-sky-500 text-white font-semibold text-sm">
-                      {coach.level}
-                    </span>
+  Coach
+</span>
                   </div>
 
                   <div className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-amber-600">
-                          {coach.rating} • {coach.reviews} Reviews
-                        </p>
-                        <h2 className="text-5xl font-extrabold text-gray-900 mt-1">{coach.name}</h2>
-                        <p className="text-gray-500 mt-1">📍 {coach.location}</p>
-                        <p className="text-gray-600 mt-3 max-w-2xl">{coach.bio}</p>
+                       <p className="text-sm font-semibold text-amber-600">
+  {coach.experience_years ?? 0} years of experience
+</p>
+<h2 className="text-5xl font-extrabold text-gray-900 mt-1">{coach.full_name}</h2>
+<p className="text-gray-500 mt-1">📍 {coach.city || "Location not specified"}</p>
+<p className="text-gray-600 mt-3 max-w-2xl">{coach.bio || "No biography available."}</p>
                       </div>
 
                       <span className="px-4 py-2 rounded-lg bg-emerald-500 text-white font-bold text-xl whitespace-nowrap">
-                        From ${Math.min(...coach.offers.map((offer) => offer.pricePerHour))} /hr
-                      </span>
+  From ${coach.hourly_rate ?? 0} /hr
+</span>
                     </div>
 
                     <div className="mt-5 pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
                       {isUser && (
-                        <button
-                          onClick={() =>
-                            navigate(token ? `/book-coach/${coach.id}` : "/login", {
-                              state: { redirectTo: `/book-coach/${coach.id}` },
-                            })
-                          }
-                          className="h-12 px-6 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800"
-                        >
-                          Book Now
-                        </button>
-                      )}
+  <button
+    onClick={() =>
+      navigate(
+        token
+          ? `/client/coaches/${coach.id}/programmes`
+          : "/login",
+        {
+          state: { redirectTo: `/client/coaches/${coach.id}/programmes` },
+        }
+      )
+    }
+    className="h-12 px-6 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800"
+  >
+    View Programmes
+  </button>
+)}
                     </div>
                   </div>
                 </div>
