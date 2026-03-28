@@ -99,6 +99,45 @@ class Offre extends Model
     }
 
     /**
+     * Nombre de séances incluses dans l'offre
+     * 
+     * @return int Nombre de séances : 0 si abonnement/collectif/programme/produit
+     */
+    public function seances_incluses(): int
+    {
+        // Les packs de séances ont un nombre fixe
+        if ($this->type === 'pack_seance') {
+            return (int) $this->nombre_seances ?? 0;
+        }
+
+        // Les abonnements, programmes et produits n'ont pas de séances
+        return 0;
+    }
+
+    /**
+     * Obtenir les métriques d'utilisation de l'offre
+     * 
+     * @return array Métriques incluant nombre de contrats, CA total, taux de remplissage
+     */
+    public function getMetrics(): array
+    {
+        $contrats = $this->contrats()->where('statut', '!=', 'annule')->get();
+
+        $total_contrats = $contrats->count();
+        $contrats_actifs = $contrats->where('statut', 'actif')->count();
+        $ca_total = $contrats->sum('montant_paye');
+        $ca_pending = $contrats->where('statut', 'actif')->sum('montant_total') - $contrats->where('statut', 'actif')->sum('montant_paye');
+        
+        return [
+            'total_contrats' => $total_contrats,
+            'contrats_actifs' => $contrats_actifs,
+            'ca_total' => round($ca_total, 2),
+            'ca_pending' => round($ca_pending, 2),
+            'taux_remplissage' => $total_contrats > 0 ? round(($contrats_actifs / $total_contrats) * 100, 2) : 0,
+        ];
+    }
+
+    /**
      * Obtenir le prix effectif (promotion ou normal)
      */
     public function getPrixEffectifAttribute(): float

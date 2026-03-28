@@ -100,6 +100,83 @@ class Contrat extends Model
     }
 
     /**
+     * Calculer le nombre de séances consommées
+     * 
+     * @return int Nombre de séances utilisées via les Seances
+     */
+    public function seances_consommees(): int
+    {
+        // Compter les séances où le client a participé avec ce contrat
+        // TODO: À adapter selon la structure SeanceClient
+        return (int) $this->seances_consommees ?? 0;
+    }
+
+    /**
+     * Calculer le nombre de séances restantes
+     * 
+     * @return int Nombre de séances disponibles
+     */
+    public function seances_restantes(): int
+    {
+        if (!$this->offre) {
+            return 0;
+        }
+
+        $total_seances = $this->offre->seances_incluses();
+        $consommees = $this->seances_consommees();
+
+        return max(0, $total_seances - $consommees);
+    }
+
+    /**
+     * Mettre à jour le statut du contrat selon les règles de workflow
+     * 
+     * @return void
+     */
+    public function updateStatusWorkflow(): void
+    {
+        // En attente -> Actif si date_debut atteinte
+        if ($this->statut === 'en_attente' && now()->greaterThanOrEqualTo($this->date_debut)) {
+            $this->statut = 'actif';
+        }
+
+        // Actif -> Expiré si date_fin dépassée
+        if ($this->statut === 'actif' && $this->date_fin && now()->greaterThan($this->date_fin)) {
+            $this->statut = 'termine';
+        }
+
+        // Pas de séances restantes et pas d'abonnement -> Terminé
+        if ($this->statut === 'actif' && $this->seances_restantes() <= 0 && $this->offre->type === 'pack_seance') {
+            $this->statut = 'termine';
+        }
+
+        $this->save();
+    }
+
+    /**
+     * Vérifier si les dates du contrat sont valides
+     * 
+     * @return bool True si date_debut < date_fin
+     */
+    public function datesValides(): bool
+    {
+        return $this->date_debut < ($this->date_fin ?? now()->addYears(1));
+    }
+
+    /**
+     * Incrémenter les séances consommées et mettre à jour les restantes
+     * 
+     * @param int $nombre Nombre de séances à incrémenter
+     * @return void
+     */
+    public function incrementSeancesConsommees(int $nombre = 1): void
+    {
+        $this->seances_consommees = ($this->seances_consommees ?? 0) + $nombre;
+        $this->seances_restantes = max(0, $this->seances_totales - $this->seances_consommees);
+        $this->save();
+    }
+
+    /**
      * Consommer une séance
      */
     public function consommerSeance(): bool
