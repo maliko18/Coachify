@@ -55,8 +55,10 @@ class PaiementController extends Controller
     /**
      * Affiche un paiement spécifique
      */
-    public function show(Paiement $paiement)
+    public function show(Request $request, Paiement $paiement)
     {
+        $this->authorizeCoachOwnership($request, $paiement);
+
         return new PaiementResource(
             $paiement->load(['client.user', 'contrat', 'coach.user'])
         );
@@ -90,9 +92,11 @@ class PaiementController extends Controller
 
         $paiement = Paiement::create($validated);
 
-        return new PaiementResource(
+        return (new PaiementResource(
             $paiement->load(['client.user', 'contrat', 'coach.user'])
-        );
+        ))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
