@@ -4,128 +4,143 @@ import axiosClient from "../api/axios";
 type Programme = {
   id: number;
   titre: string;
-  description: string;
-  prix?: number;
+  description?: string;
+  prix?: number | null;
   statut?: string;
+  duree_semaines?: number;
+  type?: string;
+  created_at?: string;
 };
+
+const DEFAULT_PROGRAMME_TYPE = "remise_en_forme";
+const DEFAULT_PROGRAMME_DURATION = 8;
+
+const mapProgramme = (programme: any): Programme => ({
+  ...programme,
+  prix:
+    programme?.prix === null || programme?.prix === undefined
+      ? null
+      : Number(programme.prix),
+});
 
 export default function CoachProgrammesPage() {
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [titre, setTitre] = useState("");
   const [description, setDescription] = useState("");
 
   const [prix, setPrix] = useState<number>(0);
 
-  const fetchProgrammes = () => {
-    axiosClient.get("/coach/programmes")
-      .then(res => setProgrammes(res.data.data))
-      .catch(err => console.error(err));
-  };
-
-  const [editingProgramme, setEditingProgramme] = useState<any>(null);
-  useEffect(() => {
-    fetchProgrammes();
-  }, []);
-
-  const createProgramme = async () => {
-  try {
-    const res = await axiosClient.post("/coach/programmes", {
-      titre,
-      description,
-      duree_semaines: 8,
-      type: "remise_en_forme",
-      statut: "brouillon",
-      prix: prix,
-    });
-
-
-
-    const newProgramme = res.data.data;
-setProgrammes((prev) => [newProgramme, ...prev]);
-
-    setShowForm(false);
-    setTitre("");
-    setDescription("");
-    setPrix(0);
-  } catch (err: any) {
-  console.log("ERROR DATA:", err.response?.data);
-}
-};
-
-const deleteProgramme = async (id: number) => {
-  try {
-    await axiosClient.delete(`/coach/programmes/${id}`);
-
-    setProgrammes((prev) => prev.filter((p) => p.id !== id));
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-const startEdit = (programme: any) => {
-  setEditingProgramme(programme);
-  setTitre(programme.titre);
-  setDescription(programme.description);
-  setShowForm(true);
-  setPrix(programme.prix || 0);
-};
-
-const updateProgramme = async () => {
-  try {
-    const res = await axiosClient.put(
-      `/coach/programmes/${editingProgramme.id}`,
-      {
-        
-  titre,
-  description,
-  prix,
-  duree_semaines: 8,
-  type: "remise_en_forme",
-  statut: editingProgramme.statut,
-
-      }
-    );
-
-    const updated = res.data.data;
-
-    setProgrammes((prev) =>
-      prev.map((p) => (p.id === updated.id ? updated : p))
-    );
-
+  const resetForm = () => {
     setEditingProgramme(null);
     setShowForm(false);
     setTitre("");
     setDescription("");
     setPrix(0);
-  } catch (err) {
-    console.error(err);
-  }
-};
+  };
+
+  const fetchProgrammes = async () => {
+    try {
+      const res = await axiosClient.get("/coach/programmes");
+      setProgrammes((res.data.data || []).map(mapProgramme));
+      setErrorMessage("");
+    } catch (err) {
+      console.error(err);
+      setErrorMessage("Impossible de charger les programmes.");
+    }
+  };
+
+  const [editingProgramme, setEditingProgramme] = useState<Programme | null>(null);
+  useEffect(() => {
+    fetchProgrammes();
+  }, []);
+
+  const createProgramme = async () => {
+    try {
+      const res = await axiosClient.post("/coach/programmes", {
+        titre,
+        description,
+        duree_semaines: DEFAULT_PROGRAMME_DURATION,
+        type: DEFAULT_PROGRAMME_TYPE,
+        statut: "brouillon",
+        prix,
+      });
+
+      const newProgramme = mapProgramme(res.data.data);
+      setProgrammes((prev) => [newProgramme, ...prev]);
+      setErrorMessage("");
+      resetForm();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.response?.data?.message || "Erreur lors de la creation du programme.");
+    }
+  };
+
+  const deleteProgramme = async (id: number) => {
+    try {
+      await axiosClient.delete(`/coach/programmes/${id}`);
+      setProgrammes((prev) => prev.filter((p) => p.id !== id));
+      setErrorMessage("");
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.response?.data?.message || "Erreur lors de la suppression du programme.");
+    }
+  };
+
+  const startEdit = (programme: Programme) => {
+    setEditingProgramme(programme);
+    setTitre(programme.titre);
+    setDescription(programme.description || "");
+    setShowForm(true);
+    setPrix(Number(programme.prix ?? 0));
+    setErrorMessage("");
+  };
+
+  const updateProgramme = async () => {
+    if (!editingProgramme) {
+      return;
+    }
+
+    try {
+      const res = await axiosClient.put(`/coach/programmes/${editingProgramme.id}`, {
+        titre,
+        description,
+        prix,
+        duree_semaines: editingProgramme.duree_semaines || DEFAULT_PROGRAMME_DURATION,
+        type: editingProgramme.type || DEFAULT_PROGRAMME_TYPE,
+        statut: editingProgramme.statut,
+      });
+
+      const updated = mapProgramme(res.data.data);
+
+      setProgrammes((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setErrorMessage("");
+      resetForm();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.response?.data?.message || "Erreur lors de la mise a jour du programme.");
+    }
+  };
 
   const toggleStatus = async (programme: Programme) => {
-  const newStatus =
-    programme.statut === "publie" ? "brouillon" : "publie";
+    const isPublished = programme.statut === "publie";
+    const endpoint = isPublished
+      ? `/coach/programmes/${programme.id}/depublier`
+      : `/coach/programmes/${programme.id}/publier`;
 
-  try {
-    const res = await axiosClient.put(
-      `/coach/programmes/${programme.id}`,
-      {
-        ...programme,
-        statut: newStatus,
-      }
-    );
+    try {
+      const res = await axiosClient.post(endpoint);
+      const updated = mapProgramme(res.data.data);
 
-    setProgrammes((prev) =>
-  prev.map((p) =>
-    p.id === programme.id ? res.data.data : p
-  )
-);
-  } catch (err) {
-    console.error(err);
-  }
-};
+      setProgrammes((prev) => prev.map((p) => (p.id === programme.id ? updated : p)));
+      setErrorMessage("");
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err.response?.data?.message || "Impossible de changer le statut du programme.");
+    }
+  };
 
    
 
@@ -205,6 +220,12 @@ const updateProgramme = async () => {
           </div>
         )}
 
+        {errorMessage && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMessage}
+          </div>
+        )}
+
         {/* REFINED TABLE */}
         <div className="bg-[#f8fafc] rounded-3xl shadow-xl overflow-hidden border border-gray-200">
           <table className="w-full text-left">
@@ -235,7 +256,9 @@ const updateProgramme = async () => {
                     <span className="font-bold text-slate-700">${p.prix ?? 0}</span>
                   </td>
                   <td className="px-6 py-5">
-                    <span className="text-sm text-slate-500 font-medium">Mon, Jul 12</span>
+                    <span className="text-sm text-slate-500 font-medium">
+                      {p.created_at ? new Date(p.created_at).toLocaleDateString() : "-"}
+                    </span>
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex items-center justify-end gap-3">
