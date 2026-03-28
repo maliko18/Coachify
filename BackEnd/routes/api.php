@@ -26,6 +26,9 @@ require __DIR__.'/auth.php'; // Inscription, connexion, mot de passe oublié
 */
 Route::middleware('auth:sanctum')->group(function () {
 
+    // Export CSV des offres (coach)
+    Route::middleware('is_coach')->get('/offres/export/csv', [OffreController::class, 'exportCsv']);
+
     // Informations de l'utilisateur connecté
     Route::get('/user', function (Request $request) {
         return new UserResources($request->user()->load('roles', 'coach'));

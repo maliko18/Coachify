@@ -127,10 +127,15 @@ class Offre extends Model
         $contrats_actifs = $contrats->where('statut', 'actif')->count();
         $ca_total = $contrats->sum('montant_paye');
         $ca_pending = $contrats->where('statut', 'actif')->sum('montant_total') - $contrats->where('statut', 'actif')->sum('montant_paye');
+        $durees = $contrats
+            ->filter(fn ($contrat) => $contrat->date_debut && $contrat->date_fin)
+            ->map(fn ($contrat) => $contrat->date_debut->diffInDays($contrat->date_fin));
+        $duree_moyenne_jours = $durees->count() > 0 ? round((float) $durees->avg(), 2) : 0.0;
         
         return [
             'total_contrats' => $total_contrats,
             'contrats_actifs' => $contrats_actifs,
+            'duree_moyenne_jours' => $duree_moyenne_jours,
             'ca_total' => round($ca_total, 2),
             'ca_pending' => round($ca_pending, 2),
             'taux_remplissage' => $total_contrats > 0 ? round(($contrats_actifs / $total_contrats) * 100, 2) : 0,

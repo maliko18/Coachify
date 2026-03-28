@@ -9,6 +9,47 @@ use Illuminate\Http\Request;
 class OffreController extends Controller
 {
     /**
+     * Export CSV des offres du coach connecté
+     */
+    public function exportCsv(Request $request)
+    {
+        $coachId = $request->user()->coach->id;
+
+        $offres = Offre::query()
+            ->where('coach_id', $coachId)
+            ->with(['contrats' => function ($query) {
+                $query->where('statut', '!=', 'annule');
+            }])
+            ->orderBy('nom')
+            ->get();
+
+        $fileName = 'offres_export_' . now()->format('Ymd_His') . '.csv';
+
+        return response()->streamDownload(function () use ($offres) {
+            $handle = fopen('php://output', 'w');
+
+            fputcsv($handle, ['nom', 'type', 'prix', 'nombre contrats', 'CA total'], ';');
+
+            foreach ($offres as $offre) {
+                $nombreContrats = $offre->contrats->count();
+                $caTotal = round((float) $offre->contrats->sum('montant_paye'), 2);
+
+                fputcsv($handle, [
+                    $offre->nom,
+                    $offre->type,
+                    (float) $offre->prix,
+                    $nombreContrats,
+                    $caTotal,
+                ], ';');
+            }
+
+            fclose($handle);
+        }, $fileName, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
      * Liste les offres du coach connecté
      */
     public function index(Request $request)
