@@ -27,6 +27,15 @@ use Illuminate\Support\Facades\Route;
 */
 require __DIR__.'/auth.php'; // Inscription, connexion, mot de passe oublié
 
+Route::get('/health', function () {
+    return response()->json([
+        'success' => true,
+        'status' => 'ok',
+        'service' => config('app.name'),
+        'timestamp' => now()->toISOString(),
+    ]);
+});
+
 /*
 |--------------------------------------------------------------------------
 | Routes protégées - Authentification requise
