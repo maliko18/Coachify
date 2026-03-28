@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Coach extends Model
 {
@@ -259,5 +260,153 @@ class Coach extends Model
     public function scopeWithSpecialty($query, string $specialty)
     {
         return $query->whereJsonContains('specialties', $specialty);
+    }
+
+    /**
+     * CA par période (jour/mois/an) avec série temporelle.
+     */
+    public function getCATotal(string $period = 'month'): array
+    {
+        [$startDate, $endDate, $format] = $this->resolvePeriodRange($period);
+
+        $paiements = Paiement::query()
+            ->where('coach_id', $this->id)
+            ->where('statut', 'valide')
+            ->whereBetween('date_paiement', [$startDate, $endDate])
+            ->get();
+
+        $total = round((float) $paiements->sum('montant'), 2);
+
+        $series = $paiements
+            ->groupBy(fn ($paiement) => $paiement->date_paiement->format($format))
+            ->map(fn ($items, $key) => [
+                'label' => $key,
+                'ca' => round((float) $items->sum('montant'), 2),
+            ])
+            ->values();
+
+        return [
+            'period' => $period,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+            'total' => $total,
+            'series' => $series,
+        ];
+    }
+
+    /**
+     * Taux de remplissage des séances sur la période.
+     */
+    public function getTauxRemplissage(string $period = 'month'): array
+    {
+        [$startDate, $endDate] = $this->resolvePeriodRange($period);
+
+        $seances = Seance::query()
+            ->where('coach_id', $this->id)
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->get(['id', 'capacite_max']);
+
+        $seanceIds = $seances->pluck('id');
+        $capaciteTotale = (int) $seances->sum('capacite_max');
+
+        $participantsPresents = $seanceIds->isEmpty()
+            ? 0
+            : (int) DB::table('seance_client')
+                ->whereIn('seance_id', $seanceIds)
+                ->where('statut_presence', 'present')
+                ->where('en_liste_attente', false)
+                ->count();
+
+        $taux = $capaciteTotale > 0
+            ? round(($participantsPresents / $capaciteTotale) * 100, 2)
+            : 0.0;
+
+        return [
+            'period' => $period,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+            'seances_count' => $seances->count(),
+            'capacite_totale' => $capaciteTotale,
+            'participants_presents' => $participantsPresents,
+            'taux_remplissage' => $taux,
+        ];
+    }
+
+    /**
+     * Fidélisation client : actifs vs churnés.
+     */
+    public function getFidelisation(): array
+    {
+        $clients = Client::query()->where('coach_id', $this->id);
+        $total = (int) $clients->count();
+        $actifs = (int) (clone $clients)->where('subscription_status', 'active')->count();
+        $churned = max(0, $total - $actifs);
+
+        return [
+            'total_clients' => $total,
+            'clients_actifs' => $actifs,
+            'clients_churned' => $churned,
+            'taux_fidelisation' => $total > 0 ? round(($actifs / $total) * 100, 2) : 0.0,
+        ];
+    }
+
+    /**
+     * CA moyen par client payeur.
+     */
+    public function getPanierMoyen(): array
+    {
+        $paiementsValides = Paiement::query()
+            ->where('coach_id', $this->id)
+            ->where('statut', 'valide');
+
+        $totalCa = (float) $paiementsValides->sum('montant');
+        $clientsPayeurs = (int) $paiementsValides->distinct('client_id')->count('client_id');
+
+        return [
+            'ca_total' => round($totalCa, 2),
+            'clients_payeurs' => $clientsPayeurs,
+            'panier_moyen' => $clientsPayeurs > 0 ? round($totalCa / $clientsPayeurs, 2) : 0.0,
+        ];
+    }
+
+    /**
+     * Offres les plus vendues.
+     */
+    public function getTopOffers(int $limit = 5): array
+    {
+        return Contrat::query()
+            ->select('offre_id', DB::raw('COUNT(*) as ventes'), DB::raw('SUM(montant_paye) as ca'))
+            ->where('coach_id', $this->id)
+            ->where('statut', '!=', 'annule')
+            ->with('offre:id,nom,type')
+            ->groupBy('offre_id')
+            ->orderByDesc('ventes')
+            ->limit($limit)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'offre_id' => $item->offre_id,
+                    'nom' => $item->offre->nom ?? null,
+                    'type' => $item->offre->type ?? null,
+                    'ventes' => (int) $item->ventes,
+                    'ca' => round((float) $item->ca, 2),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Résolution de plage de dates selon la période.
+     */
+    private function resolvePeriodRange(string $period): array
+    {
+        $end = now();
+
+        return match ($period) {
+            'day' => [$end->copy()->startOfDay(), $end->copy()->endOfDay(), 'Y-m-d H:00'],
+            'year' => [$end->copy()->startOfYear(), $end->copy()->endOfYear(), 'Y-m'],
+            default => [$end->copy()->startOfMonth(), $end->copy()->endOfMonth(), 'Y-m-d'],
+        };
     }
 }

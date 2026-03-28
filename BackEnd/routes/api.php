@@ -3,6 +3,7 @@
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ContratController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExerciceController;
 use App\Http\Controllers\FactureController;
 use App\Http\Controllers\NotificationController;
@@ -71,6 +72,11 @@ Route::middleware('auth:sanctum')->group(function () {
                 'coach' => $request->user()->coach,
             ]);
         });
+
+        // Dashboard business coach (Issue #23)
+        Route::get('/dashboard/kpis', [DashboardController::class, 'coachKpis']);
+        Route::get('/dashboard/ca', [DashboardController::class, 'coachCA']);
+        Route::get('/dashboard/taux-remplissage', [DashboardController::class, 'coachTauxRemplissage']);
 
         // Routes Clients (CRUD)
         Route::middleware('check_client_access')->apiResource('clients', ClientController::class);
@@ -153,6 +159,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Mes séances (le client voit ses séances)
         Route::get('/seances', [SeanceController::class, 'mesSeances']);
+
+        // Dashboard client (Issue #23)
+        Route::get('/dashboard/progression', [DashboardController::class, 'clientProgression']);
+        Route::get('/dashboard/historique', [DashboardController::class, 'clientHistorique']);
 
         // Feedback du client sur une séance
         Route::post('/seances/{seance}/feedback', [SeanceController::class, 'feedbackClient']);
