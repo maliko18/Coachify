@@ -137,32 +137,23 @@ class SeanceController extends Controller
             'client_id' => 'required|exists:clients,id',
         ]);
 
-        // Vérifier si la séance est complète
-        if ($seance->estComplete()) {
+        try {
+            $resultat = $seance->inscrireClientAvecWaitingList($validated['client_id']);
+        } catch (\InvalidArgumentException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'La séance est complète. Aucune place disponible.',
+                'message' => $e->getMessage(),
             ], 422);
         }
-
-        // Vérifier si le client est déjà inscrit
-        if ($seance->clientEstInscrit($validated['client_id'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ce client est déjà inscrit à cette séance.',
-            ], 422);
-        }
-
-        $seance->clients()->attach($validated['client_id'], [
-            'statut_presence' => 'inscrit',
-        ]);
 
         $seance->load(['coach.user', 'clients.user']);
         $seance->loadCount('clients');
 
         return response()->json([
             'success' => true,
-            'message' => 'Client inscrit à la séance avec succès.',
+            'message' => $resultat === 'liste_attente'
+                ? 'Séance complète: client ajouté à la liste d\'attente.'
+                : 'Client inscrit à la séance avec succès.',
             'data' => new SeanceResource($seance),
         ]);
     }
@@ -229,7 +220,14 @@ class SeanceController extends Controller
             ], 404);
         }
 
-        $seance->clients()->updateExistingPivot($clientId, $validated);
+        try {
+            $seance->marquerPresence($clientId, $validated['statut_presence']);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
 
         $seance->load(['coach.user', 'clients.user']);
         $seance->loadCount('clients');

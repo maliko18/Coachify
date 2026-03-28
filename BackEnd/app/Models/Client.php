@@ -100,7 +100,7 @@ class Client extends Model
     public function seances(): BelongsToMany
     {
         return $this->belongsToMany(Seance::class, 'seance_client')
-                    ->withPivot(['statut_presence', 'feedback_client', 'feedback_coach', 'note'])
+                    ->withPivot(['statut_presence', 'en_liste_attente', 'feedback_client', 'feedback_coach', 'note'])
                     ->withTimestamps();
     }
 

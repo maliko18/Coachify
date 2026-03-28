@@ -46,6 +46,7 @@ class SeanceResource extends JsonResource
                             'email' => $client->user->email,
                         ],
                         'statut_presence' => $client->pivot->statut_presence,
+                        'en_liste_attente' => (bool) ($client->pivot->en_liste_attente ?? false),
                         'feedback_client' => $client->pivot->feedback_client,
                         'feedback_coach' => $client->pivot->feedback_coach,
                         'note' => $client->pivot->note,

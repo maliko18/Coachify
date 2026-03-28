@@ -60,7 +60,7 @@ class Seance extends Model
     public function clients(): BelongsToMany
     {
         return $this->belongsToMany(Client::class, 'seance_client')
-                    ->withPivot(['statut_presence', 'feedback_client', 'feedback_coach', 'note'])
+                    ->withPivot(['statut_presence', 'en_liste_attente', 'feedback_client', 'feedback_coach', 'note'])
                     ->withTimestamps();
     }
 
@@ -69,7 +69,7 @@ class Seance extends Model
      */
     public function estComplete(): bool
     {
-        return $this->clients()->count() >= $this->capacite_max;
+        return $this->clientsInscrits()->count() >= $this->capacite_max;
     }
 
     /**
@@ -77,7 +77,7 @@ class Seance extends Model
      */
     public function getPlacesRestantesAttribute(): int
     {
-        return max(0, $this->capacite_max - $this->clients()->count());
+        return max(0, $this->capacite_max - $this->clientsInscrits()->count());
     }
 
     /**
@@ -86,6 +86,133 @@ class Seance extends Model
     public function clientEstInscrit(int $clientId): bool
     {
         return $this->clients()->where('client_id', $clientId)->exists();
+    }
+
+    /**
+     * Relation des clients confirmés (hors liste d'attente)
+     */
+    public function clientsInscrits(): BelongsToMany
+    {
+        return $this->clients()->wherePivot('en_liste_attente', false);
+    }
+
+    /**
+     * Marquer la présence d'un client inscrit
+     */
+    public function marquerPresence(int $clientId, string $statut): void
+    {
+        if (!in_array($statut, ['present', 'absent', 'excuse'], true)) {
+            throw new \InvalidArgumentException('Statut de présence invalide.');
+        }
+
+        if (!$this->clientEstInscrit($clientId)) {
+            throw new \InvalidArgumentException('Client non inscrit à cette séance.');
+        }
+
+        $this->clients()->updateExistingPivot($clientId, [
+            'statut_presence' => $statut,
+            'en_liste_attente' => false,
+        ]);
+    }
+
+    /**
+     * Alias attendu par l'issue (#16)
+     */
+    public function marquer_presence(int $clientId, string $statut): void
+    {
+        $this->marquerPresence($clientId, $statut);
+    }
+
+    /**
+     * Clients présents
+     */
+    public function getParticipants()
+    {
+        return $this->clients()
+            ->wherePivot('en_liste_attente', false)
+            ->wherePivot('statut_presence', 'present')
+            ->get();
+    }
+
+    /**
+     * Alias attendu par l'issue (#16)
+     */
+    public function get_participants()
+    {
+        return $this->getParticipants();
+    }
+
+    /**
+     * Clients absents (inclut absents et excusés)
+     */
+    public function getAbsents()
+    {
+        return $this->clients()
+            ->wherePivot('en_liste_attente', false)
+            ->wherePivotIn('statut_presence', ['absent', 'excuse'])
+            ->get();
+    }
+
+    /**
+     * Alias attendu par l'issue (#16)
+     */
+    public function get_absents()
+    {
+        return $this->getAbsents();
+    }
+
+    /**
+     * Clients en liste d'attente
+     */
+    public function getWaitingList()
+    {
+        return $this->clients()
+            ->wherePivot('en_liste_attente', true)
+            ->orderByPivot('created_at')
+            ->get();
+    }
+
+    /**
+     * Alias attendu par l'issue (#16)
+     */
+    public function get_waiting_list()
+    {
+        return $this->getWaitingList();
+    }
+
+    /**
+     * Capacité restante réelle (hors waiting list)
+     */
+    public function capaciteRestante(): int
+    {
+        return max(0, $this->capacite_max - $this->clientsInscrits()->count());
+    }
+
+    /**
+     * Alias attendu par l'issue (#16)
+     */
+    public function capacite_restante(): int
+    {
+        return $this->capaciteRestante();
+    }
+
+    /**
+     * Inscrire un client en confirmé ou en liste d'attente
+     */
+    public function inscrireClientAvecWaitingList(int $clientId): string
+    {
+        if ($this->clientEstInscrit($clientId)) {
+            throw new \InvalidArgumentException('Client déjà inscrit à cette séance.');
+        }
+
+        $enListeAttente = $this->estComplete();
+
+        $this->clients()->attach($clientId, [
+            'statut_presence' => 'inscrit',
+            'en_liste_attente' => $enListeAttente,
+        ]);
+
+        return $enListeAttente ? 'liste_attente' : 'inscrit';
     }
 
     /**
