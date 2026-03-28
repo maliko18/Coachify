@@ -1,13 +1,11 @@
 <?php
 
 use App\Models\Coach;
+use App\Models\Client;
+use App\Models\Contrat;
 use App\Models\Offre;
 use App\Models\User;
 use App\Models\Role;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-
-uses(TestCase::class, RefreshDatabase::class);
 
 beforeEach(function () {
     // Créer un utilisateur coach
@@ -107,7 +105,7 @@ describe('Offre Model - Metrics', function () {
         $metrics = $this->offre->getMetrics();
 
         expect($metrics)->toBeArray();
-        expect($metrics)->toHaveKeys(['total_contrats', 'contrats_actifs', 'ca_total', 'ca_pending', 'taux_remplissage']);
+        expect($metrics)->toHaveKeys(['total_contrats', 'contrats_actifs', 'duree_moyenne_jours', 'ca_total', 'ca_pending', 'taux_remplissage']);
     });
 
     test('getMetrics returns zero values when no contrats', function () {
@@ -115,8 +113,43 @@ describe('Offre Model - Metrics', function () {
 
         expect($metrics['total_contrats'])->toBe(0);
         expect($metrics['contrats_actifs'])->toBe(0);
+        expect($metrics['duree_moyenne_jours'])->toBe(0.0);
         expect($metrics['ca_total'])->toBe(0.0);
         expect($metrics['taux_remplissage'])->toBe(0);
+    });
+
+    test('getMetrics calculates active contracts average duration and revenue', function () {
+        $clientA = Client::factory()->create(['coach_id' => $this->coach->id]);
+        $clientB = Client::factory()->create(['coach_id' => $this->coach->id]);
+
+        Contrat::factory()->create([
+            'coach_id' => $this->coach->id,
+            'offre_id' => $this->offre->id,
+            'client_id' => $clientA->id,
+            'statut' => 'actif',
+            'date_debut' => now()->subDays(30),
+            'date_fin' => now(),
+            'montant_total' => 200,
+            'montant_paye' => 150,
+        ]);
+
+        Contrat::factory()->create([
+            'coach_id' => $this->coach->id,
+            'offre_id' => $this->offre->id,
+            'client_id' => $clientB->id,
+            'statut' => 'termine',
+            'date_debut' => now()->subDays(20),
+            'date_fin' => now(),
+            'montant_total' => 180,
+            'montant_paye' => 180,
+        ]);
+
+        $metrics = $this->offre->getMetrics();
+
+        expect($metrics['total_contrats'])->toBe(2);
+        expect($metrics['contrats_actifs'])->toBe(1);
+        expect($metrics['duree_moyenne_jours'])->toBeGreaterThan(20);
+        expect($metrics['ca_total'])->toBe(330.0);
     });
 });
 
