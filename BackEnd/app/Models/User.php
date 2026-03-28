@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Cache;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -172,7 +173,7 @@ class User extends Authenticatable
      */
     public function hasRole(string $roleName): bool
     {
-        return $this->roles()->where('name', $roleName)->exists();
+        return in_array($roleName, $this->getCachedRoleNames(), true);
     }
 
     /**
@@ -180,7 +181,7 @@ class User extends Authenticatable
      */
     public function hasAnyRole(array $roleNames): bool
     {
-        return $this->roles()->whereIn('name', $roleNames)->exists();
+        return count(array_intersect($roleNames, $this->getCachedRoleNames())) > 0;
     }
 
     /**
@@ -191,7 +192,33 @@ class User extends Authenticatable
         $role = Role::findByName($roleName);
         if ($role && !$this->hasRole($roleName)) {
             $this->roles()->attach($role->id);
+            $this->forgetRoleCache();
         }
+    }
+
+    /**
+     * Récupère la liste des rôles utilisateur depuis le cache (TTL 30 min).
+     */
+    public function getCachedRoleNames(): array
+    {
+        return Cache::remember(
+            $this->getRoleCacheKey(),
+            now()->addMinutes(30),
+            fn () => $this->roles()->pluck('name')->all()
+        );
+    }
+
+    /**
+     * Invalidation explicite du cache permissions utilisateur.
+     */
+    public function forgetRoleCache(): void
+    {
+        Cache::forget($this->getRoleCacheKey());
+    }
+
+    private function getRoleCacheKey(): string
+    {
+        return 'user:' . $this->id . ':roles';
     }
 
     // /**

@@ -5,12 +5,29 @@ namespace App\Http\Controllers;
 use App\Models\Produit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class ShopController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Produit::query()->with('coach.user');
+        $query = Produit::query()
+            ->select([
+                'id',
+                'coach_id',
+                'nom',
+                'description',
+                'type',
+                'prix',
+                'stock_quantite',
+                'alerte_stock',
+                'visible',
+                'created_at',
+            ])
+            ->with([
+                'coach:id,user_id',
+                'coach.user:id,first_name,last_name,email',
+            ]);
 
         if (!$request->user()->hasRole('coach') || !$request->boolean('include_hidden', false)) {
             $query->where('visible', true);
@@ -32,7 +49,30 @@ class ShopController extends Controller
             });
         }
 
-        $produits = $query->orderByDesc('created_at')->get();
+        $requestedPerPage = (int) $request->query('per_page', 0);
+        $perPage = $requestedPerPage > 0 ? max(1, min($requestedPerPage, 100)) : 0;
+        $cacheVersion = (int) Cache::get('perf:shop:catalog:version', 1);
+        $cacheKey = 'perf:shop:catalog:' . md5(json_encode([
+            'user_id' => $request->user()->id,
+            'is_coach' => $request->user()->hasRole('coach'),
+            'include_hidden' => $request->boolean('include_hidden', false),
+            'type' => $request->query('type'),
+            'coach_id' => $request->query('coach_id'),
+            'q' => $request->query('q'),
+            'per_page' => $perPage,
+            'page' => (int) $request->query('page', 1),
+            'v' => $cacheVersion,
+        ]));
+
+        $produits = Cache::remember($cacheKey, now()->addHour(), function () use ($query, $perPage) {
+            $baseQuery = $query->orderByDesc('created_at');
+
+            if ($perPage > 0) {
+                return $baseQuery->paginate($perPage);
+            }
+
+            return $baseQuery->limit(100)->get();
+        });
 
         return response()->json([
             'success' => true,
@@ -80,6 +120,8 @@ class ShopController extends Controller
         $validated['coach_id'] = $user->coach->id;
         $produit = Produit::create($validated);
 
+        Cache::increment('perf:shop:catalog:version');
+
         return response()->json([
             'success' => true,
             'message' => 'Produit créé avec succès.',
@@ -109,6 +151,8 @@ class ShopController extends Controller
 
         $produit->update($validated);
 
+        Cache::increment('perf:shop:catalog:version');
+
         return response()->json([
             'success' => true,
             'message' => 'Produit mis à jour avec succès.',
@@ -127,6 +171,8 @@ class ShopController extends Controller
         }
 
         $produit->delete();
+
+        Cache::increment('perf:shop:catalog:version');
 
         return response()->json([
             'success' => true,

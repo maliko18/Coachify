@@ -7,6 +7,7 @@ use App\Models\CommandeItem;
 use App\Models\Produit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -16,8 +17,19 @@ class CommandeController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
+        $requestedPerPage = (int) $request->query('per_page', 0);
+        $perPage = $requestedPerPage > 0 ? max(1, min($requestedPerPage, 100)) : 0;
 
-        $query = Commande::query()->with(['items.produit', 'client.user', 'coach.user'])
+        $query = Commande::query()
+            ->select(['id', 'client_id', 'coach_id', 'date_commande', 'statut', 'total', 'created_at'])
+            ->with([
+                'items:id,commande_id,produit_id,quantite,prix_unitaire',
+                'items.produit:id,coach_id,nom,type,prix',
+                'client:id,user_id,coach_id',
+                'client.user:id,first_name,last_name,email',
+                'coach:id,user_id',
+                'coach.user:id,first_name,last_name,email',
+            ])
             ->orderByDesc('date_commande');
 
         if ($user->hasRole('client') && $user->client) {
@@ -33,7 +45,7 @@ class CommandeController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $query->get(),
+            'data' => $perPage > 0 ? $query->paginate($perPage) : $query->limit(100)->get(),
         ]);
     }
 
@@ -124,6 +136,9 @@ class CommandeController extends Controller
             return $commande->fresh(['items.produit', 'client.user', 'coach.user']);
         });
 
+        Cache::increment('perf:dashboard:coach:' . $commande->coach_id . ':version');
+        Cache::increment('perf:dashboard:client:' . $commande->client_id . ':version');
+
         return response()->json([
             'success' => true,
             'message' => 'Commande créée avec succès.',
@@ -155,6 +170,9 @@ class CommandeController extends Controller
         }
 
         $commande->update(['statut' => $newStatut]);
+
+        Cache::increment('perf:dashboard:coach:' . $commande->coach_id . ':version');
+        Cache::increment('perf:dashboard:client:' . $commande->client_id . ':version');
 
         return response()->json([
             'success' => true,

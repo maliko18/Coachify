@@ -283,21 +283,28 @@ class Coach extends Model
      */
     public function getCATotal(string $period = 'month'): array
     {
-        [$startDate, $endDate, $format] = $this->resolvePeriodRange($period);
+        [$startDate, $endDate, , $mysqlFormat, $sqliteFormat] = $this->resolvePeriodRange($period);
 
-        $paiements = Paiement::query()
+        $baseQuery = Paiement::query()
             ->where('coach_id', $this->id)
             ->where('statut', 'valide')
-            ->whereBetween('date_paiement', [$startDate, $endDate])
-            ->get();
+            ->whereBetween('date_paiement', [$startDate, $endDate]);
 
-        $total = round((float) $paiements->sum('montant'), 2);
+        $total = round((float) (clone $baseQuery)->sum('montant'), 2);
 
-        $series = $paiements
-            ->groupBy(fn ($paiement) => $paiement->date_paiement->format($format))
-            ->map(fn ($items, $key) => [
-                'label' => $key,
-                'ca' => round((float) $items->sum('montant'), 2),
+        $driver = DB::connection()->getDriverName();
+        $labelExpr = $driver === 'sqlite'
+            ? "strftime('{$sqliteFormat}', date_paiement)"
+            : "DATE_FORMAT(date_paiement, '{$mysqlFormat}')";
+
+        $series = (clone $baseQuery)
+            ->selectRaw($labelExpr . ' as label, SUM(montant) as ca')
+            ->groupBy('label')
+            ->orderBy('label')
+            ->get()
+            ->map(fn ($row) => [
+                'label' => $row->label,
+                'ca' => round((float) $row->ca, 2),
             ])
             ->values();
 
@@ -420,9 +427,9 @@ class Coach extends Model
         $end = now();
 
         return match ($period) {
-            'day' => [$end->copy()->startOfDay(), $end->copy()->endOfDay(), 'Y-m-d H:00'],
-            'year' => [$end->copy()->startOfYear(), $end->copy()->endOfYear(), 'Y-m'],
-            default => [$end->copy()->startOfMonth(), $end->copy()->endOfMonth(), 'Y-m-d'],
+            'day' => [$end->copy()->startOfDay(), $end->copy()->endOfDay(), 'Y-m-d H:00', '%Y-%m-%d %H:00', '%Y-%m-%d %H:00'],
+            'year' => [$end->copy()->startOfYear(), $end->copy()->endOfYear(), 'Y-m', '%Y-%m', '%Y-%m'],
+            default => [$end->copy()->startOfMonth(), $end->copy()->endOfMonth(), 'Y-m-d', '%Y-%m-%d', '%Y-%m-%d'],
         };
     }
 }

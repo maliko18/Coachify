@@ -14,14 +14,20 @@ class MessageController extends Controller
     public function indexConversations(Request $request): JsonResponse
     {
         $userId = (int) $request->user()->id;
+        $requestedPerPage = (int) $request->query('per_page', 0);
+        $perPage = $requestedPerPage > 0 ? max(1, min($requestedPerPage, 100)) : 0;
 
-        $conversations = Conversation::query()
+        $query = Conversation::query()
+            ->select(['id', 'user_id', 'coach_id', 'last_message_at', 'created_at', 'updated_at'])
             ->forUser($userId)
             ->with(['user:id,first_name,last_name,email', 'coach:id,first_name,last_name,email'])
             ->withCount('messages')
             ->orderByDesc('last_message_at')
-            ->orderByDesc('updated_at')
-            ->get();
+            ->orderByDesc('updated_at');
+
+        $conversations = $perPage > 0
+            ? $query->paginate($perPage)
+            : $query->limit(100)->get();
 
         return response()->json([
             'success' => true,

@@ -37,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check_resource_ownership' => \App\Http\Middleware\CheckResourceOwnership::class,
             'api_rate_limit' => \App\Http\Middleware\RateLimit::class,
             'audit_api_actions' => \App\Http\Middleware\AuditApiActions::class,
+            'monitor_api_performance' => \App\Http\Middleware\MonitorApiPerformance::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

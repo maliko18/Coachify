@@ -14,16 +14,38 @@ class ClientController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $requestedPerPage = (int) $request->query('per_page', 0);
+        $perPage = $requestedPerPage > 0 ? max(1, min($requestedPerPage, 100)) : 0;
+
+        $query = Client::query()
+            ->select([
+                'id',
+                'user_id',
+                'coach_id',
+                'fitness_level',
+                'subscription_status',
+                'sessions_remaining',
+                'weight',
+                'height',
+                'age',
+                'created_at',
+            ])
+            ->with([
+                'user:id,first_name,last_name,email',
+                'coach:id,user_id',
+                'coach.user:id,first_name,last_name,email',
+            ]);
         
         // Si c'est un coach, retourner uniquement ses clients
         if ($user->hasRole('coach')) {
-            $clients = Client::with(['user', 'coach.user'])
-                ->where('coach_id', $user->coach->id)
-                ->get();
+            $query->where('coach_id', $user->coach->id);
         } else {
             // Admin voit tous les clients
-            $clients = Client::with(['user', 'coach.user'])->get();
         }
+
+        $clients = $perPage > 0
+            ? $query->paginate($perPage)
+            : $query->limit(100)->get();
 
         return response()->json($clients);
     }

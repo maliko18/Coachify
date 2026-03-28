@@ -199,6 +199,7 @@ class Client extends Model
     public function getProgressionData(): array
     {
         $seances = $this->seances()
+            ->select(['seances.id', 'seances.date'])
             ->whereBetween('seances.date', [now()->subMonths(6)->toDateString(), now()->toDateString()])
             ->get(['seances.id', 'seances.date']);
 
@@ -239,15 +240,12 @@ class Client extends Model
      */
     public function getFacturationTotal(): float
     {
-        $paiements = $this->paiements()
+        $net = (float) $this->paiements()
             ->whereIn('statut', ['valide', 'rembourse'])
-            ->get(['montant', 'montant_rembourse']);
+            ->selectRaw('COALESCE(SUM(montant - montant_rembourse), 0) as net_total')
+            ->value('net_total');
 
-        $net = $paiements->sum(function ($paiement) {
-            return (float) $paiement->montant - (float) $paiement->montant_rembourse;
-        });
-
-        return round((float) $net, 2);
+        return round($net, 2);
     }
 
     /**
@@ -256,7 +254,18 @@ class Client extends Model
     public function getHistoriqueAchats(int $limit = 20): array
     {
         return $this->paiements()
-            ->with(['contrat.offre'])
+            ->with(['contrat:id,offre_id', 'contrat.offre:id,nom,type'])
+            ->select([
+                'id',
+                'client_id',
+                'contrat_id',
+                'montant',
+                'montant_rembourse',
+                'statut',
+                'methode',
+                'description',
+                'date_paiement',
+            ])
             ->orderByDesc('date_paiement')
             ->limit($limit)
             ->get()

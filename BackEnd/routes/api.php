@@ -32,7 +32,7 @@ require __DIR__.'/auth.php'; // Inscription, connexion, mot de passe oublié
 | Routes protégées - Authentification requise
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions'])->group(function () {
+Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions', 'monitor_api_performance'])->group(function () {
 
     // Boutique V3 (catalogue + stock + commandes)
     Route::get('/produits', [ShopController::class, 'index']);

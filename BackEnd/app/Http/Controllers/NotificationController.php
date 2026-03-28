@@ -16,10 +16,17 @@ class NotificationController extends Controller
         $user = $request->user();
         $this->generateSystemNotifications($user);
 
-        $notifications = Notification::query()
+        $requestedPerPage = (int) $request->query('per_page', 0);
+        $perPage = $requestedPerPage > 0 ? max(1, min($requestedPerPage, 100)) : 0;
+
+        $query = Notification::query()
+            ->select(['id', 'user_id', 'type', 'lue', 'data', 'created_at'])
             ->where('user_id', $user->id)
-            ->orderByDesc('created_at')
-            ->get();
+            ->orderByDesc('created_at');
+
+        $notifications = $perPage > 0
+            ? $query->paginate($perPage)
+            : $query->limit(100)->get();
 
         return response()->json([
             'success' => true,
@@ -56,19 +63,14 @@ class NotificationController extends Controller
         // Rappels seances pour coach
         if ($user->hasRole('coach') && $user->coach) {
             $seances = $user->coach->seances()
-                ->get()
-                ->filter(function ($seance) {
-                    if (!$seance->date) {
-                        return false;
-                    }
-
-                    $date = Carbon::parse($seance->date)->startOfDay();
-
-                    return $date->betweenIncluded(now()->startOfDay(), now()->addDay()->startOfDay());
-                });
+                ->select(['id', 'titre', 'date', 'heure_debut'])
+                ->whereDate('date', '>=', now()->toDateString())
+                ->whereDate('date', '<=', now()->addDay()->toDateString())
+                ->get();
 
             foreach ($seances as $seance) {
-                $daysDiff = now()->startOfDay()->diffInDays($seance->date, false);
+                $seanceDate = Carbon::parse($seance->date)->startOfDay();
+                $daysDiff = now()->startOfDay()->diffInDays($seanceDate, false);
                 $type = $daysDiff === 0 ? 'rappel_seance_jour_j' : 'rappel_seance_j_1';
                 $key = $type . ':coach:' . $user->id . ':seance:' . $seance->id;
 
@@ -92,19 +94,14 @@ class NotificationController extends Controller
         // Rappels seances et fin de pack pour client
         if ($user->hasRole('client') && $user->client) {
             $seances = $user->client->seances()
-                ->get()
-                ->filter(function ($seance) {
-                    if (!$seance->date) {
-                        return false;
-                    }
-
-                    $date = Carbon::parse($seance->date)->startOfDay();
-
-                    return $date->betweenIncluded(now()->startOfDay(), now()->addDay()->startOfDay());
-                });
+                ->select(['seances.id', 'seances.titre', 'seances.date', 'seances.heure_debut'])
+                ->whereDate('seances.date', '>=', now()->toDateString())
+                ->whereDate('seances.date', '<=', now()->addDay()->toDateString())
+                ->get();
 
             foreach ($seances as $seance) {
-                $daysDiff = now()->startOfDay()->diffInDays($seance->date, false);
+                $seanceDate = Carbon::parse($seance->date)->startOfDay();
+                $daysDiff = now()->startOfDay()->diffInDays($seanceDate, false);
                 $type = $daysDiff === 0 ? 'rappel_seance_jour_j' : 'rappel_seance_j_1';
                 $key = $type . ':client:' . $user->id . ':seance:' . $seance->id;
 
