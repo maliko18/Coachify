@@ -11,6 +11,7 @@ use App\Models\Facture;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class FactureController extends Controller
 {
@@ -209,120 +210,35 @@ class FactureController extends Controller
     /**
      * Exporter une facture en PDF.
      */
-    public function exportPdf(Request $request, Facture $facture): JsonResponse
+    public function exportPdf(Request $request, Facture $facture): BinaryFileResponse
     {
-        $facture->load(['client', 'client.user']);
+        $path = $facture->pdf_path;
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            $path = $facture->generer_pdf();
+        }
 
-        // Générer le contenu HTML de la facture
-        $html = $this->genererHtmlFacture($facture);
-
-        // Nom du fichier PDF
-        $filename = "facture_{$facture->numero}.pdf";
-        $pdfPath = "factures/{$filename}";
-
-        // Note: Pour une implémentation complète, vous devriez utiliser
-        // une bibliothèque comme DomPDF, TCPDF ou Snappy.
-        // Ici, nous retournons les données pour permettre au frontend
-        // de générer le PDF ou d'utiliser un service externe.
-
-        // Sauvegarder le chemin du PDF (si généré)
-        // $facture->update(['pdf_path' => $pdfPath]);
-
-        return response()->json([
-            'message' => 'Données de la facture pour export PDF.',
-            'data' => [
-                'facture' => new FactureResource($facture),
-                'html' => $html,
-                'filename' => $filename,
-            ],
-        ]);
+        return response()->download(
+            Storage::disk('local')->path($path),
+            'facture_' . $facture->numero . '.pdf',
+            ['Content-Type' => 'application/pdf']
+        );
     }
 
     /**
-     * Générer le HTML pour la facture PDF.
+     * Envoyer une facture par email avec la pièce jointe PDF.
      */
-    private function genererHtmlFacture(Facture $facture): string
+    public function envoyerEmail(Request $request, Facture $facture): JsonResponse
     {
-        $client = $facture->client;
-        $user = $client->user ?? null;
-        $nomClient = $user ? "{$user->first_name} {$user->last_name}" : "Client #{$client->id}";
-        $emailClient = $user->email ?? 'N/A';
+        $validated = $request->validate([
+            'email' => ['nullable', 'email'],
+        ]);
 
-        return <<<HTML
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Facture {$facture->numero}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .header { text-align: center; margin-bottom: 40px; }
-        .header h1 { color: #333; margin: 0; }
-        .info-section { display: flex; justify-content: space-between; margin-bottom: 30px; }
-        .info-box { width: 45%; }
-        .info-box h3 { color: #666; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f5f5f5; }
-        .total-row { font-weight: bold; font-size: 1.1em; }
-        .footer { margin-top: 40px; text-align: center; color: #666; font-size: 0.9em; }
-        .status { padding: 5px 10px; border-radius: 4px; display: inline-block; }
-        .status-payee { background: #d4edda; color: #155724; }
-        .status-emise { background: #cce5ff; color: #004085; }
-        .status-brouillon { background: #f8f9fa; color: #6c757d; }
-        .status-annulee { background: #f8d7da; color: #721c24; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>FACTURE</h1>
-        <p><strong>{$facture->numero}</strong></p>
-        <p class="status status-{$facture->statut}">{$facture->resource::STATUTS[$facture->statut]}</p>
-    </div>
+        $facture->send_email($validated['email'] ?? null);
 
-    <div class="info-section">
-        <div class="info-box">
-            <h3>Client</h3>
-            <p><strong>{$nomClient}</strong></p>
-            <p>Email: {$emailClient}</p>
-        </div>
-        <div class="info-box">
-            <h3>Détails</h3>
-            <p><strong>Date d'émission:</strong> {$facture->date_emission->format('d/m/Y')}</p>
-            <p><strong>Date d'échéance:</strong> {$facture->date_echeance->format('d/m/Y')}</p>
-        </div>
-    </div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Description</th>
-                <th style="text-align: right;">Montant</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Services de coaching</td>
-                <td style="text-align: right;">{$facture->montant_ht} €</td>
-            </tr>
-            <tr>
-                <td>TVA ({$facture->tva}%)</td>
-                <td style="text-align: right;">{number_format($facture->montant_ttc - $facture->montant_ht, 2)} €</td>
-            </tr>
-            <tr class="total-row">
-                <td>TOTAL TTC</td>
-                <td style="text-align: right;">{$facture->montant_ttc} €</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="footer">
-        <p>Merci pour votre confiance.</p>
-        <p>Facture générée automatiquement - ArchiWeb Coaching Platform</p>
-    </div>
-</body>
-</html>
-HTML;
+        return response()->json([
+            'message' => 'Facture envoyee par email avec succes.',
+            'data' => new FactureResource($facture->fresh()->load(['client', 'client.user'])),
+        ]);
     }
 
     /**

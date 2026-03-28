@@ -101,6 +101,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/factures/{facture}/payer', [FactureController::class, 'payer']);
         Route::post('/factures/{facture}/annuler', [FactureController::class, 'annuler']);
         Route::get('/factures/{facture}/pdf', [FactureController::class, 'exportPdf']);
+        Route::post('/factures/{facture}/send-email', [FactureController::class, 'envoyerEmail']);
 
         // Factures en retard et statistiques
         Route::get('/factures-en-retard', [FactureController::class, 'enRetard']);

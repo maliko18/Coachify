@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Mail\FacturePdfMail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class Facture extends Model
 {
@@ -117,6 +121,67 @@ class Facture extends Model
     public function emettre(): void
     {
         $this->update(['statut' => 'emise']);
+    }
+
+    /**
+     * Générer le PDF de la facture et l'enregistrer dans storage/app/factures.
+     *
+     * @return string Chemin relatif du PDF dans le disk local
+     */
+    public function genererPdf(): string
+    {
+        $this->loadMissing(['client.user']);
+
+        $filename = 'facture_' . $this->numero . '.pdf';
+        $relativePath = 'factures/' . $filename;
+
+        $pdf = Pdf::loadView('factures.template', [
+            'facture' => $this,
+            'client' => $this->client,
+            'user' => $this->client?->user,
+        ]);
+
+        Storage::disk('local')->put($relativePath, $pdf->output());
+
+        $this->update(['pdf_path' => $relativePath]);
+
+        return $relativePath;
+    }
+
+    /**
+     * Alias attendu par l'issue (#18)
+     */
+    public function generer_pdf(): string
+    {
+        return $this->genererPdf();
+    }
+
+    /**
+     * Envoyer la facture PDF par email.
+     */
+    public function sendEmail(?string $to = null): void
+    {
+        $this->loadMissing(['client.user']);
+
+        $recipient = $to ?? $this->client?->user?->email;
+        if (!$recipient) {
+            throw new \InvalidArgumentException('Aucune adresse email disponible pour cette facture.');
+        }
+
+        $path = $this->pdf_path;
+        if (!$path || !Storage::disk('local')->exists($path)) {
+            $path = $this->genererPdf();
+        }
+
+        Mail::to($recipient)->send(new FacturePdfMail($this, $path));
+    }
+
+    /**
+     * Alias attendu par l'issue (#18)
+     */
+    public function send_email(?string $to = null): void
+    {
+        $this->sendEmail($to);
     }
 
     /**
