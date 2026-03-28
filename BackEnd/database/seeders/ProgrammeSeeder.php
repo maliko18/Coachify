@@ -48,12 +48,12 @@ class ProgrammeSeeder extends Seeder
                 foreach ($exercicesSelectionnes as $exercice) {
                     $programme->exercices()->attach($exercice->id, [
                         'ordre' => $ordre,
-                        'jour_semaine' => fake()->randomElement(['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']),
-                        'series' => fake()->numberBetween(3, 5),
-                        'repetitions' => fake()->randomElement([8, 10, 12, 15, 20]),
-                        'duree_minutes' => fake()->optional(0.3)->numberBetween(5, 20),
-                        'repos_secondes' => fake()->randomElement([30, 45, 60, 90, 120]),
-                        'instructions' => fake()->optional(0.5)->sentence(),
+                        'jour' => fake()->randomElement(['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']),
+                        'semaine' => fake()->randomElement([1, 2, 3, 4]),
+                        'sets' => fake()->numberBetween(3, 5),
+                        'reps' => fake()->randomElement(['8', '10', '12', '15', '20']),
+                        'repos' => fake()->randomElement(['30s', '45s', '60s', '90s', '2min']),
+                        'notes' => fake()->optional(0.5)->sentence(),
                     ]);
                     $ordre++;
                 }

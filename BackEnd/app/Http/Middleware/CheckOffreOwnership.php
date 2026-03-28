@@ -24,15 +24,9 @@ class CheckOffreOwnership
             }
 
             // Si c'est une action sur une offre spécifique (show, update, delete)
-            $offreId = $request->route('offre');
-            if ($offreId) {
-                $offre = Offre::find($offreId);
-                
-                // Si l'offre n'existe pas, laisser passer (le contrôleur s'en chargera)
-                if (!$offre) {
-                    return $next($request);
-                }
-
+            // Utiliser le route model binding pour récupérer l'instance Offre
+            $offre = $request->route('offre');
+            if ($offre instanceof Offre) {
                 // Charger les relations si nécessaire
                 if (!$user->relationLoaded('coach')) {
                     $user->load('coach');

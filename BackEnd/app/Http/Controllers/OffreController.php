@@ -13,7 +13,16 @@ class OffreController extends Controller
      */
     public function exportCsv(Request $request)
     {
-        $coachId = $request->user()->coach->id;
+        $user = $request->user();
+        // Charger la relation coach si elle n'est pas chargée
+        if (!$user->relationLoaded('coach')) {
+            $user->load('coach');
+        }
+        $coachId = $user->coach?->id;
+
+        if (!$coachId) {
+            abort(403, 'Vous n\'êtes pas un coach.');
+        }
 
         $offres = Offre::query()
             ->where('coach_id', $coachId)
@@ -60,7 +69,13 @@ class OffreController extends Controller
 
         // Coach : uniquement ses offres
         if ($user->hasRole('coach')) {
-            $query->where('coach_id', $user->coach->id);
+            if (!$user->relationLoaded('coach')) {
+                $user->load('coach');
+            }
+            $coachId = $user->coach?->id;
+            if ($coachId) {
+                $query->where('coach_id', $coachId);
+            }
         }
 
         // Filtre par type
@@ -112,7 +127,15 @@ class OffreController extends Controller
         ]);
 
         // Assigner le coach connecté
-        $validated['coach_id'] = $request->user()->coach->id;
+        $user = $request->user();
+        if (!$user->relationLoaded('coach')) {
+            $user->load('coach');
+        }
+        $validated['coach_id'] = $user->coach?->id;
+
+        if (!$validated['coach_id']) {
+            abort(403, 'Vous n\'êtes pas un coach.');
+        }
 
         $offre = Offre::create($validated);
 
@@ -170,8 +193,14 @@ class OffreController extends Controller
     {
         $user = $request->user();
 
-        if ($user->hasRole('coach') && $offre->coach_id !== $user->coach->id) {
-            abort(403, 'Vous n\'êtes pas autorisé à modifier cette offre.');
+        if ($user->hasRole('coach')) {
+            if (!$user->relationLoaded('coach')) {
+                $user->load('coach');
+            }
+            $coachId = $user->coach?->id;
+            if (!$coachId || $offre->coach_id !== $coachId) {
+                abort(403, 'Vous n\'êtes pas autorisé à modifier cette offre.');
+            }
         }
     }
 }

@@ -20,6 +20,9 @@ class FactureSeeder extends Seeder
             return;
         }
 
+        $factureCounter = 1;
+        $annee = date('Y');
+
         foreach ($clients as $client) {
             // Créer 1-3 factures par client
             $nombreFactures = fake()->numberBetween(1, 3);
@@ -36,6 +39,7 @@ class FactureSeeder extends Seeder
                 $dateEcheance = (clone $dateEmission)->modify('+30 days');
 
                 Facture::create([
+                    'numero' => 'FAC-' . $annee . '-' . str_pad($factureCounter, 4, '0', STR_PAD_LEFT),
                     'client_id' => $client->id,
                     'montant_ht' => $montantHT,
                     'tva' => $tva,
@@ -45,6 +49,8 @@ class FactureSeeder extends Seeder
                     'statut' => $statut,
                     'notes' => fake()->optional(0.2)->sentence(),
                 ]);
+
+                $factureCounter++;
             }
         }
 
@@ -53,7 +59,10 @@ class FactureSeeder extends Seeder
         foreach ($clientsAvecRetard as $client) {
             Facture::factory()
                 ->enRetard()
-                ->create(['client_id' => $client->id]);
+                ->create([
+                    'numero' => 'FAC-' . $annee . '-' . str_pad($factureCounter++, 4, '0', STR_PAD_LEFT),
+                    'client_id' => $client->id
+                ]);
         }
 
         $this->command->info('FactureSeeder: ' . Facture::count() . ' factures créées.');

@@ -30,10 +30,14 @@ class SeanceSeeder extends Seeder
                 ->create(['coach_id' => $coach->id])
                 ->each(function ($seance) use ($clients) {
                     if ($clients->isNotEmpty()) {
-                        $seance->clients()->attach(
-                            $clients->random()->id,
-                            ['statut_presence' => 'inscrit']
-                        );
+                        $randomClient = $clients->random();
+                        // Vérifier si le client n'est pas déjà attaché
+                        if (!$seance->clients()->where('client_id', $randomClient->id)->exists()) {
+                            $seance->clients()->attach(
+                                $randomClient->id,
+                                ['statut_presence' => 'inscrit']
+                            );
+                        }
                     }
                 });
         }
@@ -46,11 +50,14 @@ class SeanceSeeder extends Seeder
                 ->create(['coach_id' => $coach->id])
                 ->each(function ($seance) use ($clients) {
                     if ($clients->count() >= 3) {
-                        $inscrits = $clients->random(min(5, $clients->count()));
+                        $inscrits = $clients->shuffle()->take(min(5, $clients->count()));
                         foreach ($inscrits as $client) {
-                            $seance->clients()->attach($client->id, [
-                                'statut_presence' => fake()->randomElement(['inscrit', 'present']),
-                            ]);
+                            // Vérifier unicité avant d'attacher
+                            if (!$seance->clients()->where('client_id', $client->id)->exists()) {
+                                $seance->clients()->attach($client->id, [
+                                    'statut_presence' => fake()->randomElement(['inscrit', 'present']),
+                                ]);
+                            }
                         }
                     }
                 });
@@ -63,11 +70,13 @@ class SeanceSeeder extends Seeder
                 ->create(['coach_id' => $coach->id])
                 ->each(function ($seance) use ($clients) {
                     if ($clients->count() >= 2) {
-                        $inscrits = $clients->random(min(4, $clients->count()));
+                        $inscrits = $clients->shuffle()->take(min(4, $clients->count()));
                         foreach ($inscrits as $client) {
-                            $seance->clients()->attach($client->id, [
-                                'statut_presence' => 'inscrit',
-                            ]);
+                            if (!$seance->clients()->where('client_id', $client->id)->exists()) {
+                                $seance->clients()->attach($client->id, [
+                                    'statut_presence' => 'inscrit',
+                                ]);
+                            }
                         }
                     }
                 });
@@ -81,25 +90,27 @@ class SeanceSeeder extends Seeder
             ->each(function ($seance) use ($clients) {
                 if ($clients->isNotEmpty()) {
                     $nbClients = min(fake()->numberBetween(1, 3), $clients->count());
-                    $selectedClients = $clients->random($nbClients);
+                    $selectedClients = $clients->shuffle()->take($nbClients);
 
                     foreach ($selectedClients as $client) {
-                        $seance->clients()->attach($client->id, [
-                            'statut_presence' => 'present',
-                            'feedback_coach' => fake()->randomElement([
-                                'Très bonne séance, bon effort !',
-                                'Progrès notable sur les exercices de base.',
-                                'À retravailler la posture sur le squat.',
-                                'Excellente endurance, on augmente la charge.',
-                            ]),
-                            'feedback_client' => fake()->optional(0.6)->randomElement([
-                                'Super séance, je me sens bien !',
-                                'Un peu difficile mais motivant.',
-                                'J\'ai adoré le programme du jour.',
-                                'Courbatures assurées demain !',
-                            ]),
-                            'note' => fake()->numberBetween(3, 5),
-                        ]);
+                        if (!$seance->clients()->where('client_id', $client->id)->exists()) {
+                            $seance->clients()->attach($client->id, [
+                                'statut_presence' => 'present',
+                                'feedback_coach' => fake()->randomElement([
+                                    'Très bonne séance, bon effort !',
+                                    'Progrès notable sur les exercices de base.',
+                                    'À retravailler la posture sur le squat.',
+                                    'Excellente endurance, on augmente la charge.',
+                                ]),
+                                'feedback_client' => fake()->optional(0.6)->randomElement([
+                                    'Super séance, je me sens bien !',
+                                    'Un peu difficile mais motivant.',
+                                    'J\'ai adoré le programme du jour.',
+                                    'Courbatures assurées demain !',
+                                ]),
+                                'note' => fake()->numberBetween(3, 5),
+                            ]);
+                        }
                     }
                 }
             });

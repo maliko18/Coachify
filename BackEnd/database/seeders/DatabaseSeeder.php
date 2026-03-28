@@ -19,16 +19,16 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RoleSeeder::class,
-            // UserSeeder::class,
-            // CoachSeeder::class,
-            // ClientSeeder::class,
-            // OffreSeeder::class,
-            // ContratSeeder::class,
-            // ExerciceSeeder::class,
-            // ProgrammeSeeder::class,
-            // FactureSeeder::class,
-            // PaiementSeeder::class,
-            // Autres seeders...
+            UserSeeder::class,
+            CoachSeeder::class,
+            ClientSeeder::class,
+            OffreSeeder::class,
+            ContratSeeder::class,
+            ExerciceSeeder::class,
+            SeanceSeeder::class,
+            ProgrammeSeeder::class,
+            FactureSeeder::class,
+            PaiementSeeder::class,
         ]);
     }
 }
