@@ -48,7 +48,8 @@ describe('Connexion', function () {
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonStructure(['error' => ['errors' => ['email']]]);
     });
 
     test('la connexion échoue avec un email inexistant', function () {
@@ -58,7 +59,8 @@ describe('Connexion', function () {
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonStructure(['error' => ['errors' => ['email']]]);
     });
 
     test('la connexion échoue sans email', function () {
@@ -67,7 +69,8 @@ describe('Connexion', function () {
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonStructure(['error' => ['errors' => ['email']]]);
     });
 
     test('la connexion échoue sans mot de passe', function () {
@@ -76,7 +79,8 @@ describe('Connexion', function () {
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['password']);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonStructure(['error' => ['errors' => ['password']]]);
     });
 });
 

@@ -91,7 +91,8 @@ describe('Inscription', function () {
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonStructure(['error' => ['errors' => ['email']]]);
     });
 
     test('l\'inscription échoue avec des données manquantes', function () {
@@ -100,7 +101,12 @@ describe('Inscription', function () {
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['first_name', 'last_name', 'password', 'role']);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonStructure([
+                'error' => [
+                    'errors' => ['first_name', 'last_name', 'password', 'role'],
+                ],
+            ]);
     });
 
     test('l\'inscription échoue avec un rôle invalide', function () {
@@ -114,7 +120,8 @@ describe('Inscription', function () {
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['role']);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonStructure(['error' => ['errors' => ['role']]]);
     });
 
     test('l\'inscription échoue si les mots de passe ne correspondent pas', function () {
@@ -128,6 +135,7 @@ describe('Inscription', function () {
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['password']);
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR')
+            ->assertJsonStructure(['error' => ['errors' => ['password']]]);
     });
 });

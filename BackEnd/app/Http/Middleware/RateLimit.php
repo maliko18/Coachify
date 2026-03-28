@@ -40,8 +40,9 @@ class RateLimit
 
         $remaining = max(0, $maxAttempts - RateLimiter::attempts($key));
 
-        return $response
-            ->header('X-RateLimit-Limit', $maxAttempts)
-            ->header('X-RateLimit-Remaining', $remaining);
+        $response->headers->set('X-RateLimit-Limit', (string) $maxAttempts);
+        $response->headers->set('X-RateLimit-Remaining', (string) $remaining);
+
+        return $response;
     }
 }
