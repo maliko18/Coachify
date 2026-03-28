@@ -124,6 +124,22 @@ class Coach extends Model
         return $this->hasMany(Paiement::class);
     }
 
+    /**
+     * Les produits vendus par le coach
+     */
+    public function produits(): HasMany
+    {
+        return $this->hasMany(Produit::class);
+    }
+
+    /**
+     * Les commandes reçues par le coach
+     */
+    public function commandes(): HasMany
+    {
+        return $this->hasMany(Commande::class);
+    }
+
     // /**
     //  * Les modèles de séances du coach
     //  */
