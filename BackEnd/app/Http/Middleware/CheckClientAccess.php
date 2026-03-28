@@ -23,9 +23,11 @@ class CheckClientAccess
         }
 
         // Si c'est une action sur un client spécifique (show, update, delete)
-        $clientId = $request->route('client');
-        if ($clientId) {
-            $client = Client::find($clientId);
+        $routeClient = $request->route('client');
+        if ($routeClient) {
+            $client = $routeClient instanceof Client
+                ? $routeClient
+                : Client::find($routeClient);
             
             // Si le client n'existe pas, laisser passer (le contrôleur s'en chargera)
             if (!$client) {

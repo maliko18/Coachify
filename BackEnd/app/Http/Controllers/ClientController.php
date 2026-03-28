@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -90,5 +91,33 @@ class ClientController extends Controller
         return response()->json([
             'message' => 'Client supprimé avec succès'
         ], 200);
+    }
+
+    /**
+     * Retourne le profil du client connecté
+     */
+    public function info(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $client = $user?->client;
+
+        if (!$client) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Profil client introuvable.',
+            ], 404);
+        }
+
+        $client->load([
+            'user',
+            'coach.user',
+            'contrats.offre',
+            'seances.coach.user',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $client,
+        ]);
     }
 }
