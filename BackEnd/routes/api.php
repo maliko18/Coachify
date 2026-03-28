@@ -6,6 +6,7 @@ use App\Http\Controllers\ContratController;
 use App\Http\Controllers\ExerciceController;
 use App\Http\Controllers\FactureController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\ProgrammeController;
@@ -38,6 +39,17 @@ Route::middleware('auth:sanctum')->group(function () {
     // Notifications utilisateur
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::put('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+
+    // Messagerie V3 (1-to-1 + groupe)
+    Route::get('/conversations', [MessageController::class, 'indexConversations']);
+    Route::post('/conversations', [MessageController::class, 'storeConversation']);
+    Route::get('/conversations/{conversation}/messages', [MessageController::class, 'indexConversationMessages'])
+        ->middleware('check_conversation_access');
+    Route::post('/conversations/{conversation}/messages', [MessageController::class, 'storeConversationMessage'])
+        ->middleware('check_conversation_access');
+
+    Route::get('/groups/{group}/messages', [MessageController::class, 'indexGroupMessages']);
+    Route::post('/groups/{group}/messages', [MessageController::class, 'storeGroupMessage']);
 
     // Informations de l'utilisateur connecté
     Route::get('/user', function (Request $request) {

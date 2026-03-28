@@ -33,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check_offre_ownership' => \App\Http\Middleware\CheckOffreOwnership::class,
             'check_contrat_access' => \App\Http\Middleware\CheckContratAccess::class,
             'check_client_access' => \App\Http\Middleware\CheckClientAccess::class,
+            'check_conversation_access' => \App\Http\Middleware\CheckConversationAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -101,6 +101,38 @@ class User extends Authenticatable
         return $this->hasMany(Notification::class)->orderByDesc('created_at');
     }
 
+    /**
+     * Conversations où l'utilisateur est côté client.
+     */
+    public function clientConversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class, 'user_id');
+    }
+
+    /**
+     * Conversations où l'utilisateur est côté coach.
+     */
+    public function coachConversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class, 'coach_id');
+    }
+
+    /**
+     * Messages envoyés en 1-to-1.
+     */
+    public function sentMessages(): HasMany
+    {
+        return $this->hasMany(Message::class, 'from_id');
+    }
+
+    /**
+     * Groupes de messagerie auxquels l'utilisateur appartient.
+     */
+    public function messagingGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(Group::class, 'group_user')->withTimestamps();
+    }
+
     // /**
     //  * Salles gérées (si l'utilisateur est responsable de salle)
     //  */
