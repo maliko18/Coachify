@@ -51,8 +51,10 @@ class ExerciceController extends Controller
     /**
      * Affiche un exercice spécifique
      */
-    public function show(Exercice $exercice)
+    public function show(Request $request, Exercice $exercice)
     {
+        $this->authorizeCoachOwnership($request, $exercice);
+        
         return new ExerciceResource(
             $exercice->load('coach.user')
         );
@@ -89,7 +91,9 @@ class ExerciceController extends Controller
 
         $exercice = Exercice::create($validated);
 
-        return new ExerciceResource($exercice->load('coach.user'));
+        return (new ExerciceResource($exercice->load('coach.user')))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
