@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSeanceRequest;
 use App\Http\Requests\UpdateSeanceRequest;
+use App\Models\Notification;
 use App\Http\Resources\SeanceCollection;
 use App\Http\Resources\SeanceResource;
 use App\Models\Seance;
@@ -61,6 +62,7 @@ class SeanceController extends Controller
         $validated['statut'] = 'planifiee';
 
         $seance = Seance::create($validated);
+        $this->notifyCoachSeanceEvent($request->user()->id, $seance, 'seance_creee');
         $seance->load(['coach.user']);
         $seance->loadCount('clients');
 
@@ -84,7 +86,26 @@ class SeanceController extends Controller
             ], 403);
         }
 
+        $oldData = [
+            'date' => $seance->date?->toDateString(),
+            'heure_debut' => (string) $seance->heure_debut,
+            'lieu' => $seance->lieu,
+            'statut' => $seance->statut,
+        ];
+
         $seance->update($request->validated());
+
+        $isCancelled = $seance->statut === 'annulee' && $oldData['statut'] !== 'annulee';
+        $isScheduleChanged = $oldData['date'] !== $seance->date?->toDateString()
+            || $oldData['heure_debut'] !== (string) $seance->heure_debut
+            || $oldData['lieu'] !== $seance->lieu;
+
+        if ($isCancelled) {
+            $this->notifyClientsForSeance($seance, 'seance_annulee');
+        } elseif ($isScheduleChanged) {
+            $this->notifyClientsForSeance($seance, 'seance_modifiee');
+        }
+
         $seance->load(['coach.user', 'clients.user']);
         $seance->loadCount('clients');
 
@@ -342,5 +363,55 @@ class SeanceController extends Controller
             ->get();
 
         return response()->json(new SeanceCollection($seances));
+    }
+
+    /**
+     * Notification d'evenement seance pour le coach
+     */
+    private function notifyCoachSeanceEvent(int $userId, Seance $seance, string $type): void
+    {
+        Notification::create([
+            'user_id' => $userId,
+            'type' => $type,
+            'lue' => false,
+            'data' => [
+                'seance_id' => $seance->id,
+                'titre' => $seance->titre,
+                'date' => $seance->date?->toDateString(),
+                'heure_debut' => $seance->heure_debut,
+            ],
+        ]);
+    }
+
+    /**
+     * Notifier tous les clients inscrits pour une seance
+     */
+    private function notifyClientsForSeance(Seance $seance, string $type): void
+    {
+        $clientUsers = $seance->clients()
+            ->with('user')
+            ->get()
+            ->pluck('user')
+            ->filter();
+
+        foreach ($clientUsers as $user) {
+            $key = $type . ':user:' . $user->id . ':seance:' . $seance->id . ':' . now()->format('YmdHi');
+
+            Notification::firstOrCreate(
+                ['unique_key' => $key],
+                [
+                    'user_id' => $user->id,
+                    'type' => $type,
+                    'lue' => false,
+                    'data' => [
+                        'seance_id' => $seance->id,
+                        'titre' => $seance->titre,
+                        'date' => $seance->date?->toDateString(),
+                        'heure_debut' => $seance->heure_debut,
+                        'lieu' => $seance->lieu,
+                    ],
+                ]
+            );
+        }
     }
 }

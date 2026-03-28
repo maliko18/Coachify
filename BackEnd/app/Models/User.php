@@ -93,6 +93,14 @@ class User extends Authenticatable
         return $this->hasOne(Client::class);
     }
 
+    /**
+     * Notifications applicatives de l'utilisateur
+     */
+    public function appNotifications(): HasMany
+    {
+        return $this->hasMany(Notification::class)->orderByDesc('created_at');
+    }
+
     // /**
     //  * Salles gérées (si l'utilisateur est responsable de salle)
     //  */

@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\ContratController;
 use App\Http\Controllers\ExerciceController;
 use App\Http\Controllers\FactureController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\ProgrammeController;
@@ -28,6 +30,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Export CSV des offres (coach)
     Route::middleware('is_coach')->get('/offres/export/csv', [OffreController::class, 'exportCsv']);
+
+    // Agenda + synchronisation calendrier
+    Route::get('/seances/export/ics', [CalendarController::class, 'exportIcs']);
+    Route::post('/calendar/sync', [CalendarController::class, 'sync']);
+
+    // Notifications utilisateur
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::put('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 
     // Informations de l'utilisateur connecté
     Route::get('/user', function (Request $request) {
