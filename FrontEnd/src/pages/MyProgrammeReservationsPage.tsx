@@ -28,54 +28,28 @@ export default function MyProgrammeReservationsPage() {
   const [reservingId, setReservingId] = useState<number | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [res1, res2] = await Promise.all([
-          axiosClient.get("/client/programmes/reservations"),
-          axiosClient.get("/client/programmes/disponibles"),
-        ]);
-
-        setReservedProgrammes(res1.data.data || []);
-        setAvailableProgrammes(res2.data.data || []);
-      } catch (err) {
-        console.error(err);
-        setMessage("Erreur lors du chargement des programmes.");
-        setMessageType("error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const handleReserve = async (programmeId: number) => {
+  const fetchData = async () => {
     try {
-      setReservingId(programmeId);
+      const res = await axiosClient.get("/test/programmes?statut=publie");
 
-      const res = await axiosClient.post(
-        `/client/programmes/${programmeId}/reserve`
-      );
-
-      setMessage(res.data.message || "Programme réservé avec succès.");
-      setMessageType("success");
-
-      // refresh data
-      const [res1, res2] = await Promise.all([
-        axiosClient.get("/client/programmes/reservations"),
-        axiosClient.get("/client/programmes/disponibles"),
-      ]);
-
-      setReservedProgrammes(res1.data.data || []);
-      setAvailableProgrammes(res2.data.data || []);
-    } catch (err: any) {
+      setAvailableProgrammes(res.data.data || []);
+      setReservedProgrammes([]); // temporaire
+    } catch (err) {
       console.error(err);
-      setMessage(err.response?.data?.message || "Erreur lors de la réservation.");
+      setMessage("Erreur lors du chargement des programmes.");
       setMessageType("error");
     } finally {
-      setReservingId(null);
+      setLoading(false);
     }
   };
+
+  fetchData();
+}, []);
+
+  const handleReserve = (programmeId: number) => {
+  setMessage("Réservation pas encore disponible.");
+  setMessageType("error");
+};
 
   if (loading) {
     return (

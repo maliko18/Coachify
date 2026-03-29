@@ -181,7 +181,8 @@ Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions', 'monit
         Route::get('/factures-en-retard', [FactureController::class, 'enRetard']);
         Route::get('/factures-stats', [FactureController::class, 'statistiques']);
     });
-
+     
+    Route::get('/test/programmes', [ProgrammeController::class, 'index']);
     /*
     |--------------------------------------------------------------------------
     | Routes réservées aux CLIENTS
@@ -202,6 +203,8 @@ Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions', 'monit
 
         // Mes séances (le client voit ses séances)
         Route::get('/seances', [SeanceController::class, 'mesSeances']);
+
+        Route::get('/programmes', [ProgrammeController::class, 'index']);
 
         // Dashboard client (Issue #23)
         Route::get('/dashboard/progression', [DashboardController::class, 'clientProgression']);
