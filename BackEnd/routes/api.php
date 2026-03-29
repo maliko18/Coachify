@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CalendarController;
-use App\Http\Controllers\AdminAuditController;
+use App\Http\Controllers\GymManagerController;
 use App\Http\Controllers\CoachController;
 use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\ContratController;
@@ -221,43 +221,20 @@ Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions', 'monit
 
     /*
     |--------------------------------------------------------------------------
-    | Routes réservées aux ADMINS
-    |--------------------------------------------------------------------------
-    | Middleware : is_admin
-    | Rôle requis : admin
-    */
-    Route::middleware('is_admin')->prefix('admin')->group(function () {
-        // Exemple : Liste des utilisateurs
-        Route::get('/users', function (Request $request) {
-            return response()->json([
-                'message' => 'Liste des utilisateurs (admin only)',
-            ]);
-        });
-
-        // TODO: Ajouter les routes admin ici
-        Route::get('/audit-log', [AdminAuditController::class, 'index']);
-        // Route::get('/statistics', [AdminController::class, 'statistics']);
-        // Route::post('/users/{user}/ban', [AdminController::class, 'banUser']);
-    });
-
-    /*
-    |--------------------------------------------------------------------------
     | Routes réservées aux RESPONSABLES DE SALLE
     |--------------------------------------------------------------------------
     | Middleware : is_gym_manager
     | Rôle requis : gym_manager
     */
     Route::middleware('is_gym_manager')->prefix('gym')->group(function () {
-        // Exemple : Dashboard salle
-        Route::get('/dashboard', function (Request $request) {
-            return response()->json([
-                'message' => 'Dashboard responsable de salle',
-            ]);
-        });
-
-        // TODO: Ajouter les routes gym manager ici
-        // Route::get('/equipment', [EquipmentController::class, 'index']);
-        // Route::post('/equipment', [EquipmentController::class, 'store']);
+        Route::get('/dashboard', [GymManagerController::class, 'dashboard']);
+        Route::get('/users', [GymManagerController::class, 'users']);
+        Route::get('/users/{userId}', [GymManagerController::class, 'show']);
+        Route::put('/users/{userId}/roles', [GymManagerController::class, 'updateRoles']);
+        Route::post('/users/{userId}/ban', [GymManagerController::class, 'ban']);
+        Route::post('/users/{userId}/unban', [GymManagerController::class, 'unban']);
+        Route::get('/seances', [GymManagerController::class, 'seances']);
+        Route::get('/equipements', [GymManagerController::class, 'equipements']);
     });
 
     /*

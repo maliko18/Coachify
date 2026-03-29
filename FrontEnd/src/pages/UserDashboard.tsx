@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
-import dashboardIcon from "../assets/dashboard-icon.svg";
-import bookingsIcon from "../assets/booking-icon.svg"; // temporaire si pas booking
-import walletIcon from "../assets/wallet-icon.svg";
-import profileIcon from "../assets/profile-icon.svg";
 import stat01 from "../assets/statistics-01.svg";
 import stat02 from "../assets/statistics-02.svg";
 import stat03 from "../assets/statistics-03.svg";
@@ -17,7 +12,7 @@ import booking4 from "../assets/booking-05.jpg";
 import booking5 from "../assets/booking-06.jpg";
 import walletbg from "../assets/walletbg.png";
 import Header from "../components/Header";
-import programmesIcon from "../assets/programmes.svg";
+import ClientQuickNavBar from "../components/ClientQuickNavBar";
 import axiosClient from "../api/axios";
 
 type SessionStatus = "upcoming" | "completed" | "cancelled";
@@ -269,8 +264,6 @@ export default function UserDashboard() {
     );
   }
 
-  const navigate = useNavigate();
-
   const [sessions, setSessions] = useState<Session[]>([]);
 
   const programs: Program[] = useMemo(
@@ -370,11 +363,6 @@ export default function UserDashboard() {
   useEffect(() => {
     localStorage.setItem("USER_UNREAD_MESSAGES_COUNT", String(unreadCount));
   }, [unreadCount]);
-
-  const openMessages = () => {
-    setMessages((prev) => prev.map((msg) => ({ ...msg, unread: false })));
-    navigate("/user/messages");
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -567,81 +555,18 @@ export default function UserDashboard() {
         </div>
       </div>
       {/* Quick Navigation */}
-      <div className="max-w-7xl mx-auto px-6 mt-10">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-6">
-          {/* Dashboard (ACTIVE) */}
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-green-700 text-white p-6 shadow-sm">
-            <img src={dashboardIcon} alt="Dashboard" className="h-7 w-7" />
-            <span className="font-semibold text-sm">Dashboard</span>
-          </button>
+      <ClientQuickNavBar
+        activeKey="dashboard"
+        unreadMessagesCount={unreadCount}
+      />
 
-          {/* My Bookings */}
-          <button
-            onClick={() => navigate("/user/bookings")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={bookingsIcon} alt="My Bookings" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">
-              My Bookings
-            </span>
-          </button>
-
-          {/* Wallet */}
-          <button
-            onClick={() => navigate("/user/wallet")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={walletIcon} alt="Wallet" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Wallet</span>
-          </button>
-
-          {/* Messages */}
-          <button
-            onClick={openMessages}
-            className="relative flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            {unreadCount > 0 && (
-              <span className="absolute right-3 top-3 inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-bold text-white">
-                {unreadCount}
-              </span>
-            )}
-            <span className="text-2xl leading-none">💬</span>
-            <span className="font-semibold text-sm text-gray-700">
-              Messages
-            </span>
-          </button>
-
-          {/* My Programmes */}
-          <button
-            onClick={() => navigate("/client/programmes/reservations")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={programmesIcon} alt="My Programmes" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">
-              My Programmes
-            </span>
-          </button>
-
-          {/* Profile Setting */}
-          <button
-            onClick={() => navigate("/user/profile")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={profileIcon} alt="Profile Setting" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">
-              Profile Setting
-            </span>
-          </button>
-
-          <button
-            onClick={handleConnectStrava}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <span className="font-semibold text-sm text-gray-700">
-              {stravaLoading ? "Connexion..." : "Connect Strava"}
-            </span>
-          </button>
-        </div>
+      <div className="max-w-7xl mx-auto px-6 mt-4 flex justify-end">
+        <button
+          onClick={handleConnectStrava}
+          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+        >
+          {stravaLoading ? "Connexion..." : "Connect Strava"}
+        </button>
       </div>
 
       {/* Content */}

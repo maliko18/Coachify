@@ -1,11 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import axiosClient from "../api/axios";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
-import dashboardIcon from "../assets/dashboard-icon.svg";
-import bookingsIcon from "../assets/booking-icon.svg";
-import walletIcon from "../assets/wallet-icon.svg";
-import profileIcon from "../assets/profile-icon.svg";
 import booking1 from "../assets/booking-01.jpg";
 import booking2 from "../assets/booking-02.jpg";
 import booking3 from "../assets/booking-03.jpg";
@@ -18,6 +13,7 @@ import avatar3 from "../assets/avatar-03.jpg";
 import avatar4 from "../assets/avatar-04.jpg";
 import avatar5 from "../assets/avatar-05.jpg";
 import Header from "../components/Header";
+import ClientQuickNavBar from "../components/ClientQuickNavBar";
 
 // ── Types ──────────────────────────────────────────────────
 type BookingStatus = "Upcoming" | "Completed" | "On Going" | "Cancelled";
@@ -347,8 +343,6 @@ type FilterTab = BookingStatus;
 type ViewMode = "Courts" | "Coaches";
 
 export default function BookingsPage() {
-  const navigate = useNavigate();
-
   const [filterTab, setFilterTab] = useState<FilterTab>("Upcoming");
   const [viewMode, setViewMode] = useState<ViewMode>("Courts");
   const [search, setSearch] = useState("");
@@ -585,27 +579,7 @@ export default function BookingsPage() {
       </div>
 
       {/* ── NAV TABS ── */}
-      <div className="max-w-7xl mx-auto px-6 mt-10">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          <button onClick={() => navigate("/user/dashboard")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={dashboardIcon} alt="Dashboard" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Dashboard</span>
-          </button>
-          {/* ACTIVE */}
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-green-700 text-white p-6 shadow-sm">
-            <img src={bookingsIcon} alt="My Bookings" className="h-7 w-7 brightness-0 invert" />
-            <span className="font-semibold text-sm">My Bookings</span>
-          </button>
-          <button onClick={() => navigate("/user/wallet")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={walletIcon} alt="Wallet" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Wallet</span>
-          </button>
-          <button onClick={() => navigate("/user/profile")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={profileIcon} alt="Profile Setting" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Profile Setting</span>
-          </button>
-        </div>
-      </div>
+      <ClientQuickNavBar activeKey="bookings" />
 
       {/* ── FILTER TABS + DROPDOWNS ── */}
       <div className="max-w-7xl mx-auto px-6 mt-10 flex flex-wrap items-center justify-between gap-4">

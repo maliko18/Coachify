@@ -17,8 +17,13 @@ import CoachProfilePage from "./pages/CoachProfilePage.tsx";
 import CoachProgrammesPage from "./pages/CoachProgrammesPage";
 import CoachPublicProgrammesPage from "./pages/CoachPublicProgrammesPage";
 import CoachMessagesPage from "./pages/CoachMessagesPage";
+import UserMessagesPage from "./pages/UserMessagesPage";
 import CoachAnalyticsPage from "./pages/CoachAnalyticsPage";
 import MyProgrammeReservationsPage from "./pages/MyProgrammeReservationsPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
+import AdminAuditPage from "./pages/AdminAuditPage";
+import GymManagerSeancesPage from "./pages/GymManagerSeancesPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
 import Header from "./components/Header";
@@ -64,7 +69,7 @@ export default function App() {
         <Route path="/user/wallet" element={<WalletPage />} />
         <Route path="/user/bookings" element={<BookingsPage />} />
         <Route path="/user/profile" element={<UserProfilePage />} />
-        <Route path="/user/messages" element={<CoachMessagesPage />} />
+        <Route path="/user/messages" element={<UserMessagesPage />} />
 
         <Route path="/coach/dashboard" element={<CoachDashboard />} />
         <Route path="/coach/profile" element={<CoachProfileSettingsPage />} />
@@ -74,6 +79,24 @@ export default function App() {
         <Route path="/coach/programmes" element={<CoachProgrammesPage />} />
         <Route path="/coach/messages" element={<CoachMessagesPage />} />
         <Route path="/coach/analytics" element={<CoachAnalyticsPage />} />
+
+        <Route path="/gym/dashboard" element={<AdminDashboardPage />} />
+        <Route path="/gym/users" element={<AdminUsersPage />} />
+        <Route path="/gym/equipements" element={<AdminAuditPage />} />
+        <Route path="/gym/seances" element={<GymManagerSeancesPage />} />
+
+        <Route
+          path="/admin/dashboard"
+          element={<Navigate to="/gym/dashboard" replace />}
+        />
+        <Route
+          path="/admin/users"
+          element={<Navigate to="/gym/users" replace />}
+        />
+        <Route
+          path="/admin/audit"
+          element={<Navigate to="/gym/equipements" replace />}
+        />
 
         <Route
           path="/client/programmes/reservations"

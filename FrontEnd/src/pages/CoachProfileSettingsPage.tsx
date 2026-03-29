@@ -1,13 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import axiosClient from "../api/axios";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
-import dashboardIcon from "../assets/dashboard-icon.svg";
-import bookingsIcon from "../assets/booking-icon.svg";
-import requestsIcon from "../assets/request-icon.svg";
-import programmesIcon from "../assets/programmes.svg";
-import profileIcon from "../assets/profile-icon.svg";
 import Header from "../components/Header";
+import CoachQuickNavBar from "../components/CoachQuickNavBar";
 
 type Tab = "profile" | "password" | "settings";
 
@@ -27,7 +22,6 @@ const countries = [
 ];
 
 export default function CoachProfileSettingsPage() {
-  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<Tab>("profile");
 
@@ -229,77 +223,7 @@ export default function CoachProfileSettingsPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 mt-10">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-6">
-          <button
-            onClick={() => navigate("/coach/dashboard")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={dashboardIcon} alt="Dashboard" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">
-              Dashboard
-            </span>
-          </button>
-          <button
-            onClick={() => navigate("/coach/messages")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={requestsIcon} alt="Messages" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">
-              Messages
-            </span>
-          </button>
-          <button
-            onClick={() => navigate("/coach/analytics")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={dashboardIcon} alt="Analytics" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">
-              Analytics
-            </span>
-          </button>
-          <button
-            onClick={() => navigate("/coach/seances")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={bookingsIcon} alt="Seances" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Seances</span>
-          </button>
-          <button
-            onClick={() => navigate("/coach/offres")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={requestsIcon} alt="Offres" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Offres</span>
-          </button>
-          <button
-            onClick={() => navigate("/coach/programmes")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={programmesIcon} alt="Programmes" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">
-              Programmes
-            </span>
-          </button>
-          <button
-            onClick={() => navigate("/coach/exercices")}
-            className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-          >
-            <img src={requestsIcon} alt="Exercices" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">
-              Exercices
-            </span>
-          </button>
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-green-700 text-white p-6 shadow-sm">
-            <img
-              src={profileIcon}
-              alt="Profile Setting"
-              className="h-7 w-7 brightness-0 invert"
-            />
-            <span className="font-semibold text-sm">Profile Setting</span>
-          </button>
-        </div>
-      </div>
+      <CoachQuickNavBar activeKey="profile" />
 
       <div className="max-w-7xl mx-auto px-6 mt-10 mb-16">
         {loadingProfile && (

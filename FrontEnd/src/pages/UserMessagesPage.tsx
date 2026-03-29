@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Header from "../components/Header";
+import ClientQuickNavBar from "../components/ClientQuickNavBar";
+import DashboardHeroBanner from "../components/DashboardHeroBanner";
 import conversationsApi, {
   type Conversation,
   type Message,
 } from "../api/conversations";
 import { useAuth } from "../context/AuthContext";
-import CoachQuickNavBar from "../components/CoachQuickNavBar";
-import DashboardHeroBanner from "../components/DashboardHeroBanner";
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "-";
@@ -30,7 +30,7 @@ const getApiErrorMessage = (error: unknown, fallback: string) => {
   return maybeError.response?.data?.message || maybeError.message || fallback;
 };
 
-export default function CoachMessagesPage() {
+export default function UserMessagesPage() {
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<"direct" | "group">("direct");
   const { user } = useAuth();
@@ -207,15 +207,15 @@ export default function CoachMessagesPage() {
     <div className="min-h-screen bg-slate-100">
       <Header />
       <DashboardHeroBanner
-        title="Messagerie Coach"
-        breadcrumb="Home › Coach Dashboard › Messages"
+        title="Messagerie Client"
+        breadcrumb="Home › User Dashboard › Messages"
       />
-      <CoachQuickNavBar activeKey="chat" />
+      <ClientQuickNavBar activeKey="messages" />
 
       <div className="mx-auto max-w-7xl p-8">
         <div className="mb-6">
           <h1 className="text-3xl font-extrabold text-slate-900">
-            Messagerie Coach
+            Messagerie Client
           </h1>
           <p className="mt-1 text-slate-600">
             Conversations et messages en temps reel

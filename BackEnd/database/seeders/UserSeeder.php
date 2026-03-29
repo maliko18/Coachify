@@ -15,12 +15,12 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Créer un administrateur
-        $admin = User::firstOrCreate(
+        // Compte administration (role gym_manager)
+        $gymManager = User::firstOrCreate(
             ['email' => 'admin@coachapp.fr'],
             [
-                'first_name' => 'Admin',
-                'last_name' => 'System',
+            'first_name' => 'Gym',
+            'last_name' => 'Manager',
                 'password' => Hash::make('admin123'),
                 'phone' => '0600000000',
                 'address' => '1 rue de l\'Administration',
@@ -31,7 +31,7 @@ class UserSeeder extends Seeder
                 'rgpd_consent_date' => now(),
             ]
         );
-        $admin->assignRole(Role::ADMIN);
+        $gymManager->assignRole(Role::GYM_MANAGER);
 
         // Créer des coachs de démonstration
         $coaches = [
@@ -110,24 +110,6 @@ class UserSeeder extends Seeder
             );
             $client->assignRole(Role::CLIENT);
         }
-
-        // Créer un responsable de salle
-        $gymManager = User::firstOrCreate(
-            ['email' => 'manager@fitnessgym.fr'],
-            [
-                'first_name' => 'Philippe',
-                'last_name' => 'Durand',
-                'password' => Hash::make('manager123'),
-                'phone' => '0612345678',
-                'address' => '10 avenue du Sport',
-                'city' => 'Paris',
-                'postal_code' => '75015',
-                'email_verified_at' => now(),
-                'rgpd_consent' => true,
-                'rgpd_consent_date' => now(),
-            ]
-        );
-        $gymManager->assignRole(Role::GYM_MANAGER);
 
         // Créer des prospects
         $prospects = User::factory()

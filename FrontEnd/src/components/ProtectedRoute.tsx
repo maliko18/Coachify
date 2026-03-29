@@ -24,6 +24,17 @@ export default function ProtectedRoute() {
     roleFromStorage === "coach" ||
     storedSelectedRole === "coach";
 
+  const isAdmin =
+    !!user?.roles?.some(
+      (r) => r.name === "gym_manager" || r.name === "admin",
+    ) ||
+    user?.selectedRole === "gym_manager" ||
+    user?.selectedRole === "admin" ||
+    roleFromStorage === "gym_manager" ||
+    roleFromStorage === "admin" ||
+    storedSelectedRole === "gym_manager" ||
+    storedSelectedRole === "admin";
+
   const isUserArea =
     location.pathname.startsWith("/user/") ||
     location.pathname === "/user" ||
@@ -32,6 +43,12 @@ export default function ProtectedRoute() {
 
   const isCoachArea =
     location.pathname.startsWith("/coach/") || location.pathname === "/coach";
+
+  const isAdminArea =
+    location.pathname.startsWith("/gym/") ||
+    location.pathname === "/gym" ||
+    location.pathname.startsWith("/admin/") ||
+    location.pathname === "/admin";
 
   if (isLoading) {
     return (
@@ -43,6 +60,16 @@ export default function ProtectedRoute() {
 
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (isAdmin && !isAdminArea) {
+    return <Navigate to="/gym/dashboard" replace />;
+  }
+
+  if (!isAdmin && isAdminArea) {
+    return (
+      <Navigate to={isCoach ? "/coach/dashboard" : "/user/dashboard"} replace />
+    );
   }
 
   if (isUserArea && isCoach) {

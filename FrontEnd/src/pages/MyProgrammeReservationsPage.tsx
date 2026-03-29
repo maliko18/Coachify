@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import axiosClient from "../api/axios";
 import Header from "../components/Header";
+import ClientQuickNavBar from "../components/ClientQuickNavBar";
+import DashboardHeroBanner from "../components/DashboardHeroBanner";
 
 type Programme = {
   id: number;
@@ -84,6 +86,11 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       <Header />
+      <DashboardHeroBanner
+        title="Mes Programmes"
+        breadcrumb="Home › User Dashboard › My Programmes"
+      />
+      <ClientQuickNavBar activeKey="programmes" />
 
       <div className="p-8 max-w-6xl mx-auto">
 

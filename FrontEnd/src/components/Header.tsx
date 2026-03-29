@@ -15,6 +15,12 @@ const Header = () => {
       user.roles.length > 0 &&
       user.roles.some((role) => role.name === "coach")) ||
     user?.selectedRole === "coach";
+  const isAdmin =
+    !!user?.roles?.some(
+      (role) => role.name === "gym_manager" || role.name === "admin",
+    ) ||
+    user?.selectedRole === "gym_manager" ||
+    user?.selectedRole === "admin";
   const isClient =
     !!user?.roles?.some((role) => role.name === "client") ||
     user?.selectedRole === "client";
@@ -22,7 +28,7 @@ const Header = () => {
     !!user?.roles?.some((role) =>
       ["user", "client", "prospect"].includes(role.name),
     ) || ["user", "client", "prospect"].includes(user?.selectedRole || "");
-  const isUser = isUserRole || (!!user && !isCoach);
+  const isUser = isUserRole || (!!user && !isCoach && !isAdmin);
 
   const navItemClass = (isActive: boolean) =>
     `cursor-pointer ${isActive ? "text-[color:var(--accent)]" : "hover:text-[color:var(--accent)]"}`;
@@ -68,7 +74,9 @@ const Header = () => {
 
   const handleDashboardClick = () => {
     setDropdownOpen(false);
-    if (isCoach) {
+    if (isAdmin) {
+      navigate("/gym/dashboard");
+    } else if (isCoach) {
       navigate("/coach/dashboard");
     } else if (isUser) {
       navigate("/user/dashboard");
@@ -77,12 +85,15 @@ const Header = () => {
 
   const handleMessagesClick = () => {
     setDropdownOpen(false);
-    window.localStorage.setItem("USER_UNREAD_MESSAGES_COUNT", "0");
-    setUnreadMessagesCount(0);
-
-    if (isCoach) {
+    if (isAdmin) {
+      navigate("/gym/equipements");
+    } else if (isCoach) {
+      window.localStorage.setItem("USER_UNREAD_MESSAGES_COUNT", "0");
+      setUnreadMessagesCount(0);
       navigate("/coach/messages");
     } else {
+      window.localStorage.setItem("USER_UNREAD_MESSAGES_COUNT", "0");
+      setUnreadMessagesCount(0);
       navigate("/user/messages");
     }
   };
@@ -176,15 +187,19 @@ const Header = () => {
                     onClick={handleDashboardClick}
                     className="w-full px-6 py-3 text-left text-white hover:bg-gray-700 transition-colors"
                   >
-                    {isCoach ? "Coach Dashboard" : "My Dashboard"}
+                    {isAdmin
+                      ? "Gym Manager"
+                      : isCoach
+                        ? "Coach Dashboard"
+                        : "My Dashboard"}
                   </button>
 
                   <button
                     onClick={handleMessagesClick}
                     className="flex w-full items-center justify-between px-6 py-3 text-left text-white hover:bg-gray-700 transition-colors"
                   >
-                    <span>Messages</span>
-                    {unreadMessagesCount > 0 && (
+                    <span>{isAdmin ? "Equipements" : "Messages"}</span>
+                    {!isAdmin && unreadMessagesCount > 0 && (
                       <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-bold text-white">
                         {unreadMessagesCount}
                       </span>

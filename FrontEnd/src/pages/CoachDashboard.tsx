@@ -305,65 +305,35 @@ export default function CoachDashboard() {
   // Booking Requests tabs
   const [bookingTab, setBookingTab] = useState<"court" | "coaching">("court");
 
+  const pendingCommandes = useMemo(() => {
+    return commandes.filter(
+      (c) => String(c?.statut ?? "").toLowerCase() === "attente",
+    );
+  }, [commandes]);
+
   const bookingRequestsData = useMemo(() => {
-    const pendingCommandes = commandes
-      .filter((c) => String(c?.statut ?? "").toLowerCase() === "attente")
-      .slice(0, 3);
+    const source = pendingCommandes.slice(0, 3);
 
-    if (pendingCommandes.length > 0) {
-      return pendingCommandes.map((c, index: number) => {
-        const imagePool =
-          bookingTab === "court"
-            ? [booking2, booking3, booking4]
-            : [coachImg, fav2, fav3];
-
-        const clientName = c?.client?.user
-          ? `${c.client.user.first_name ?? ""} ${c.client.user.last_name ?? ""}`.trim()
-          : `Client #${c?.client_id ?? index + 1}`;
-
-        return {
-          img: imagePool[index % imagePool.length],
-          name: clientName || "Client",
-          court: `Commande #${c?.id ?? "-"} • ${Number(c?.total ?? 0).toFixed(2)} €`,
-          date: String(c?.date_commande ?? "").slice(0, 10),
-        };
-      });
-    }
-
-    const source = seances.slice(0, 3);
-
-    if (source.length === 0) {
-      return [] as Array<{
-        img: string;
-        name: string;
-        court: string;
-        date?: string;
-      }>;
-    }
-
-    return source.map((s, index: number) => {
+    return source.map((c, index: number) => {
       const imagePool =
         bookingTab === "court"
           ? [booking2, booking3, booking4]
           : [coachImg, fav2, fav3];
 
+      const clientName = c?.client?.user
+        ? `${c.client.user.first_name ?? ""} ${c.client.user.last_name ?? ""}`.trim()
+        : `Client #${c?.client_id ?? index + 1}`;
+
       return {
         img: imagePool[index % imagePool.length],
-        name:
-          bookingTab === "court"
-            ? String(s?.titre ?? `Séance #${s?.id ?? index + 1}`)
-            : "Coach",
-        court: String(s?.lieu ?? s?.type ?? "-"),
-        date: String(s?.date ?? ""),
+        name: clientName || "Client",
+        court: `Commande #${c?.id ?? "-"} • ${Number(c?.total ?? 0).toFixed(2)} €`,
+        date: String(c?.date_commande ?? "").slice(0, 10),
       };
     });
-  }, [bookingTab, seances, commandes]);
+  }, [bookingTab, pendingCommandes]);
 
-  const pendingRequestsCount = useMemo(() => {
-    return commandes.filter(
-      (c) => String(c?.statut ?? "").toLowerCase() === "attente",
-    ).length;
-  }, [commandes]);
+  const pendingRequestsCount = pendingCommandes.length;
 
   const [earningsHover, setEarningsHover] = useState<
     null | "court" | "coaching"
@@ -536,6 +506,30 @@ export default function CoachDashboard() {
   useEffect(() => {
     fetchSeances();
     fetchCommandes();
+  }, []);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash === "#bookings-section") {
+      setActiveSection("bookings");
+      return;
+    }
+    if (hash === "#earnings-section") {
+      setActiveSection("earnings");
+      return;
+    }
+    if (hash === "#wallet-section") {
+      setActiveSection("wallet");
+      return;
+    }
+    if (hash === "#booking-requests-section") {
+      setActiveSection("dashboard");
+      setTimeout(() => {
+        document
+          .getElementById("booking-requests-section")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 0);
+    }
   }, []);
 
   useEffect(() => {
@@ -1371,6 +1365,15 @@ export default function CoachDashboard() {
               title="Requests"
               icon={requestsIcon}
               badge={String(pendingRequestsCount)}
+              onClick={() => {
+                setActiveSection("dashboard");
+                // Laisse React rendre la section avant de defiler.
+                setTimeout(() => {
+                  document
+                    .getElementById("booking-requests-section")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 0);
+              }}
             />
 
             <QuickNavCard
@@ -1457,7 +1460,7 @@ export default function CoachDashboard() {
 
       {/* Content */}
       {activeSection === "bookings" && (
-        <div className="max-w-7xl mx-auto px-6 py-10">
+        <div id="bookings-section" className="max-w-7xl mx-auto px-6 py-10">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
@@ -1740,7 +1743,7 @@ export default function CoachDashboard() {
       )}
 
       {activeSection === "earnings" && (
-        <div className="max-w-7xl mx-auto px-6 py-10">
+        <div id="earnings-section" className="max-w-7xl mx-auto px-6 py-10">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             {/* Header (like screenshot) */}
             <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -2121,7 +2124,7 @@ export default function CoachDashboard() {
       )}
 
       {activeSection === "wallet" && (
-        <div className="max-w-7xl mx-auto px-6 py-10">
+        <div id="wallet-section" className="max-w-7xl mx-auto px-6 py-10">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             {/* Header */}
             <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -2573,7 +2576,10 @@ export default function CoachDashboard() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* ================= BOOKING REQUESTS ================= */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div
+              id="booking-requests-section"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
+            >
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">

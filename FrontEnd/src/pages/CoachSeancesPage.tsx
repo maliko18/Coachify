@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import seancesApi from "../api/seances";
+import DashboardHeroBanner from "../components/DashboardHeroBanner";
 import type {
   CreateSeancePayload,
   Seance,
@@ -8,6 +9,7 @@ import type {
   SeanceType,
 } from "../api/seances";
 import axiosClient from "../api/axios";
+import CoachQuickNavBar from "../components/CoachQuickNavBar";
 
 const SEANCE_TYPES: SeanceType[] = ["individuelle", "collective", "en_ligne"];
 const SEANCE_STATUTS: SeanceStatut[] = [
@@ -244,6 +246,11 @@ export default function CoachSeancesPage() {
   return (
     <div className="min-h-screen bg-slate-100">
       <Header />
+      <DashboardHeroBanner
+        title="Seances Coach"
+        breadcrumb="Home › Coach Dashboard › Seances"
+      />
+      <CoachQuickNavBar activeKey="seances" />
 
       <div className="mx-auto max-w-7xl p-8">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">

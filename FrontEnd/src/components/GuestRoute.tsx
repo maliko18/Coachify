@@ -4,7 +4,9 @@ import { useAuth } from "../context/AuthContext";
 export default function GuestRoute() {
   const { token, user, isLoading } = useAuth();
 
-  if (isLoading) {
+  const isRestoringSession = Boolean(token) && !user && isLoading;
+
+  if (isRestoringSession) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-(--primary)"></div>
@@ -12,7 +14,7 @@ export default function GuestRoute() {
     );
   }
 
-  if (token) {
+  if (token && user) {
     const roleFromStorage = localStorage.getItem("role") || "";
     const storedUserRaw = localStorage.getItem("USER");
     let storedSelectedRole = "";
@@ -32,8 +34,28 @@ export default function GuestRoute() {
       roleFromStorage === "coach" ||
       storedSelectedRole === "coach";
 
+    const isAdmin =
+      !!user?.roles?.some(
+        (role) => role.name === "gym_manager" || role.name === "admin",
+      ) ||
+      user?.selectedRole === "gym_manager" ||
+      user?.selectedRole === "admin" ||
+      roleFromStorage === "gym_manager" ||
+      roleFromStorage === "admin" ||
+      storedSelectedRole === "gym_manager" ||
+      storedSelectedRole === "admin";
+
     return (
-      <Navigate to={isCoach ? "/coach/dashboard" : "/user/dashboard"} replace />
+      <Navigate
+        to={
+          isAdmin
+            ? "/gym/dashboard"
+            : isCoach
+              ? "/coach/dashboard"
+              : "/user/dashboard"
+        }
+        replace
+      />
     );
   }
 

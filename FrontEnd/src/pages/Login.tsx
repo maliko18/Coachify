@@ -11,27 +11,61 @@ export default function Login() {
   const [remember, setRemember] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
+  const getLoginErrorMessage = (err: unknown): string => {
+    if (!err || typeof err !== "object") {
+      return "Une erreur est survenue. Veuillez reessayer.";
+    }
+
+    const maybeAxiosError = err as {
+      message?: string;
+      response?: {
+        data?: {
+          message?: string;
+          error?: {
+            message?: string;
+            errors?: Record<string, string[]>;
+          };
+        };
+      };
+    };
+
+    const validationErrors = maybeAxiosError.response?.data?.error?.errors;
+    if (validationErrors) {
+      const firstField = Object.keys(validationErrors)[0];
+      const firstMessage = firstField ? validationErrors[firstField]?.[0] : "";
+      if (firstMessage) return firstMessage;
+    }
+
+    const nestedMessage = maybeAxiosError.response?.data?.error?.message;
+    if (nestedMessage) return nestedMessage;
+
+    const directMessage = maybeAxiosError.response?.data?.message;
+    if (directMessage) return directMessage;
+
+    return maybeAxiosError.message || "Email ou mot de passe incorrect";
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setError("");
 
     try {
       const user = await login(email, password);
-      
-      if (user.roles?.some((role) => role.name === "coach")) {
-  navigate("/coach/dashboard");
-} else if (user.roles?.some((role) => role.name === "client")) {
-  navigate("/user/dashboard");
-} else {
-  navigate("/user/dashboard");
-}
-    } catch (err: unknown) {
-      if (err && typeof err === "object" && "response" in err) {
-        const axiosError = err as { response?: { data?: { message?: string } } };
-        setError(axiosError.response?.data?.message || "Email ou mot de passe incorrect");
+
+      if (
+        user.roles?.some(
+          (role) => role.name === "gym_manager" || role.name === "admin",
+        )
+      ) {
+        navigate("/gym/dashboard");
+      } else if (user.roles?.some((role) => role.name === "coach")) {
+        navigate("/coach/dashboard");
       } else {
-        setError("Une erreur est survenue. Veuillez réessayer.");
+        navigate("/user/dashboard");
       }
+    } catch (err: unknown) {
+      setError(getLoginErrorMessage(err));
     }
   };
 
@@ -41,22 +75,28 @@ export default function Login() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="hidden lg:flex items-center justify-center relative
-                      bg-gradient-to-br from-[#0b6f72] via-[#1c8788] to-[#63b07a]">
+      <div
+        className="hidden lg:flex items-center justify-center relative
+                      bg-gradient-to-br from-[#0b6f72] via-[#1c8788] to-[#63b07a]"
+      >
         <div className="absolute -top-32 -left-32 w-[420px] h-[420px] rounded-full bg-white/10" />
         <div className="absolute bottom-20 left-40 w-[320px] h-[320px] rounded-full bg-black/10" />
 
-        <div className="relative z-10 w-[520px] max-w-[80%] rounded-2xl
-                        bg-white/25 backdrop-blur-md border border-white/30 p-10">
-          <div className="inline-flex items-center gap-3
+        <div
+          className="relative z-10 w-[520px] max-w-[80%] rounded-2xl
+                        bg-white/25 backdrop-blur-md border border-white/30 p-10"
+        >
+          <div
+            className="inline-flex items-center gap-3
                           bg-[color:var(--accent)] px-8 py-4 rounded-xl
-                          font-extrabold text-[color:var(--primary)] text-2xl">
-             Login 
+                          font-extrabold text-[color:var(--primary)] text-2xl"
+          >
+            Login
           </div>
 
           <p className="mt-8 text-white text-lg leading-relaxed">
-            Log in right away for our advanced sports software solutions, created to
-            address issues in regular sporting events and activities.
+            Log in right away for our advanced sports software solutions,
+            created to address issues in regular sporting events and activities.
           </p>
         </div>
       </div>
@@ -68,7 +108,6 @@ export default function Login() {
             <span className="text-2xl font-extrabold text-[color:var(--primary)]">
               Coachify
             </span>
-            
           </div>
 
           <div className="rounded-2xl border border-gray-100 shadow-sm p-10">
@@ -145,7 +184,7 @@ export default function Login() {
                 onClick={onGoogleSignIn}
                 className="w-44 py-3 rounded-xl border border-gray-200 font-semibold text-gray-700 hover:bg-gray-50 transition"
               >
-                 Google
+                Google
               </button>
             </div>
 

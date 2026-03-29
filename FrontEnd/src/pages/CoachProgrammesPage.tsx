@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import axiosClient from "../api/axios";
 import Header from "../components/Header";
+import CoachQuickNavBar from "../components/CoachQuickNavBar";
+import DashboardHeroBanner from "../components/DashboardHeroBanner";
 
 type ProgrammeType =
   | "perte_de_poids"
@@ -236,6 +238,11 @@ export default function CoachProgrammesPage() {
   return (
     <div className="min-h-screen bg-slate-100">
       <Header />
+      <DashboardHeroBanner
+        title="Programmes Coach"
+        breadcrumb="Home › Coach Dashboard › Programmes"
+      />
+      <CoachQuickNavBar activeKey="programmes" />
 
       <div className="mx-auto max-w-7xl p-8">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">

@@ -9,6 +9,7 @@ import type {
 } from "../api/offres";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
+import CoachQuickNavBar from "../components/CoachQuickNavBar";
 
 type FormState = {
   nom: string;
@@ -217,6 +218,8 @@ export default function CoachOffersPage() {
           </p>
         </div>
       </div>
+
+      <CoachQuickNavBar activeKey="offers" />
 
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-6">
         {!isCoach && (

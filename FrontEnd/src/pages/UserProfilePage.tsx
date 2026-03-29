@@ -1,14 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import axiosClient from "../api/axios";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
-import dashboardIcon from "../assets/dashboard-icon.svg";
-import bookingsIcon from "../assets/booking-icon.svg";
-import chatIcon from "../assets/chat-icon.svg";
-import invoicesIcon from "../assets/invoice-icon.svg";
-import walletIcon from "../assets/wallet-icon.svg";
-import profileIcon from "../assets/profile-icon.svg";
 import Header from "../components/Header";
+import ClientQuickNavBar from "../components/ClientQuickNavBar";
 
 
 type Tab = "profile" | "password" | "settings";
@@ -19,7 +13,6 @@ const countries = [
 ];
 
 export default function UserProfilePage() {
-  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<Tab>("profile");
 
@@ -202,36 +195,7 @@ export default function UserProfilePage() {
       </div>
 
       {/* ── NAV TABS ── */}
-      <div className="max-w-7xl mx-auto px-6 mt-10">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-          <button onClick={() => navigate("/user/dashboard")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={dashboardIcon} alt="Dashboard" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Dashboard</span>
-          </button>
-          <button onClick={() => navigate("/user/bookings")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={bookingsIcon} alt="My Bookings" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">My Bookings</span>
-          </button>
-          
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={chatIcon} alt="Chat" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Chat</span>
-          </button>
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={invoicesIcon} alt="Invoices" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Invoices</span>
-          </button>
-          <button onClick={() => navigate("/user/wallet")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={walletIcon} alt="Wallet" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Wallet</span>
-          </button>
-          {/* ACTIVE */}
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-green-700 text-white p-6 shadow-sm">
-            <img src={profileIcon} alt="Profile Setting" className="h-7 w-7 brightness-0 invert" />
-            <span className="font-semibold text-sm">Profile Setting</span>
-          </button>
-        </div>
-      </div>
+      <ClientQuickNavBar activeKey="profile" />
 
       {/* ── CONTENT ── */}
       <div className="max-w-7xl mx-auto px-6 mt-10 mb-16">

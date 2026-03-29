@@ -11,7 +11,7 @@ class EnsureUserIsAdmin
 {
     /**
      * Handle an incoming request.
-     * Vérifie que l'utilisateur connecté est un administrateur.
+     * Vérifie que l'utilisateur connecté est un responsable de salle/admin.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -30,10 +30,10 @@ class EnsureUserIsAdmin
             ], 401);
         }
 
-        if (!$user->hasRole(Role::ADMIN)) {
+        if (!$user->hasAnyRole([Role::GYM_MANAGER, Role::ADMIN])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Accès réservé aux administrateurs.',
+                'message' => 'Accès réservé aux responsables de salle.',
                 'error' => [
                     'code' => 'FORBIDDEN',
                     'status' => 403,

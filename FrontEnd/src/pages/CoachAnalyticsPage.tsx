@@ -4,6 +4,8 @@ import coachDashboardApi, {
   type CoachKpis,
   type DashboardPeriod,
 } from "../api/coachDashboard";
+import CoachQuickNavBar from "../components/CoachQuickNavBar";
+import DashboardHeroBanner from "../components/DashboardHeroBanner";
 
 const periodOptions: Array<{ key: DashboardPeriod; label: string }> = [
   { key: "week", label: "Cette semaine" },
@@ -74,6 +76,11 @@ export default function CoachAnalyticsPage() {
   return (
     <div className="min-h-screen bg-slate-100">
       <Header />
+      <DashboardHeroBanner
+        title="Analytics Coach"
+        breadcrumb="Home › Coach Dashboard › Analytics"
+      />
+      <CoachQuickNavBar activeKey="courts" />
 
       <div className="mx-auto max-w-7xl p-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">

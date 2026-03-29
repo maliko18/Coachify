@@ -7,6 +7,8 @@ import type {
 } from "../api/exercices";
 import exercicesApi from "../api/exercices";
 import Header from "../components/Header";
+import CoachQuickNavBar from "../components/CoachQuickNavBar";
+import DashboardHeroBanner from "../components/DashboardHeroBanner";
 
 const CATEGORIES: ExerciceCategorie[] = [
   "musculation",
@@ -216,6 +218,11 @@ export default function CoachExercicesPage() {
   return (
     <div className="min-h-screen bg-slate-100">
       <Header />
+      <DashboardHeroBanner
+        title="Exercices Coach"
+        breadcrumb="Home › Coach Dashboard › Exercices"
+      />
+      <CoachQuickNavBar activeKey="exercices" />
       <div className="mx-auto max-w-7xl p-8">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
