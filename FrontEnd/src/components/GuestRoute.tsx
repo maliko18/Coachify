@@ -32,7 +32,9 @@ export default function GuestRoute() {
       roleFromStorage === "coach" ||
       storedSelectedRole === "coach";
 
-    return <Navigate to={isCoach ? "/coach/dashboard" : "/user/dashboard"} replace />;
+    return (
+      <Navigate to={isCoach ? "/coach/dashboard" : "/user/dashboard"} replace />
+    );
   }
 
   return <Outlet />;

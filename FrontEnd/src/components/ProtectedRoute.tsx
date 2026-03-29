@@ -53,6 +53,5 @@ export default function ProtectedRoute() {
     return <Navigate to="/user/dashboard" replace />;
   }
 
-
   return <Outlet />;
 }
