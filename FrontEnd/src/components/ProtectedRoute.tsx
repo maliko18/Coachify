@@ -18,14 +18,7 @@ export default function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  // 🔥 BLOQUE LES MAUVAISES ROUTES
-  if (role === "coach" && location.pathname.startsWith("/user")) {
-    return <Navigate to="/coach/dashboard" replace />;
-  }
 
-  if (role !== "coach" && location.pathname.startsWith("/coach")) {
-    return <Navigate to="/user/dashboard" replace />;
-  }
 
   return <Outlet />;
 }

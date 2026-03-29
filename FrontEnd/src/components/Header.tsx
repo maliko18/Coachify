@@ -59,14 +59,12 @@ const Header = () => {
 
       <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-white">
         <li className="text-[color:var(--accent)] cursor-pointer" onClick={() => navigate("/")}>Home</li>
-{isClient && (
-  <li
-    className="cursor-pointer hover:text-[color:var(--accent)]"
-    onClick={() => navigate("/coaches")}
-  >
-    Coaches
-  </li>
-)}
+        <li
+          className="cursor-pointer hover:text-[color:var(--accent)]"
+          onClick={() => navigate("/coaches")}
+        >
+          Coach
+        </li>
         {isClient && (
   <li
     className="cursor-pointer hover:text-[color:var(--accent)]"

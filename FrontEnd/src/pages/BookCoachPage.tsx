@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import Header from "../components/Header";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import { coachesData } from "../data/coaches";
+import axiosClient from "../api/axios";
+import avatar1 from "../assets/avatar-01.jpg";
 
 const stepLabels = [
   "Type of Booking",
@@ -24,7 +26,62 @@ export default function BookCoachPage() {
   const { coachId } = useParams();
   const navigate = useNavigate();
 
-  const coach = useMemo(() => coachesData.find((item) => item.id === coachId), [coachId]);
+  const [apiCoach, setApiCoach] = useState<any | null>(null);
+  const [loadingCoach, setLoadingCoach] = useState(true);
+
+  useEffect(() => {
+    const numericId = Number(coachId);
+    if (Number.isNaN(numericId)) {
+      setLoadingCoach(false);
+      return;
+    }
+
+    axiosClient
+      .get("/client/coaches")
+      .then((res) => {
+        const found = (res.data.data || []).find((item: any) => Number(item.id) === numericId);
+        setApiCoach(found || null);
+      })
+      .catch((err) => {
+        console.error(err);
+      })
+      .finally(() => setLoadingCoach(false));
+  }, [coachId]);
+
+  const staticCoach = useMemo(() => coachesData.find((item) => item.id === coachId), [coachId]);
+
+  const coach = useMemo(() => {
+    if (apiCoach) {
+      const hourlyRate = Number(apiCoach.hourly_rate || 0);
+      return {
+        id: String(apiCoach.id),
+        name: apiCoach.full_name,
+        rating: 4.8,
+        reviews: 0,
+        bio: apiCoach.bio || "Coach profile",
+        location: apiCoach.city || "Location not specified",
+        lessonType: (apiCoach.specialties && apiCoach.specialties[0]) || "General",
+        level: (apiCoach.experience_years || 0) >= 5 ? "Professional" : "Rookie",
+        image: avatar1,
+        offers: [
+          {
+            id: "session",
+            title: "Only Book a Coach for Session",
+            description: "Reserve une seance simple avec le coach.",
+            pricePerHour: hourlyRate || 100,
+          },
+          {
+            id: "training",
+            title: "Commit To Training With Coach & Lessons",
+            description: "Pack d'entrainement avec suivi.",
+            pricePerHour: Math.max((hourlyRate || 100) - 20, 50),
+          },
+        ],
+      };
+    }
+
+    return staticCoach;
+  }, [apiCoach, staticCoach]);
 
   const [step, setStep] = useState(1);
   const [bookingType, setBookingType] = useState<"session" | "training">("session");
@@ -36,6 +93,15 @@ export default function BookCoachPage() {
   const [phone, setPhone] = useState("+15656 556558");
   const [address, setAddress] = useState("");
   const [details, setDetails] = useState("");
+
+  if (loadingCoach) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="p-10 text-center text-gray-600">Chargement du coach...</div>
+      </div>
+    );
+  }
 
   if (!coach) {
     return <Navigate to="/coaches" replace />;

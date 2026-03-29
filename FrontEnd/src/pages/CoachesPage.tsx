@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import axiosClient from "../api/axios";
-import { useAuth } from "../context/AuthContext";
+import { coachesData } from "../data/coaches";
+import type { CoachProfile } from "../data/coaches";
 
 type Coach = {
-  id: number;
+  id: number | string;
   full_name: string;
   email: string;
   bio?: string;
@@ -17,15 +18,32 @@ type Coach = {
   city?: string | null;
 };
 
+const normalizeApiCoach = (coach: any): Coach => ({
+  id: coach.id,
+  full_name: coach.full_name || coach.name || "Coach",
+  email: coach.email || "",
+  bio: coach.bio || "",
+  specialties: coach.specialties || [],
+  experience_years: coach.experience_years || 0,
+  hourly_rate: Number(coach.hourly_rate || 0),
+  avatar: coach.avatar || null,
+  city: coach.city || null,
+});
+
+const mapStaticCoach = (coach: CoachProfile): Coach => ({
+  id: coach.id,
+  full_name: coach.name,
+  email: "",
+  bio: coach.bio,
+  specialties: coach.lessonType ? [coach.lessonType] : [],
+  experience_years: 0,
+  hourly_rate: coach.offers?.[0]?.pricePerHour || 0,
+  avatar: coach.image,
+  city: coach.location,
+});
+
 export default function CoachesPage() {
   const navigate = useNavigate();
-  const { token, user } = useAuth();
-  const isCoach =
-    !!user?.roles?.some((role) => role.name === "coach") || user?.selectedRole === "coach";
-  const isUserRole =
-    !!user?.roles?.some((role) => ["user", "client", "prospect"].includes(role.name)) ||
-    ["user", "client", "prospect"].includes(user?.selectedRole || "");
-  const isUser = isUserRole || (!!user && !isCoach);
 
   const [coaches, setCoaches] = useState<Coach[]>([]);
 const [loading, setLoading] = useState(true);
@@ -38,16 +56,45 @@ const [radius, setRadius] = useState("10");
 const [maxPrice, setMaxPrice] = useState("250");
 
 useEffect(() => {
-  axiosClient
-    .get("/client/coaches")
-    .then((res) => {
-      setCoaches(res.data.data || []);
-    })
-    .catch((err) => {
-      console.error(err);
-      setError("Impossible de charger les coachs.");
-    })
-    .finally(() => setLoading(false));
+  let isMounted = true;
+
+  const loadCoaches = async () => {
+    setLoading(true);
+    setError("");
+
+    const endpoints = ["/client/coaches", "/coaches"];
+
+    for (const endpoint of endpoints) {
+      try {
+        const res = await axiosClient.get(endpoint);
+        if (!isMounted) {
+          return;
+        }
+
+        const apiCoaches = (res.data.data || []).map(normalizeApiCoach);
+        if (apiCoaches.length > 0) {
+          setCoaches(apiCoaches);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    if (!isMounted) {
+      return;
+    }
+
+    setCoaches(coachesData.map(mapStaticCoach));
+    setLoading(false);
+  };
+
+  loadCoaches();
+
+  return () => {
+    isMounted = false;
+  };
 }, []);
 
   const lessonTypes = useMemo(
@@ -254,23 +301,26 @@ if (error) {
                     </div>
 
                     <div className="mt-5 pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
-                      {isUser && (
-  <button
-    onClick={() =>
-      navigate(
-        token
-          ? `/client/coaches/${coach.id}/programmes`
-          : "/login",
-        {
-          state: { redirectTo: `/client/coaches/${coach.id}/programmes` },
-        }
-      )
-    }
-    className="h-12 px-6 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800"
-  >
-    View Programmes
-  </button>
-)}
+                      <button
+                        onClick={() => navigate(`/coaches/${coach.id}/profile`)}
+                        className="h-12 px-6 rounded-xl border border-slate-300 text-slate-800 font-bold hover:bg-slate-100"
+                      >
+                        View Profile
+                      </button>
+
+                      <button
+                        onClick={() => navigate(`/book-coach/${coach.id}`)}
+                        className="h-12 px-6 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800"
+                      >
+                        Book Now
+                      </button>
+
+                      <button
+                        onClick={() => navigate(`/client/coaches/${coach.id}/programmes`)}
+                        className="h-12 px-6 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700"
+                      >
+                        View Programmes
+                      </button>
                     </div>
                   </div>
                 </div>

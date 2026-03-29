@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axiosClient from "../api/axios";
+import Header from "../components/Header";
 
 type Programme = {
   id: number;
@@ -145,8 +146,9 @@ export default function CoachProgrammesPage() {
    
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-8 font-sans">
-      
+    <div className="min-h-screen bg-[#f8fafc] font-sans">
+      <Header />
+      <div className="p-8">
       {/* STATIC TOP NAV (From pic 2) */}
       <div className="flex flex-wrap items-center justify-between mb-8 gap-4">
         <div className="flex bg-white border border-gray-200 p-1 rounded-xl shadow-sm">
@@ -297,6 +299,7 @@ export default function CoachProgrammesPage() {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </div>
   );
