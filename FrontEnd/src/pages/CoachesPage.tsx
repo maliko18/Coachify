@@ -16,17 +16,36 @@ type Coach = {
   city?: string | null;
 };
 
+const extractPriceAmount = (value: any): number => {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") return Number(value) || 0;
+  if (value && typeof value === "object" && typeof value.amount === "number") {
+    return value.amount;
+  }
+  return 0;
+};
+
 const normalizeApiCoach = (coach: any): Coach => ({
   id: coach.id,
-  full_name: coach.full_name || coach.name || "Coach",
-  email: coach.email || "",
+  full_name:
+    coach.full_name ||
+    `${coach.user?.first_name ?? ""} ${coach.user?.last_name ?? ""}`.trim() ||
+    coach.name ||
+    "Coach",
+  email: coach.email || coach.user?.email || "",
   bio: coach.bio || "",
   specialties: coach.specialties || [],
-  experience_years: coach.experience_years || 0,
-  hourly_rate: Number(coach.hourly_rate || 0),
-  avatar: coach.avatar || null,
-  city: coach.city || null,
+  experience_years: Number(coach.experience_years || 0),
+  hourly_rate: extractPriceAmount(coach.hourly_rate),
+  avatar: coach.avatar || coach.user?.avatar || null,
+  city: coach.city || coach.user?.city || null,
 });
+
+const normalizeCoachFromOffre = (offre: any): Coach | null => {
+  const coach = offre?.coach;
+  if (!coach) return null;
+  return normalizeApiCoach(coach);
+};
 
 export default function CoachesPage() {
   const navigate = useNavigate();
@@ -48,7 +67,7 @@ useEffect(() => {
     setLoading(true);
     setError("");
 
-    const endpoints = ["/client/coaches", "/coaches"];
+    const endpoints = ["/coaches", "/client/offres", "/coach/offres"];
     let lastErrorMessage = "";
 
     for (const endpoint of endpoints) {
@@ -58,7 +77,25 @@ useEffect(() => {
           return;
         }
 
-        const apiCoaches = (res.data.data || []).map(normalizeApiCoach);
+        const raw = res.data?.data ?? res.data;
+
+        let apiCoaches: Coach[] = [];
+        if (endpoint === "/client/offres" || endpoint === "/coach/offres") {
+          const rows: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+          const mapped: Coach[] = rows
+            .map(normalizeCoachFromOffre)
+            .filter((c): c is Coach => c !== null);
+
+          const byId: Record<string, Coach> = {};
+          for (const coach of mapped) {
+            byId[String(coach.id)] = coach;
+          }
+          apiCoaches = Object.values(byId);
+        } else {
+          const rows: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+          apiCoaches = rows.map(normalizeApiCoach);
+        }
+
         if (apiCoaches.length > 0) {
           setCoaches(apiCoaches);
           setLoading(false);

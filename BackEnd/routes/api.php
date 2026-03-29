@@ -3,6 +3,7 @@
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\AdminAuditController;
+use App\Http\Controllers\CoachController;
 use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\ContratController;
 use App\Http\Controllers\DashboardController;
@@ -43,6 +44,9 @@ Route::get('/health', function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions', 'monitor_api_performance'])->group(function () {
+
+    // Annuaire des coachs
+    Route::get('/coaches', [CoachController::class, 'index']);
 
     // Boutique V3 (catalogue + stock + commandes)
     Route::get('/produits', [ShopController::class, 'index']);

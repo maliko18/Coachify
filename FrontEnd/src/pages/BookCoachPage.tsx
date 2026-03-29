@@ -21,6 +21,45 @@ const dayColumns = [
   { day: "Thursday", date: "Apr 27" },
 ];
 
+type CoachLookupItem = {
+  id: number | string;
+  full_name: string;
+  bio?: string;
+  specialties?: string[];
+  experience_years?: number;
+  hourly_rate?: number;
+  city?: string | null;
+};
+
+const extractPriceAmount = (value: any): number => {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") return Number(value) || 0;
+  if (value && typeof value === "object" && typeof value.amount === "number") {
+    return value.amount;
+  }
+  return 0;
+};
+
+const normalizeApiCoach = (coach: any): CoachLookupItem => ({
+  id: coach.id,
+  full_name:
+    coach.full_name ||
+    `${coach.user?.first_name ?? ""} ${coach.user?.last_name ?? ""}`.trim() ||
+    coach.name ||
+    "Coach",
+  bio: coach.bio || "",
+  specialties: coach.specialties || [],
+  experience_years: Number(coach.experience_years || 0),
+  hourly_rate: extractPriceAmount(coach.hourly_rate),
+  city: coach.city || coach.user?.city || null,
+});
+
+const normalizeCoachFromOffre = (offre: any): CoachLookupItem | null => {
+  const coach = offre?.coach;
+  if (!coach) return null;
+  return normalizeApiCoach(coach);
+};
+
 export default function BookCoachPage() {
   const { coachId } = useParams();
   const navigate = useNavigate();
@@ -39,13 +78,32 @@ export default function BookCoachPage() {
     }
 
     const loadCoach = async () => {
-      const endpoints = ["/client/coaches", "/coaches"];
+      const endpoints = ["/coaches", "/client/offres", "/coach/offres"];
       let lastErrorMessage = "";
 
       for (const endpoint of endpoints) {
         try {
           const res = await axiosClient.get(endpoint);
-          const items = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+          const raw = res.data?.data ?? res.data;
+          let items: any[] = [];
+
+          if (endpoint === "/client/offres" || endpoint === "/coach/offres") {
+            const rows: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+            const mapped = rows
+              .map(normalizeCoachFromOffre)
+              .filter(Boolean) as CoachLookupItem[];
+            const byId: Record<string, CoachLookupItem> = {};
+            for (const coach of mapped) {
+              byId[String(coach.id)] = coach;
+            }
+            items = Object.values(
+              byId,
+            );
+          } else {
+            const rows: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+            items = rows.map(normalizeApiCoach);
+          }
+
           const found = items.find((item: any) => Number(item.id) === numericId);
           if (found) {
             if (isMounted) setApiCoach(found);
