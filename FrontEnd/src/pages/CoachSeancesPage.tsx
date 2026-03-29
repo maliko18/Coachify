@@ -179,7 +179,7 @@ export default function CoachSeancesPage() {
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold text-slate-900">Module Seance</h1>
-            <p className="mt-1 text-slate-600">Gestion des seances coach (Issues #7, #8)</p>
+            <p className="mt-1 text-slate-600">Gestion des seances coach</p>
           </div>
 
           <button

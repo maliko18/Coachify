@@ -1,11 +1,37 @@
 import axiosClient from "./axios";
 import type { MoneyField } from "./offres";
 
+type CollectionResponse<T> = { data: T[]; meta?: Record<string, unknown> };
+
+const unwrapCollection = <T>(payload: T[] | CollectionResponse<T>): T[] => {
+  if (Array.isArray(payload)) return payload;
+  return Array.isArray(payload?.data) ? payload.data : [];
+};
+
 export type PaiementMethode =
   | "carte_bancaire" | "virement" | "especes" | "cheque"
   | "paypal" | "stripe" | "prelevement" | "autre";
 
 export type PaiementStatut = "en_attente" | "valide" | "refuse" | "rembourse" | "annule";
+
+export const PAIEMENT_METHODES: PaiementMethode[] = [
+  "carte_bancaire",
+  "virement",
+  "especes",
+  "cheque",
+  "paypal",
+  "stripe",
+  "prelevement",
+  "autre",
+];
+
+export const PAIEMENT_STATUTS: PaiementStatut[] = [
+  "en_attente",
+  "valide",
+  "refuse",
+  "rembourse",
+  "annule",
+];
 
 export interface Paiement {
   id: number;
@@ -20,15 +46,28 @@ export interface Paiement {
   reference_externe?: string;
   description?: string;
   notes?: string;
-  montant_rembourse?: MoneyField | null;
+  montant_rembourse?: MoneyField | number | null;
   montant_net: MoneyField;
   date_remboursement?: string | null;
   motif_remboursement?: string | null;
   is_remboursable: boolean;
   is_valide: boolean;
-  client: Record<string, unknown>;
-  contrat?: Record<string, unknown> | null;
-  coach: Record<string, unknown>;
+  client: {
+    id: number;
+    full_name?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    [key: string]: unknown;
+  };
+  contrat?: {
+    id?: number;
+    [key: string]: unknown;
+  } | null;
+  coach: {
+    id?: number;
+    [key: string]: unknown;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -62,6 +101,11 @@ export interface CreatePaiementPayload {
 
 export type UpdatePaiementPayload = Partial<CreatePaiementPayload>;
 
+export interface RembourserPaiementPayload {
+  montant: number;
+  motif: string;
+}
+
 export interface PaiementFilters {
   statut?: PaiementStatut;
   client_id?: number;
@@ -71,10 +115,17 @@ export interface PaiementFilters {
   date_fin?: string;
 }
 
+export interface PaiementStatistiquesFilters {
+  date_debut?: string;
+  date_fin?: string;
+}
+
 const paiementsApi = {
   /** GET /api/coach/paiements */
   list: (filters?: PaiementFilters) =>
-    axiosClient.get<Paiement[]>("/coach/paiements", { params: filters }).then((r) => r.data),
+    axiosClient
+      .get<Paiement[] | CollectionResponse<Paiement>>("/coach/paiements", { params: filters })
+      .then((r) => unwrapCollection(r.data)),
 
   /** GET /api/coach/paiements/:id */
   get: (id: number) =>
@@ -90,24 +141,24 @@ const paiementsApi = {
 
   /** DELETE /api/coach/paiements/:id */
   delete: (id: number) =>
-    axiosClient.delete(`/coach/paiements/${id}`).then((r) => r.data),
+    axiosClient.delete(`/coach/paiements/${id}`).then(() => undefined),
 
   /** POST /api/coach/paiements/:id/valider */
   valider: (id: number) =>
     axiosClient.post<Paiement>(`/coach/paiements/${id}/valider`).then((r) => r.data),
 
   /** POST /api/coach/paiements/:id/rembourser */
-  rembourser: (id: number, montant: number, motif: string) =>
-    axiosClient.post<Paiement>(`/coach/paiements/${id}/rembourser`, { montant, motif }).then((r) => r.data),
+  rembourser: (id: number, payload: RembourserPaiementPayload) =>
+    axiosClient.post<Paiement>(`/coach/paiements/${id}/rembourser`, payload).then((r) => r.data),
 
   /** POST /api/coach/paiements/:id/annuler */
   annuler: (id: number) =>
     axiosClient.post<Paiement>(`/coach/paiements/${id}/annuler`).then((r) => r.data),
 
   /** GET /api/coach/paiements-statistiques */
-  statistiques: (date_debut?: string, date_fin?: string) =>
+  statistiques: (filters?: PaiementStatistiquesFilters) =>
     axiosClient
-      .get<PaiementStatistiques>("/coach/paiements-statistiques", { params: { date_debut, date_fin } })
+      .get<PaiementStatistiques>("/coach/paiements-statistiques", { params: filters })
       .then((r) => r.data),
 };
 

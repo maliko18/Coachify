@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axiosClient from "../api/axios";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import dashboardIcon from "../assets/dashboard-icon.svg";
 import bookingsIcon from "../assets/booking-icon.svg";
@@ -51,15 +52,49 @@ interface Booking {
   cancellationDate?: string;
 }
 
-// ── Mock data ──────────────────────────────────────────────
-const ALL_BOOKINGS: Booking[] = [
-  { id: 1, image: booking1, courtName: "Leap Sports Academy",   dateTime: "Mon, Jul 11 06:00 PM – 08:00 PM", payment: "$120", status: "Upcoming",   coachName: "Angela Roudrigez", coachAvatar: "", reviewCount: 30, stars: 5, location: "Santa Monica, CA", pricePerHour: "$200.00", rank: "Expert", bookedOn: "Mon, Jul 14", bookingType: "Onetime", totalHours: 2, bookingAmount: "$200", serviceCharge: "$20", totalPaid: "$180", paidOn: "Mon, Jul 14", transactionId: "#546416444567678164l", paymentType: "Wallet" },
-  { id: 2, image: booking2, courtName: "Feather Badminton",     dateTime: "Mon, Jul 12 02:00 PM – 05:00 PM", payment: "$90",  status: "Completed",  coachName: "Angela Roudrigez", coachAvatar: "", reviewCount: 30, stars: 5, location: "Santa Monica, CA", pricePerHour: "$200.00", rank: "Expert", bookedOn: "Mon, Jul 12", bookingType: "Onetime", totalHours: 3, bookingAmount: "$90",  serviceCharge: "$10", totalPaid: "$80",  paidOn: "Mon, Jul 12", transactionId: "#546416444567678002", paymentType: "Card" },
-  { id: 3, image: booking3, courtName: "Bwing Sports Academy",  dateTime: "Mon, Jul 15 03:00 PM – 05:00 PM", payment: "$130", status: "On Going",   coachName: "Angela Roudrigez", coachAvatar: "", reviewCount: 30, stars: 5, location: "Santa Monica, CA", pricePerHour: "$200.00", rank: "Expert", bookedOn: "Mon, Jul 15", bookingType: "Onetime", totalHours: 2, bookingAmount: "$130", serviceCharge: "$15", totalPaid: "$115", paidOn: "Mon, Jul 15", transactionId: "#546416444567678003", paymentType: "Wallet" },
-  { id: 4, image: booking4, courtName: "Marsh Academy",         dateTime: "Mon, Jul 16 05:00 PM – 07:00 PM", payment: "$100", status: "Cancelled",  coachName: "Angela Roudrigez", coachAvatar: "", reviewCount: 30, stars: 5, location: "Santa Monica, CA", pricePerHour: "$200.00", rank: "Expert", bookedOn: "Mon, Jul 14", bookingType: "Onetime", totalHours: 2, bookingAmount: "$200", serviceCharge: "$20", totalPaid: "$180", paidOn: "Mon, Jul 14", transactionId: "#546416444567678164l", paymentType: "Wallet", cancellationBy: "Cancelled By Coach", cancellationReason: "If you are looking for a perfect place for friendly matches with your friends or a competitive match, It is the best place.", cancellationDate: "11/03/2023" },
-  { id: 5, image: booking5, courtName: "Wing Sports Academy",   dateTime: "Mon, Jul 16 05:00 PM – 08:00 PM", payment: "$140", status: "Upcoming",   coachName: "Angela Roudrigez", coachAvatar: "", reviewCount: 30, stars: 5, location: "Santa Monica, CA", pricePerHour: "$200.00", rank: "Expert", bookedOn: "Mon, Jul 16", bookingType: "Onetime", totalHours: 3, bookingAmount: "$140", serviceCharge: "$14", totalPaid: "$126", paidOn: "Mon, Jul 16", transactionId: "#546416444567678005", paymentType: "Card" },
-  { id: 6, image: booking6, courtName: "Elite Court Arena",     dateTime: "Mon, Jul 17 10:00 AM – 12:00 PM", payment: "$160", status: "Completed",  coachName: "Angela Roudrigez", coachAvatar: "", reviewCount: 30, stars: 5, location: "Santa Monica, CA", pricePerHour: "$200.00", rank: "Expert", bookedOn: "Mon, Jul 17", bookingType: "Onetime", totalHours: 2, bookingAmount: "$160", serviceCharge: "$16", totalPaid: "$144", paidOn: "Mon, Jul 17", transactionId: "#546416444567678006", paymentType: "Wallet" },
-];
+type ApiSeance = {
+  id: number;
+  titre?: string;
+  date?: string;
+  heure_debut?: string;
+  duree?: number;
+  statut?: "planifiee" | "en_cours" | "terminee" | "annulee" | string;
+  lieu?: string;
+  coach?: {
+    id?: number;
+    user?: { full_name?: string; first_name?: string; last_name?: string };
+  };
+};
+
+const seanceToBookingStatus = (statut?: string): BookingStatus => {
+  if (statut === "terminee") return "Completed";
+  if (statut === "en_cours") return "On Going";
+  if (statut === "annulee") return "Cancelled";
+  return "Upcoming";
+};
+
+const seanceToCoachBookingStatus = (statut?: string): CoachBookingStatus => {
+  if (statut === "terminee") return "Completed";
+  if (statut === "en_cours") return "Accepted";
+  if (statut === "annulee") return "Cancelled";
+  return "Awaiting";
+};
+
+const formatDateTime = (date?: string, heure?: string): string => {
+  if (!date) return "-";
+  const iso = `${date}${heure ? `T${heure}` : ""}`;
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return `${date}${heure ? ` ${heure}` : ""}`;
+  return parsed.toLocaleString("fr-FR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const ALL_BOOKINGS: Booking[] = [];
 
 // ── Coach booking types ──────────────────────────────────
 type CoachBookingStatus = "Accepted" | "Awaiting" | "Completed" | "Cancelled";
@@ -89,14 +124,7 @@ interface CoachBooking {
   cancellationDate?: string;
 }
 
-const ALL_COACH_BOOKINGS: CoachBooking[] = [
-  { id: 1, avatar: avatar1, coachName: "Kevin Anderson",    bookedOn: "25 May 2023", bookingType: "Onetime",       dateTime: "Mon, Jul 11\n06:00 PM – 08:00 PM", payment: "$120", status: "Accepted",  stars: 5, location: "Los Angeles, CA",  pricePerHour: "$120.00", rank: "Expert",       totalHours: 2, bookingAmount: "$120", serviceCharge: "$12", totalPaid: "$108", paidOn: "25 May 2023", transactionId: "#54641644456767001", paymentType: "Wallet" },
-  { id: 2, avatar: avatar2, coachName: "Angela Roudrigez", bookedOn: "26 May 2023", bookingType: "Single Lesson", dateTime: "Mon, Jul 11\n3 days",              payment: "$90",  status: "Awaiting",  stars: 4, location: "Santa Monica, CA", pricePerHour: "$90.00",  rank: "Advanced",     totalHours: 3, bookingAmount: "$90",  serviceCharge: "$9",  totalPaid: "$81",  paidOn: "26 May 2023", transactionId: "#54641644456767002", paymentType: "Card" },
-  { id: 3, avatar: avatar3, coachName: "Evon Raddick",     bookedOn: "27 May 2023", bookingType: "Single Lesson", dateTime: "Mon, Jul 11\n01:00 PM – 04:00 PM", payment: "$150", status: "Awaiting",  stars: 4, location: "Malibu, CA",        pricePerHour: "$150.00", rank: "Pro",          totalHours: 3, bookingAmount: "$150", serviceCharge: "$15", totalPaid: "$135", paidOn: "27 May 2023", transactionId: "#54641644456767003", paymentType: "Wallet" },
-  { id: 4, avatar: avatar4, coachName: "Harry Richardson", bookedOn: "28 May 2023", bookingType: "Onetime",       dateTime: "Mon, Jul 11\n04:00 PM – 07:00 PM", payment: "$640", status: "Awaiting",  stars: 4, location: "Beverly Hills, CA", pricePerHour: "$640.00", rank: "Expert",       totalHours: 3, bookingAmount: "$640", serviceCharge: "$64", totalPaid: "$576", paidOn: "28 May 2023", transactionId: "#54641644456767004", paymentType: "Card" },
-  { id: 5, avatar: avatar5, coachName: "Pete Hill",        bookedOn: "29 May 2023", bookingType: "Onetime",       dateTime: "Mon, Jul 11\n10:00 PM – 11:00 PM", payment: "$200", status: "Awaiting",  stars: 5, location: "Venice Beach, CA",  pricePerHour: "$200.00", rank: "Pro",          totalHours: 1, bookingAmount: "$200", serviceCharge: "$20", totalPaid: "$180", paidOn: "29 May 2023", transactionId: "#54641644456767005", paymentType: "Wallet" },
-  { id: 6, avatar: avatar1, coachName: "Kevin Anderson",    bookedOn: "30 May 2023", bookingType: "Onetime",       dateTime: "Mon, Jul 12\n09:00 AM – 11:00 AM", payment: "$240", status: "Completed", stars: 5, location: "Los Angeles, CA",  pricePerHour: "$120.00", rank: "Expert",       totalHours: 2, bookingAmount: "$240", serviceCharge: "$24", totalPaid: "$216", paidOn: "30 May 2023", transactionId: "#54641644456767006", paymentType: "Card" },
-];
+const ALL_COACH_BOOKINGS: CoachBooking[] = [];
 
 const coachStatusStyle: Record<CoachBookingStatus, string> = {
   Accepted:  "bg-green-100 text-green-700",
@@ -335,6 +363,114 @@ export default function BookingsPage() {
   const [coachBookings, setCoachBookings] = useState<CoachBooking[]>(ALL_COACH_BOOKINGS);
   const [selectedCoachBooking, setSelectedCoachBooking] = useState<CoachBooking | null>(null);
   const [coachFilterTab, setCoachFilterTab] = useState<CoachBookingStatus>("Accepted");
+  const [loadingData, setLoadingData] = useState(true);
+  const [loadingError, setLoadingError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadFromApi = async () => {
+      setLoadingData(true);
+      setLoadingError("");
+      const endpoints = ["/client/seances", "/coach/seances"];
+      let lastError = "";
+
+      for (const endpoint of endpoints) {
+        try {
+          const res = await axiosClient.get(endpoint);
+          const items: ApiSeance[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+
+          if (!isMounted) return;
+
+          const mappedBookings: Booking[] = items.map((seance, index) => {
+            const imgPool = [booking1, booking2, booking3, booking4, booking5, booking6];
+            const image = imgPool[index % imgPool.length];
+            const coachName =
+              seance.coach?.user?.full_name ||
+              `${seance.coach?.user?.first_name ?? ""} ${seance.coach?.user?.last_name ?? ""}`.trim() ||
+              "Coach";
+            const dateTime = formatDateTime(seance.date, seance.heure_debut);
+            const durationHours = Number(seance.duree || 60) / 60;
+
+            return {
+              id: seance.id,
+              image,
+              courtName: seance.titre || `Séance #${seance.id}`,
+              dateTime,
+              payment: "-",
+              status: seanceToBookingStatus(seance.statut),
+              coachName,
+              coachAvatar: "",
+              reviewCount: 0,
+              stars: 5,
+              location: seance.lieu || "Non précisé",
+              pricePerHour: "-",
+              rank: "Coach",
+              bookedOn: seance.date || "-",
+              bookingType: "Séance",
+              totalHours: durationHours,
+              bookingAmount: "-",
+              serviceCharge: "-",
+              totalPaid: "-",
+              paidOn: "-",
+              transactionId: `SEANCE-${seance.id}`,
+              paymentType: "-",
+            };
+          });
+
+          const mappedCoachBookings: CoachBooking[] = items.map((seance, index) => {
+            const avatarPool = [avatar1, avatar2, avatar3, avatar4, avatar5];
+            const avatar = avatarPool[index % avatarPool.length];
+            const coachName =
+              seance.coach?.user?.full_name ||
+              `${seance.coach?.user?.first_name ?? ""} ${seance.coach?.user?.last_name ?? ""}`.trim() ||
+              "Coach";
+
+            return {
+              id: seance.id,
+              avatar,
+              coachName,
+              bookedOn: seance.date || "-",
+              bookingType: "Séance",
+              dateTime: formatDateTime(seance.date, seance.heure_debut),
+              payment: "-",
+              status: seanceToCoachBookingStatus(seance.statut),
+              stars: 5,
+              location: seance.lieu || "Non précisé",
+              pricePerHour: "-",
+              rank: "Coach",
+              totalHours: Number(seance.duree || 60) / 60,
+              bookingAmount: "-",
+              serviceCharge: "-",
+              totalPaid: "-",
+              paidOn: "-",
+              transactionId: `SEANCE-${seance.id}`,
+              paymentType: "-",
+            };
+          });
+
+          setBookings(mappedBookings);
+          setCoachBookings(mappedCoachBookings);
+          setLoadingData(false);
+          return;
+        } catch (error: any) {
+          lastError = error?.response?.data?.message || "";
+        }
+      }
+
+      if (!isMounted) return;
+      setBookings([]);
+      setCoachBookings([]);
+      setLoadingError(lastError || "Impossible de charger les réservations depuis l'API.");
+      setLoadingData(false);
+    };
+
+    loadFromApi();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Courts filtered
   const filtered = bookings.filter(
@@ -493,6 +629,8 @@ export default function BookingsPage() {
 
           {/* Table */}
           <div className="overflow-x-auto">
+            {loadingData && <p className="px-6 py-4 text-sm text-gray-500">Chargement des réservations...</p>}
+            {loadingError && <p className="px-6 py-4 text-sm text-red-600">{loadingError}</p>}
             {viewMode === "Courts" ? (
               <table className="w-full text-sm">
                 <thead>

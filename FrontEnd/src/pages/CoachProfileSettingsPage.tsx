@@ -4,12 +4,10 @@ import axiosClient from "../api/axios";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import dashboardIcon from "../assets/dashboard-icon.svg";
 import bookingsIcon from "../assets/booking-icon.svg";
-import chatIcon from "../assets/chat-icon.svg";
-import invoicesIcon from "../assets/invoice-icon.svg";
-import walletIcon from "../assets/wallet-icon.svg";
+import requestsIcon from "../assets/request-icon.svg";
+import programmesIcon from "../assets/programmes.svg";
 import profileIcon from "../assets/profile-icon.svg";
 import Header from "../components/Header";
-
 
 type Tab = "profile" | "password" | "settings";
 
@@ -18,12 +16,11 @@ const countries = [
   "Maroc", "Algérie", "Tunisie", "Belgique", "Suisse", "Canada", "États-Unis",
 ];
 
-export default function UserProfilePage() {
+export default function CoachProfileSettingsPage() {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<Tab>("profile");
 
-  // ── Profile state ──
   const [photo, setPhoto] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -35,12 +32,10 @@ export default function UserProfilePage() {
   const [country, setCountry] = useState("");
   const [zipcode, setZipcode] = useState("");
 
-  // ── Password state ──
   const [currentPwd, setCurrentPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
 
-  // ── Other settings state ──
   const [emailNotif, setEmailNotif] = useState(true);
   const [smsNotif, setSmsNotif] = useState(false);
   const [newsletter, setNewsletter] = useState(true);
@@ -130,8 +125,7 @@ export default function UserProfilePage() {
 
       setProfileMessage("Profil mis a jour avec succes.");
     } catch (err: any) {
-      const msg = err?.response?.data?.message || "Echec de la mise a jour du profil.";
-      setProfileError(msg);
+      setProfileError(err?.response?.data?.message || "Echec de la mise a jour du profil.");
     } finally {
       setSavingProfile(false);
     }
@@ -158,12 +152,12 @@ export default function UserProfilePage() {
         password: newPwd,
         password_confirmation: confirmPwd,
       });
-
       setProfileMessage(res.data?.message || "Mot de passe mis a jour avec succes.");
-      resetPassword();
+      setCurrentPwd("");
+      setNewPwd("");
+      setConfirmPwd("");
     } catch (err: any) {
-      const msg = err?.response?.data?.message || "Echec de mise a jour du mot de passe.";
-      setProfileError(msg);
+      setProfileError(err?.response?.data?.message || "Echec de mise a jour du mot de passe.");
     } finally {
       setSavingPassword(false);
     }
@@ -175,7 +169,11 @@ export default function UserProfilePage() {
     setPhoto(null);
   };
 
-  const resetPassword = () => { setCurrentPwd(""); setNewPwd(""); setConfirmPwd(""); };
+  const resetPassword = () => {
+    setCurrentPwd("");
+    setNewPwd("");
+    setConfirmPwd("");
+  };
 
   const inputCls =
     "w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 placeholder:text-gray-400";
@@ -185,47 +183,39 @@ export default function UserProfilePage() {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      {/* ── HERO BANNER ── */}
       <div
         className="relative w-full h-[260px] flex items-center"
         style={{ backgroundImage: `url(${heroBg})`, backgroundSize: "cover", backgroundPosition: "center" }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white">User Profile</h1>
-          <p className="text-sm text-gray-200 mt-2">Home <span className="mx-1">›</span> User Profile</p>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white">Coach Profile Settings</h1>
+          <p className="text-sm text-gray-200 mt-2">Home <span className="mx-1">›</span> Coach Profile Settings</p>
         </div>
-        <span className="absolute top-8 left-8 h-3 w-3 rounded-full bg-green-400 opacity-90" />
-        <span className="absolute top-8 right-10 h-4 w-4 rounded-full bg-teal-300 opacity-80" />
-        <span className="absolute bottom-10 right-6 h-3 w-3 rounded-full bg-green-500 opacity-90" />
-        <div className="absolute bottom-0 right-24 h-40 w-40 rounded-full bg-teal-500/30 blur-2xl" />
       </div>
 
-      {/* ── NAV TABS ── */}
       <div className="max-w-7xl mx-auto px-6 mt-10">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-          <button onClick={() => navigate("/user/dashboard")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
+          <button onClick={() => navigate("/coach/dashboard")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
             <img src={dashboardIcon} alt="Dashboard" className="h-7 w-7" />
             <span className="font-semibold text-sm text-gray-700">Dashboard</span>
           </button>
-          <button onClick={() => navigate("/user/bookings")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={bookingsIcon} alt="My Bookings" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">My Bookings</span>
+          <button onClick={() => navigate("/coach/seances")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
+            <img src={bookingsIcon} alt="Seances" className="h-7 w-7" />
+            <span className="font-semibold text-sm text-gray-700">Seances</span>
           </button>
-          
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={chatIcon} alt="Chat" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Chat</span>
+          <button onClick={() => navigate("/coach/offres")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
+            <img src={requestsIcon} alt="Offres" className="h-7 w-7" />
+            <span className="font-semibold text-sm text-gray-700">Offres</span>
           </button>
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={invoicesIcon} alt="Invoices" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Invoices</span>
+          <button onClick={() => navigate("/coach/programmes")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
+            <img src={programmesIcon} alt="Programmes" className="h-7 w-7" />
+            <span className="font-semibold text-sm text-gray-700">Programmes</span>
           </button>
-          <button onClick={() => navigate("/user/wallet")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={walletIcon} alt="Wallet" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Wallet</span>
+          <button onClick={() => navigate("/coach/exercices")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
+            <img src={requestsIcon} alt="Exercices" className="h-7 w-7" />
+            <span className="font-semibold text-sm text-gray-700">Exercices</span>
           </button>
-          {/* ACTIVE */}
           <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-green-700 text-white p-6 shadow-sm">
             <img src={profileIcon} alt="Profile Setting" className="h-7 w-7 brightness-0 invert" />
             <span className="font-semibold text-sm">Profile Setting</span>
@@ -233,25 +223,17 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      {/* ── CONTENT ── */}
       <div className="max-w-7xl mx-auto px-6 mt-10 mb-16">
         {loadingProfile && (
-          <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
-            Chargement du profil...
-          </div>
+          <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">Chargement du profil...</div>
         )}
         {profileError && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {profileError}
-          </div>
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{profileError}</div>
         )}
         {profileMessage && (
-          <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-            {profileMessage}
-          </div>
+          <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">{profileMessage}</div>
         )}
 
-        {/* Sub-tabs */}
         <div className="flex items-center gap-1 mb-8">
           {(["profile", "password", "settings"] as Tab[]).map((t) => (
             <button
@@ -268,11 +250,8 @@ export default function UserProfilePage() {
           ))}
         </div>
 
-        {/* ── TAB: PROFILE ── */}
         {tab === "profile" && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 space-y-8">
-
-            {/* Photo upload */}
             <div className="flex flex-col items-start gap-3">
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
               <div
@@ -284,16 +263,9 @@ export default function UserProfilePage() {
                 ) : (
                   <span className="text-sm text-gray-400 group-hover:text-green-600 transition">Upload Photo</span>
                 )}
-                <span className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-green-600 flex items-center justify-center shadow">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 11l6-6 3 3-6 6H9v-3z" />
-                  </svg>
-                </span>
               </div>
-              <p className="text-xs text-gray-400">Upload a logo with a minimum size of 150 × 150 pixels (JPG, PNG, SVG).</p>
             </div>
 
-            {/* Name / Email / Phone */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className={labelCls}>Name</label>
@@ -309,27 +281,17 @@ export default function UserProfilePage() {
               </div>
             </div>
 
-            {/* About */}
             <div>
               <label className={labelCls}>Information about You</label>
-              <textarea
-                rows={4}
-                placeholder="About"
-                value={about}
-                onChange={(e) => setAbout(e.target.value)}
-                className={inputCls + " resize-none"}
-              />
+              <textarea rows={4} placeholder="About" value={about} onChange={(e) => setAbout(e.target.value)} className={inputCls + " resize-none"} />
             </div>
 
-            {/* Address section */}
             <div className="border-t border-gray-100 pt-8 space-y-6">
               <h3 className="text-lg font-extrabold text-gray-900">Address</h3>
-
               <div>
                 <label className={labelCls}>Address</label>
                 <input type="text" placeholder="Enter Address" value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className={labelCls}>State</label>
@@ -347,28 +309,19 @@ export default function UserProfilePage() {
                   </select>
                 </div>
               </div>
-
               <div className="md:w-1/3">
                 <label className={labelCls}>Zipcode</label>
                 <input type="text" placeholder="Enter Zipcode" value={zipcode} onChange={(e) => setZipcode(e.target.value)} className={inputCls} />
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end gap-3 pt-2">
               <button onClick={resetProfile} className="px-6 py-2.5 rounded-xl bg-green-700 text-white text-sm font-semibold hover:bg-green-800 transition">Reset</button>
-              <button
-                onClick={saveProfile}
-                disabled={savingProfile || loadingProfile}
-                className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition disabled:opacity-50"
-              >
-                {savingProfile ? "Saving..." : "Save Change"}
-              </button>
+              <button onClick={saveProfile} disabled={savingProfile || loadingProfile} className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition disabled:opacity-50">{savingProfile ? "Saving..." : "Save Change"}</button>
             </div>
           </div>
         )}
 
-        {/* ── TAB: CHANGE PASSWORD ── */}
         {tab === "password" && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 space-y-6 max-w-xl">
             <div>
@@ -385,36 +338,25 @@ export default function UserProfilePage() {
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button onClick={resetPassword} className="px-6 py-2.5 rounded-xl bg-green-700 text-white text-sm font-semibold hover:bg-green-800 transition">Reset</button>
-              <button
-                onClick={savePassword}
-                disabled={savingPassword || loadingProfile}
-                className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition disabled:opacity-50"
-              >
-                {savingPassword ? "Saving..." : "Save Change"}
-              </button>
+              <button onClick={savePassword} disabled={savingPassword || loadingProfile} className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition disabled:opacity-50">{savingPassword ? "Saving..." : "Save Change"}</button>
             </div>
           </div>
         )}
 
-        {/* ── TAB: OTHER SETTINGS ── */}
         {tab === "settings" && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 space-y-6 max-w-xl">
             <h3 className="text-lg font-extrabold text-gray-900">Notifications</h3>
-
             {[
               { label: "Email Notifications", desc: "Receive updates via email", value: emailNotif, set: setEmailNotif },
-              { label: "SMS Notifications",   desc: "Receive updates via SMS",   value: smsNotif,   set: setSmsNotif   },
-              { label: "Newsletter",          desc: "Subscribe to our newsletter", value: newsletter, set: setNewsletter },
+              { label: "SMS Notifications", desc: "Receive updates via SMS", value: smsNotif, set: setSmsNotif },
+              { label: "Newsletter", desc: "Subscribe to our newsletter", value: newsletter, set: setNewsletter },
             ].map(({ label, desc, value, set }) => (
               <div key={label} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{label}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
                 </div>
-                <button
-                  onClick={() => set(!value)}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${value ? "bg-green-600" : "bg-gray-300"}`}
-                >
+                <button onClick={() => set(!value)} className={`relative h-6 w-11 rounded-full transition-colors ${value ? "bg-green-600" : "bg-gray-300"}`}>
                   <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${value ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
@@ -426,17 +368,9 @@ export default function UserProfilePage() {
                 <p className="text-sm font-semibold text-gray-900">Public Profile</p>
                 <p className="text-xs text-gray-400 mt-0.5">Make your profile visible to others</p>
               </div>
-              <button
-                onClick={() => setProfileVisible(!profileVisible)}
-                className={`relative h-6 w-11 rounded-full transition-colors ${profileVisible ? "bg-green-600" : "bg-gray-300"}`}
-              >
+              <button onClick={() => setProfileVisible(!profileVisible)} className={`relative h-6 w-11 rounded-full transition-colors ${profileVisible ? "bg-green-600" : "bg-gray-300"}`}>
                 <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${profileVisible ? "translate-x-5" : "translate-x-0"}`} />
               </button>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button className="px-6 py-2.5 rounded-xl bg-green-700 text-white text-sm font-semibold hover:bg-green-800 transition">Reset</button>
-              <button className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition">Save Change</button>
             </div>
           </div>
         )}

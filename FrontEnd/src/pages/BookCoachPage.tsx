@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import Header from "../components/Header";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
-import { coachesData } from "../data/coaches";
 import axiosClient from "../api/axios";
 import avatar1 from "../assets/avatar-01.jpg";
 
@@ -28,27 +27,49 @@ export default function BookCoachPage() {
 
   const [apiCoach, setApiCoach] = useState<any | null>(null);
   const [loadingCoach, setLoadingCoach] = useState(true);
+  const [coachError, setCoachError] = useState("");
 
   useEffect(() => {
+    let isMounted = true;
+
     const numericId = Number(coachId);
     if (Number.isNaN(numericId)) {
       setLoadingCoach(false);
       return;
     }
 
-    axiosClient
-      .get("/client/coaches")
-      .then((res) => {
-        const found = (res.data.data || []).find((item: any) => Number(item.id) === numericId);
-        setApiCoach(found || null);
-      })
-      .catch((err) => {
-        console.error(err);
-      })
-      .finally(() => setLoadingCoach(false));
-  }, [coachId]);
+    const loadCoach = async () => {
+      const endpoints = ["/client/coaches", "/coaches"];
+      let lastErrorMessage = "";
 
-  const staticCoach = useMemo(() => coachesData.find((item) => item.id === coachId), [coachId]);
+      for (const endpoint of endpoints) {
+        try {
+          const res = await axiosClient.get(endpoint);
+          const items = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+          const found = items.find((item: any) => Number(item.id) === numericId);
+          if (found) {
+            if (isMounted) setApiCoach(found);
+            return;
+          }
+        } catch (err: any) {
+          lastErrorMessage = err?.response?.data?.message || "";
+        }
+      }
+
+      if (isMounted) {
+        setApiCoach(null);
+        setCoachError(lastErrorMessage || "Impossible de charger le coach depuis l'API.");
+      }
+    };
+
+    loadCoach().finally(() => {
+      if (isMounted) setLoadingCoach(false);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [coachId]);
 
   const coach = useMemo(() => {
     if (apiCoach) {
@@ -80,8 +101,8 @@ export default function BookCoachPage() {
       };
     }
 
-    return staticCoach;
-  }, [apiCoach, staticCoach]);
+    return null;
+  }, [apiCoach]);
 
   const [step, setStep] = useState(1);
   const [bookingType, setBookingType] = useState<"session" | "training">("session");
@@ -99,6 +120,15 @@ export default function BookCoachPage() {
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="p-10 text-center text-gray-600">Chargement du coach...</div>
+      </div>
+    );
+  }
+
+  if (coachError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="p-10 text-center text-red-600">{coachError}</div>
       </div>
     );
   }

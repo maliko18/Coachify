@@ -241,7 +241,7 @@ export default function CoachProgrammesPage() {
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-extrabold text-slate-900">Module Programme</h1>
-            <p className="mt-1 text-slate-600">Gestion des programmes (Issues #9, #10)</p>
+            <p className="mt-1 text-slate-600">Gestion des programmes </p>
           </div>
 
           <button

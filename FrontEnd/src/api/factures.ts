@@ -1,6 +1,21 @@
 import axiosClient from "./axios";
 
+type CollectionResponse<T> = { data: T[]; meta?: Record<string, unknown> };
+
+const unwrapCollection = <T>(payload: T[] | CollectionResponse<T>): T[] => {
+  if (Array.isArray(payload)) return payload;
+  return Array.isArray(payload?.data) ? payload.data : [];
+};
+
 export type FactureStatut = "brouillon" | "emise" | "payee" | "annulee" | "en_retard";
+
+export const FACTURE_STATUTS: FactureStatut[] = [
+  "brouillon",
+  "emise",
+  "payee",
+  "annulee",
+  "en_retard",
+];
 
 export interface Facture {
   id: number;
@@ -51,10 +66,17 @@ export interface FactureFilters {
   date_fin?: string;
 }
 
+export interface FactureStatsFilters {
+  date_debut?: string;
+  date_fin?: string;
+}
+
 const facturesApi = {
   /** GET /api/coach/factures */
   list: (filters?: FactureFilters) =>
-    axiosClient.get<Facture[]>("/coach/factures", { params: filters }).then((r) => r.data),
+    axiosClient
+      .get<Facture[] | CollectionResponse<Facture>>("/coach/factures", { params: filters })
+      .then((r) => unwrapCollection(r.data)),
 
   /** GET /api/coach/factures/:id */
   get: (id: number) =>
@@ -70,7 +92,7 @@ const facturesApi = {
 
   /** DELETE /api/coach/factures/:id  — interdit si payée */
   delete: (id: number) =>
-    axiosClient.delete(`/coach/factures/${id}`).then((r) => r.data),
+    axiosClient.delete(`/coach/factures/${id}`).then(() => undefined),
 
   /** POST /api/coach/factures/:id/emettre  (brouillon → emise) */
   emettre: (id: number) =>
@@ -89,11 +111,13 @@ const facturesApi = {
 
   /** GET /api/coach/factures-en-retard */
   enRetard: () =>
-    axiosClient.get<Facture[]>("/coach/factures-en-retard").then((r) => r.data),
+    axiosClient
+      .get<Facture[] | CollectionResponse<Facture>>("/coach/factures-en-retard")
+      .then((r) => unwrapCollection(r.data)),
 
   /** GET /api/coach/factures-stats */
-  stats: () =>
-    axiosClient.get<FactureStats>("/coach/factures-stats").then((r) => r.data),
+  stats: (filters?: FactureStatsFilters) =>
+    axiosClient.get<FactureStats>("/coach/factures-stats", { params: filters }).then((r) => r.data),
 };
 
 export default facturesApi;

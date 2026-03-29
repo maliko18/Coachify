@@ -12,6 +12,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\PaiementController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProgrammeController;
 use App\Http\Controllers\SeanceController;
 use App\Http\Controllers\ShopController;
@@ -90,6 +91,10 @@ Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions', 'monit
     Route::get('/user', function (Request $request) {
         return new UserResources($request->user()->load('roles', 'coach'));
     });
+
+    // Mise a jour du profil utilisateur connecte
+    Route::put('/user', [ProfileController::class, 'update']);
+    Route::put('/user/password', [ProfileController::class, 'updatePassword']);
 
     /*
     |--------------------------------------------------------------------------

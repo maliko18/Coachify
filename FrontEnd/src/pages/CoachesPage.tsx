@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import axiosClient from "../api/axios";
-import { coachesData } from "../data/coaches";
-import type { CoachProfile } from "../data/coaches";
 
 type Coach = {
   id: number | string;
@@ -30,18 +28,6 @@ const normalizeApiCoach = (coach: any): Coach => ({
   city: coach.city || null,
 });
 
-const mapStaticCoach = (coach: CoachProfile): Coach => ({
-  id: coach.id,
-  full_name: coach.name,
-  email: "",
-  bio: coach.bio,
-  specialties: coach.lessonType ? [coach.lessonType] : [],
-  experience_years: 0,
-  hourly_rate: coach.offers?.[0]?.pricePerHour || 0,
-  avatar: coach.image,
-  city: coach.location,
-});
-
 export default function CoachesPage() {
   const navigate = useNavigate();
 
@@ -63,6 +49,7 @@ useEffect(() => {
     setError("");
 
     const endpoints = ["/client/coaches", "/coaches"];
+    let lastErrorMessage = "";
 
     for (const endpoint of endpoints) {
       try {
@@ -77,8 +64,8 @@ useEffect(() => {
           setLoading(false);
           return;
         }
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        lastErrorMessage = err?.response?.data?.message || "";
       }
     }
 
@@ -86,7 +73,8 @@ useEffect(() => {
       return;
     }
 
-    setCoaches(coachesData.map(mapStaticCoach));
+    setCoaches([]);
+    setError(lastErrorMessage || "Impossible de charger les coachs depuis l'API.");
     setLoading(false);
   };
 

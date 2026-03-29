@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosClient from "../api/axios";
+import paiementsApi, { type Paiement as Payment, type PaiementStatistiques as PaymentStats } from "../api/paiements";
+import facturesApi, { type Facture, type FactureStats } from "../api/factures";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import dashboardIcon from "../assets/dashboard-icon.svg";
 import courtsIcon from "../assets/court-icon.svg";
@@ -29,30 +31,6 @@ import booking5 from "../assets/booking-05.jpg";
 import booking6 from "../assets/booking-06.jpg";
 import walletbkg from "../assets/walletbg.png"; 
 import Header from "../components/Header";
-
-
-type Client = {
-  id: string;
-  name: string;
-  group?: string;
-  active: boolean;
-};
-
-type Session = {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  type: "individual" | "group";
-  capacity?: number;
-  booked?: number;
-};
-
-type RevenueStat = {
-  label: string;
-  value: string;
-  hint: string;
-};
 
 
 export default function CoachDashboard() {
@@ -276,67 +254,30 @@ const [seances, setSeances] = useState<any[]>([]);
 const [loadingSeances, setLoadingSeances] = useState(false);
 const [errorSeances, setErrorSeances] = useState("");
 
-  // Mock data (UI only)
-  const clients: Client[] = useMemo(
-    () => [
-      { id: "c1", name: "Alice Martin", active: true },
-      { id: "c2", name: "Yassine El Amrani", active: true, group: "HIIT Group" },
-      { id: "c3", name: "Lina Dupont", active: false },
-      { id: "c4", name: "Group – Leg Day", active: true, group: "Leg Day" },
-    ],
-    []
-  );
-
-  const sessions: Session[] = useMemo(
-    () => [
-      {
-        id: "s1",
-        title: "1-to-1 Strength Session",
-        date: "2026-01-28",
-        time: "18:30",
-        type: "individual",
-      },
-      {
-        id: "s2",
-        title: "Group HIIT",
-        date: "2026-01-30",
-        time: "19:00",
-        type: "group",
-        capacity: 12,
-        booked: 9,
-      },
-    ],
-    []
-  );
-
-  const revenueStats: RevenueStat[] = useMemo(
-    () => [
-      { label: "Monthly Revenue", value: "€2,450", hint: "Subscriptions + packs" },
-      { label: "Active Clients", value: "18", hint: "All contracts combined" },
-      { label: "Fill Rate", value: "82%", hint: "Group sessions" },
-      { label: "Retention", value: "91%", hint: "Last 3 months" },
-    ],
-    []
-  );
-
-    // ✅ Booking Requests tabs
+  // Booking Requests tabs
   const [bookingTab, setBookingTab] = useState<"court" | "coaching">("court");
 
-  const bookingRequestsCourt = [
-    { img: booking2, name: "Wing Sports Academy", court: "Court 1" },
-    { img: booking3, name: "Feather Badminton", court: "Court 1" },
-    { img: booking4, name: "Bwing Sports Academy", court: "Court 3" },
-  ];
+  const bookingRequestsData = useMemo(() => {
+    const source = seances.slice(0, 3);
 
-  // ✅ This matches your screenshot (Coaching tab)
-  const bookingRequestsCoaching = [
-    { img: coachImg, name: "Kevin Anderson", court: "Court 1" },
-    { img: fav2, name: "Kevin Anderson", court: "Court 2" },
-    { img: fav3, name: "Kevin Anderson", court: "Court 3" },
-  ];
+    if (source.length === 0) {
+      return [] as Array<{ img: string; name: string; court: string }>;
+    }
 
-  const bookingRequestsData =
-    bookingTab === "court" ? bookingRequestsCourt : bookingRequestsCoaching;
+    return source.map((s: any, index: number) => {
+      const imagePool = bookingTab === "court"
+        ? [booking2, booking3, booking4]
+        : [coachImg, fav2, fav3];
+
+      return {
+        img: imagePool[index % imagePool.length],
+        name: bookingTab === "court"
+          ? String(s?.titre ?? `Séance #${s?.id ?? index + 1}`)
+          : "Coach",
+        court: String(s?.lieu ?? s?.type ?? "-"),
+      };
+    });
+  }, [bookingTab, seances]);
   
   const [earningsHover, setEarningsHover] = useState<null | "court" | "coaching">(null);
 
@@ -484,6 +425,12 @@ const fetchSeances = async () => {
   }
 };
 
+useMemo(() => {
+  fetchSeances();
+  return null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
 type Seance = {
   id: number;
   coach_id: number;
@@ -627,41 +574,6 @@ const closeModal = () => {
 
 // ===================== EARNINGS (PAIEMENTS) =====================
 
-type Money = { amount: number; formatted: string; currency: string };
-
-
-
-type Payment = {
-  id: number;
-  montant: Money;
-  devise?: string;
-  date_paiement: string; // ISO
-  methode: string;
-  methode_label?: string;
-  statut: "en_attente" | "valide" | "refuse" | "rembourse" | "annule";
-  statut_label?: string;
-  reference?: string;
-  description?: string;
-  client?: {
-    id: number;
-    full_name?: string;
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-  } | null;
-};
-
-type PaymentStats = {
-  periode: { debut: string; fin: string };
-  chiffre_affaires: number;
-  total_rembourse: number;
-  ca_net: number;
-  en_attente: number;
-  nombre_paiements: number;
-  nombre_valides: number;
-  repartition_methode?: Record<string, { nombre: number; total: number; label: string }>;
-};
-
 type PeriodKey = "week" | "month" | "year" | "custom";
 
 const [earningsPeriod, setEarningsPeriod] = useState<PeriodKey>("week");
@@ -741,16 +653,13 @@ const fetchEarnings = async () => {
   try {
     const params = buildPaymentsParams();
 
-    const [listRes, statsRes] = await Promise.all([
-      axiosClient.get("/coach/paiements", { params }),
-      axiosClient.get("/coach/paiements-statistiques", {
-        params: { date_debut: earningsDateDebut, date_fin: earningsDateFin },
-      }),
+    const [list, stats] = await Promise.all([
+      paiementsApi.list(params),
+      paiementsApi.statistiques({ date_debut: earningsDateDebut, date_fin: earningsDateFin }),
     ]);
 
-    const list = Array.isArray(listRes.data) ? listRes.data : (listRes.data?.data ?? []);
     setPayments(list);
-    setPaymentStats(statsRes.data);
+    setPaymentStats(stats);
   } catch (e: any) {
     setErrorEarnings(e?.response?.data?.message || "Erreur lors du chargement des paiements");
   } finally {
@@ -770,7 +679,11 @@ useMemo(() => {
 const postPaymentAction = async (id: number, action: "valider" | "annuler") => {
   setEarningsActionLoading(true);
   try {
-    await axiosClient.post(`/coach/paiements/${id}/${action}`, {});
+    if (action === "valider") {
+      await paiementsApi.valider(id);
+    } else {
+      await paiementsApi.annuler(id);
+    }
     await fetchEarnings();
   } catch (e: any) {
     alert(e?.response?.data?.message || "Action échouée");
@@ -797,7 +710,7 @@ const submitRefund = async () => {
 
   setEarningsActionLoading(true);
   try {
-    await axiosClient.post(`/coach/paiements/${refundTarget.id}/rembourser`, {
+    await paiementsApi.rembourser(refundTarget.id, {
       montant: amountNumber,
       motif: refundMotif || "Remboursement",
     });
@@ -819,7 +732,7 @@ const deletePayment = async (id: number) => {
 
   setEarningsActionLoading(true);
   try {
-    await axiosClient.delete(`/coach/paiements/${id}`);
+    await paiementsApi.delete(id);
     await fetchEarnings();
   } catch (e: any) {
     alert(e?.response?.data?.message || "Suppression échouée");
@@ -950,30 +863,6 @@ function MiniBarChart({
 
 
 
-type Facture = {
-  id: number;
-  numero: string;
-  montant_ttc?: number; // parfois number simple
-  montant_ttc_formatted?: string; // si jamais
-  montant_ht?: number;
-  tva?: number;
-  date_emission: string;   // YYYY-MM-DD
-  date_echeance: string;   // YYYY-MM-DD
-  statut: "brouillon" | "emise" | "payee" | "annulee" | "en_retard";
-  statut_label?: string;
-  est_en_retard?: boolean;
-  client?: { id: number; first_name?: string; last_name?: string; full_name?: string };
-};
-
-type FactureStats = {
-  total_factures: number;
-  total_ht: number;
-  total_ttc: number;
-  par_statut: Record<string, number>;
-  montant_paye: number;
-  montant_en_attente: number;
-};
-
 const [factures, setFactures] = useState<Facture[]>([]);
 const [loadingFactures, setLoadingFactures] = useState(false);
 const [errorFactures, setErrorFactures] = useState("");
@@ -1004,10 +893,7 @@ const fetchFactures = async () => {
     if (walletDateDebut) params.date_debut = walletDateDebut;
     if (walletDateFin) params.date_fin = walletDateFin;
 
-    // search côté front: numero + nom client
-    const res = await axiosClient.get("/coach/factures", { params });
-    const data = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-    setFactures(data);
+    setFactures(await facturesApi.list(params));
   } catch (e: any) {
     setErrorFactures(e?.response?.data?.message || "Erreur lors du chargement des factures");
   } finally {
@@ -1018,12 +904,12 @@ const fetchFactures = async () => {
 const fetchFacturesStats = async () => {
   setLoadingFacturesStats(true);
   try {
-    const params: any = {};
-    if (walletDateDebut) params.date_debut = walletDateDebut;
-    if (walletDateFin) params.date_fin = walletDateFin;
-
-    const res = await axiosClient.get("/coach/factures-stats", { params });
-    setFacturesStats(res.data);
+    setFacturesStats(
+      await facturesApi.stats({
+        date_debut: walletDateDebut || undefined,
+        date_fin: walletDateFin || undefined,
+      }),
+    );
   } catch {
     setFacturesStats(null);
   } finally {
@@ -1034,7 +920,7 @@ const fetchFacturesStats = async () => {
 // Download PDF (backend: /factures/{id}/pdf) :contentReference[oaicite:6]{index=6}
 const downloadFacturePdf = async (id: number) => {
   try {
-    const res = await axiosClient.get(`/coach/factures/${id}/pdf`, {
+    const res = await axiosClient.get(facturesApi.pdfUrl(id), {
       responseType: "blob",
     });
     const blob = new Blob([res.data], { type: "application/pdf" });
@@ -1054,7 +940,13 @@ const downloadFacturePdf = async (id: number) => {
 // Actions facture (cycle de vie) :contentReference[oaicite:7]{index=7}
 const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler") => {
   try {
-    await axiosClient.post(`/coach/factures/${id}/${action}`);
+    if (action === "emettre") {
+      await facturesApi.emettre(id);
+    } else if (action === "payer") {
+      await facturesApi.payer(id);
+    } else {
+      await facturesApi.annuler(id);
+    }
     await fetchFactures();
     await fetchFacturesStats();
   } catch (e: any) {
@@ -1172,6 +1064,7 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
       <QuickNavCard
         title="Profile Setting"
         icon={profileIcon}
+        onClick={() => navigate("/coach/profile")}
       />
 
       <QuickNavCard
@@ -1566,9 +1459,10 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
               .filter((p) => {
                 if (!earningsSearch.trim()) return true;
                 const q = earningsSearch.toLowerCase();
-                const clientName =
+                const clientName = String(
                   (p.client?.full_name ||
-                    `${p.client?.first_name ?? ""} ${p.client?.last_name ?? ""}`.trim()) ?? "";
+                    `${p.client?.first_name ?? ""} ${p.client?.last_name ?? ""}`.trim()) ?? "",
+                );
                 return (
                   String(clientName).toLowerCase().includes(q) ||
                   String(p.reference ?? "").toLowerCase().includes(q) ||
@@ -1578,10 +1472,11 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
                 );
               })
               .map((p) => {
-                const clientName =
+                const clientName = String(
                   p.client?.full_name ||
-                  `${p.client?.first_name ?? ""} ${p.client?.last_name ?? ""}`.trim() ||
-                  `Client #${p.client?.id ?? "-"}`;
+                    `${p.client?.first_name ?? ""} ${p.client?.last_name ?? ""}`.trim() ||
+                    `Client #${p.client?.id ?? "-"}`,
+                );
 
                 const dateOnly = (p.date_paiement || "").slice(0, 10);
                 const timeOnly = (p.date_paiement || "").slice(11, 16);
@@ -1845,18 +1740,22 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
               .filter((f) => {
                 if (!walletSearch.trim()) return true;
                 const q = walletSearch.toLowerCase();
-                const clientName =
-                  (f.client?.full_name ||
-                    `${f.client?.first_name ?? ""} ${f.client?.last_name ?? ""}`).trim();
+                const clientFullName =
+                  typeof f.client?.full_name === "string" ? f.client.full_name : "";
+                const fallbackClientName =
+                  `${String(f.client?.first_name ?? "")} ${String(f.client?.last_name ?? "")}`.trim();
+                const clientName = clientFullName || fallbackClientName;
                 return (
                   String(f.numero ?? "").toLowerCase().includes(q) ||
                   clientName.toLowerCase().includes(q)
                 );
               })
               .map((f) => {
-                const clientName =
-                  (f.client?.full_name ||
-                    `${f.client?.first_name ?? ""} ${f.client?.last_name ?? ""}`).trim() || "—";
+                const clientFullName =
+                  typeof f.client?.full_name === "string" ? f.client.full_name : "";
+                const fallbackClientName =
+                  `${String(f.client?.first_name ?? "")} ${String(f.client?.last_name ?? "")}`.trim();
+                const clientName = clientFullName || fallbackClientName || "—";
 
                 return (
                   <div key={f.id} className="grid grid-cols-12 gap-4 items-center px-4 py-4">

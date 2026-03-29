@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import Signup from "./pages/Signup";
@@ -9,6 +9,7 @@ import CoachExercicesPage from "./pages/CoachExercicesPage";
 import CoachSeancesPage from "./pages/CoachSeancesPage";
 import WalletPage from "./pages/WalletPage";
 import UserProfilePage from "./pages/UserProfilePage";
+import CoachProfileSettingsPage from "./pages/CoachProfileSettingsPage";
 import BookingsPage from "./pages/BookingsPage";
 import CoachesPage from "./pages/CoachesPage";
 import BookCoachPage from "./pages/BookCoachPage";
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/user/profile" element={<UserProfilePage />} />
 
         <Route path="/coach/dashboard" element={<CoachDashboard />} />
+        <Route path="/coach/profile" element={<CoachProfileSettingsPage />} />
         <Route path="/coach/offres" element={<CoachOffersPage />} />
         <Route path="/coach/seances" element={<CoachSeancesPage />} />
         <Route path="/coach/exercices" element={<CoachExercicesPage />} />
@@ -61,6 +63,7 @@ export default function App() {
         <Route path="/client/programmes/reservations" element={<MyProgrammeReservationsPage />} />
         <Route path="/client/coaches/:coachId/programmes" element={<CoachPublicProgrammesPage />} />
 
+        <Route path="/book-coach" element={<Navigate to="/coaches" replace />} />
         <Route path="/book-coach/:coachId" element={<BookCoachPage />} />
       </Route>
     </Routes>
