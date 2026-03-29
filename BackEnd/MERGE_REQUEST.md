@@ -31,7 +31,7 @@ Mise en place de l'infrastructure backend complète avec Laravel, incluant le sy
 ### 👤 Gestion des utilisateurs
 
 - [x] Récupération de l'utilisateur connecté (`GET /api/user`)
-- [x] Support des rôles : `prospect`, `coach`, `admin`
+- [x] Support des rôles : `prospect`, `coach`, `gym_manager` (alias legacy: `admin`)
 - [x] Profil coach avec spécialités, certifications et tarif horaire
 
 ### 🗄️ Base de données

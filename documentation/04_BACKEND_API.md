@@ -112,10 +112,25 @@ Actions metier coach (selection):
 - POST /api/test/programmes/{programme}/reserve
 - GET /api/test/programmes/reservations
 
-## I. Espace admin et gym
+## I. Espace gym manager (/api/gym/*)
 
-Admin (/api/admin/_): audit + endpoints reservees admin.
-Gym manager (/api/gym/_): endpoints reservees gym_manager.
+Routes protegees par middleware is_gym_manager.
+
+| Methode | Endpoint                    | Description                                             |
+| ------- | --------------------------- | ------------------------------------------------------- |
+| GET     | /api/gym/dashboard          | KPIs globaux salle (users, coachs, clients, stock)     |
+| GET     | /api/gym/users              | Liste utilisateurs (filtres recherche/role/statut)      |
+| GET     | /api/gym/users/{userId}     | Detail utilisateur (roles + relations coach/client)     |
+| PUT     | /api/gym/users/{userId}/roles | Mise a jour roles utilisateur                          |
+| POST    | /api/gym/users/{userId}/ban | Bannir (soft-delete) un utilisateur                     |
+| POST    | /api/gym/users/{userId}/unban | Reactiver un utilisateur banni                        |
+| GET     | /api/gym/seances            | Supervision seances (coach, statut, capacite, inscrits)|
+| GET     | /api/gym/equipements        | Inventaire equipements (stock/alerte, filtre low stock)|
+
+Compatibilite legacy frontend:
+
+- Les anciennes routes /admin/* sont redirigees cote frontend vers /gym/*.
+- Aucune route /api/admin/* active dans la configuration actuelle.
 
 ## J. Bonnes pratiques integration frontend
 

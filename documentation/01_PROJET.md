@@ -48,7 +48,8 @@ Coachify est une plateforme de coaching sportif qui connecte coachs et clients a
 - prospect: utilisateur non client
 - client: utilisateur avec parcours client
 - coach: utilisateur avec espace coach
-- admin / gym_manager: routes reservees backend
+- gym_manager: responsable de salle (pilotage operationnel)
+- admin: alias legacy accepte pour compatibilite, converge vers gym_manager
 
 ## Principes de securite
 
@@ -62,6 +63,7 @@ Coachify est une plateforme de coaching sportif qui connecte coachs et clients a
 
 - Authentification et profil
 - Dashboard client / coach
+- Dashboard gym manager
 - Seances
 - Offres
 - Contrats
@@ -72,4 +74,5 @@ Coachify est une plateforme de coaching sportif qui connecte coachs et clients a
 - Boutique (produits + commandes)
 - Messagerie
 - Notifications
+- Supervision salle (utilisateurs, seances, equipements)
 - Blog / contenu public

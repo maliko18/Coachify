@@ -9,6 +9,7 @@ Source principale: [FrontEnd/src/App.tsx](../FrontEnd/src/App.tsx)
 - Acces protege: token requis (ProtectedRoute)
 - Role user: espace user/client
 - Role coach: espace coach
+- Role gym_manager: espace responsable de salle
 
 ## A. Pages publiques
 
@@ -43,7 +44,7 @@ Comportement guard invite:
 | /user/wallet                        | Wallet                      | [FrontEnd/src/pages/WalletPage.tsx](../FrontEnd/src/pages/WalletPage.tsx)                                   | Suivi paiements/depenses                                          | /user, /commandes                                              |
 | /user/bookings                      | Bookings                    | [FrontEnd/src/pages/BookingsPage.tsx](../FrontEnd/src/pages/BookingsPage.tsx)                               | Historique reservations                                           | /user, /client/seances                                         |
 | /user/profile                       | User profile                | [FrontEnd/src/pages/UserProfilePage.tsx](../FrontEnd/src/pages/UserProfilePage.tsx)                         | Mise a jour profil + password                                     | /user, /user/password                                          |
-| /user/messages                      | Messages user               | [FrontEnd/src/pages/CoachMessagesPage.tsx](../FrontEnd/src/pages/CoachMessagesPage.tsx)                     | Conversations, lecture/envoi messages                             | /conversations, /conversations/:id/messages                    |
+| /user/messages                      | Messages user               | [FrontEnd/src/pages/UserMessagesPage.tsx](../FrontEnd/src/pages/UserMessagesPage.tsx)                       | Conversations, lecture/envoi messages                             | /conversations, /conversations/:id/messages                    |
 | /client/programmes/reservations     | Mes reservations programmes | [FrontEnd/src/pages/MyProgrammeReservationsPage.tsx](../FrontEnd/src/pages/MyProgrammeReservationsPage.tsx) | Programmes publies + mes reservations                             | /test/programmes, /test/programmes/reservations                |
 | /client/coaches/:coachId/programmes | Programmes publics coach    | [FrontEnd/src/pages/CoachPublicProgrammesPage.tsx](../FrontEnd/src/pages/CoachPublicProgrammesPage.tsx)     | Consultation catalogue programmes coach                           | /coaches, /client/programmes                                   |
 | /book-coach/:coachId                | Booking coach               | [FrontEnd/src/pages/BookCoachPage.tsx](../FrontEnd/src/pages/BookCoachPage.tsx)                             | Processus en 5 etapes, paiement, creation commande/facture locale | /coaches, /client/offres, /coach/offres, /produits, /commandes |
@@ -61,7 +62,22 @@ Comportement guard invite:
 | /coach/messages   | Messages coach         | [FrontEnd/src/pages/CoachMessagesPage.tsx](../FrontEnd/src/pages/CoachMessagesPage.tsx)               | Inbox coach, recherche conversation, preselection query param | /conversations, /conversations/:id/messages                                       |
 | /coach/analytics  | Analytics coach        | [FrontEnd/src/pages/CoachAnalyticsPage.tsx](../FrontEnd/src/pages/CoachAnalyticsPage.tsx)             | CA, taux remplissage, KPIs                                    | /coach/dashboard/ca, /coach/dashboard/taux-remplissage, /coach/dashboard/kpis     |
 
-## E. Composants transverses
+## E. Pages protegees role gym_manager
+
+| URL             | Page                  | Fichier                                                                                         | Fonctionnalites principales                                     | APIs principales                     |
+| --------------- | --------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------ |
+| /gym/dashboard  | Gym manager dashboard | [FrontEnd/src/pages/AdminDashboardPage.tsx](../FrontEnd/src/pages/AdminDashboardPage.tsx)       | KPIs salle, liens supervision utilisateurs/equipements/seances  | /gym/dashboard                        |
+| /gym/users      | Gestion utilisateurs  | [FrontEnd/src/pages/AdminUsersPage.tsx](../FrontEnd/src/pages/AdminUsersPage.tsx)               | Recherche, roles, ban/unban                                    | /gym/users, /gym/users/:id/roles     |
+| /gym/equipements| Equipements           | [FrontEnd/src/pages/AdminAuditPage.tsx](../FrontEnd/src/pages/AdminAuditPage.tsx)               | Suivi stock, filtre stock faible, pagination                    | /gym/equipements                      |
+| /gym/seances    | Seances salle         | [FrontEnd/src/pages/GymManagerSeancesPage.tsx](../FrontEnd/src/pages/GymManagerSeancesPage.tsx) | Vue globale des seances, statut/capacite/coach                 | /gym/seances                          |
+
+Compatibilite legacy:
+
+- /admin/dashboard -> redirection vers /gym/dashboard
+- /admin/users -> redirection vers /gym/users
+- /admin/audit -> redirection vers /gym/equipements
+
+## F. Composants transverses
 
 - Header global: [FrontEnd/src/components/Header.tsx](../FrontEnd/src/components/Header.tsx)
   - navigation role-aware
@@ -69,11 +85,11 @@ Comportement guard invite:
   - entree Messages + badge local unread
 - Guard protege: [FrontEnd/src/components/ProtectedRoute.tsx](../FrontEnd/src/components/ProtectedRoute.tsx)
   - token requis
-  - blocage acces inter-role (coach vers user/_, user vers coach/_)
+  - blocage acces inter-role (coach/user/gym_manager)
 - Guard invite: [FrontEnd/src/components/GuestRoute.tsx](../FrontEnd/src/components/GuestRoute.tsx)
   - redirection role-aware si deja connecte
 
-## F. Services API frontend
+## G. Services API frontend
 
 Services centralises: [FrontEnd/src/api/index.ts](../FrontEnd/src/api/index.ts)
 
@@ -86,3 +102,4 @@ Services centralises: [FrontEnd/src/api/index.ts](../FrontEnd/src/api/index.ts)
 - [FrontEnd/src/api/factures.ts](../FrontEnd/src/api/factures.ts)
 - [FrontEnd/src/api/conversations.ts](../FrontEnd/src/api/conversations.ts)
 - [FrontEnd/src/api/coachDashboard.ts](../FrontEnd/src/api/coachDashboard.ts)
+- [FrontEnd/src/api/admin.ts](../FrontEnd/src/api/admin.ts) (service gym manager)

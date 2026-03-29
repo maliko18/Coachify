@@ -54,6 +54,7 @@ Fichier backend cle:
 Fichiers cles:
 
 - [FrontEnd/src/pages/CoachMessagesPage.tsx](../FrontEnd/src/pages/CoachMessagesPage.tsx)
+- [FrontEnd/src/pages/UserMessagesPage.tsx](../FrontEnd/src/pages/UserMessagesPage.tsx)
 - [FrontEnd/src/api/conversations.ts](../FrontEnd/src/api/conversations.ts)
 
 ## 5) Flux dashboard coach
@@ -101,8 +102,27 @@ Regles frontend:
 - Utilisateur connecte sur route invite: redirection dashboard selon role.
 - Coach sur route user/client: redirection vers /coach/dashboard.
 - User/client sur route coach: redirection vers /user/dashboard.
+- Gym manager hors /gym/*: redirection vers /gym/dashboard.
+- Role non gym_manager sur /gym/*: redirection vers espace autorise.
 
 Fichiers:
 
 - [FrontEnd/src/components/ProtectedRoute.tsx](../FrontEnd/src/components/ProtectedRoute.tsx)
 - [FrontEnd/src/components/GuestRoute.tsx](../FrontEnd/src/components/GuestRoute.tsx)
+
+## 9) Flux gym manager (pilotage salle)
+
+1. Connexion avec un compte role gym_manager.
+2. Redirection vers /gym/dashboard.
+3. Consultation KPI salle (users, seances, equipements low-stock).
+4. Navigation vers /gym/users pour role management + ban/unban.
+5. Navigation vers /gym/seances pour supervision planning global.
+6. Navigation vers /gym/equipements pour suivi inventaire et alertes stock.
+
+Fichiers cles:
+
+- [FrontEnd/src/pages/AdminDashboardPage.tsx](../FrontEnd/src/pages/AdminDashboardPage.tsx)
+- [FrontEnd/src/pages/AdminUsersPage.tsx](../FrontEnd/src/pages/AdminUsersPage.tsx)
+- [FrontEnd/src/pages/AdminAuditPage.tsx](../FrontEnd/src/pages/AdminAuditPage.tsx)
+- [FrontEnd/src/pages/GymManagerSeancesPage.tsx](../FrontEnd/src/pages/GymManagerSeancesPage.tsx)
+- [BackEnd/app/Http/Controllers/GymManagerController.php](../BackEnd/app/Http/Controllers/GymManagerController.php)

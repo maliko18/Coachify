@@ -152,27 +152,25 @@ Base URL : `http://127.0.0.1:8000/api`
 | `GET`   | `/coach/statistics` | Statistiques    | ✅   | `coach` |
 | `POST`  | `/coach/offers`     | Créer une offre | ✅   | `coach` |
 
-### 👑 Routes Admin
+### 🏢 Routes Gym Manager
 
-| Méthode | Endpoint                | Description           | Auth | Rôle    |
-| ------- | ----------------------- | --------------------- | ---- | ------- |
-| `GET`   | `/admin/users`          | Liste utilisateurs    | ✅   | `admin` |
-| `GET`   | `/admin/statistics`     | Statistiques globales | ✅   | `admin` |
-| `POST`  | `/admin/users/{id}/ban` | Bannir un utilisateur | ✅   | `admin` |
+| Méthode | Endpoint                    | Description                          | Auth | Rôle          |
+| ------- | --------------------------- | ------------------------------------ | ---- | ------------- |
+| `GET`   | `/gym/dashboard`            | Dashboard salle                      | ✅   | `gym_manager` |
+| `GET`   | `/gym/users`                | Liste utilisateurs                   | ✅   | `gym_manager` |
+| `PUT`   | `/gym/users/{id}/role`      | Mise a jour role utilisateur         | ✅   | `gym_manager` |
+| `POST`  | `/gym/users/{id}/ban`       | Bannir un utilisateur                | ✅   | `gym_manager` |
+| `DELETE`| `/gym/users/{id}/ban`       | Lever le bannissement utilisateur    | ✅   | `gym_manager` |
+| `GET`   | `/gym/equipements`          | Liste equipements                    | ✅   | `gym_manager` |
+| `POST`  | `/gym/equipements`          | Ajouter equipement                   | ✅   | `gym_manager` |
 
-### 🏢 Routes Responsable de Salle
-
-| Méthode | Endpoint         | Description        | Auth | Rôle          |
-| ------- | ---------------- | ------------------ | ---- | ------------- |
-| `GET`   | `/gym/dashboard` | Dashboard salle    | ✅   | `gym_manager` |
-| `GET`   | `/gym/equipment` | Liste équipements  | ✅   | `gym_manager` |
-| `POST`  | `/gym/equipment` | Ajouter équipement | ✅   | `gym_manager` |
+Note: les anciennes routes `/admin/*` sont considerees legacy et convergent vers l'espace `/gym/*`.
 
 ### 📊 Routes Multi-rôles
 
 | Méthode | Endpoint      | Description  | Auth | Rôle            |
 | ------- | ------------- | ------------ | ---- | --------------- |
-| `GET`   | `/statistics` | Statistiques | ✅   | `coach`/`admin` |
+| `GET`   | `/statistics` | Statistiques | ✅   | `coach`/`gym_manager` |
 
 ---
 
@@ -186,7 +184,7 @@ Base URL : `http://127.0.0.1:8000/api`
 | `client`      | Client avec contrat actif      | ❌ Non      |
 | `coach`       | Coach sportif                  | ✅ Oui      |
 | `gym_manager` | Responsable de salle de sport  | ❌ Non      |
-| `admin`       | Administrateur système         | ❌ Non      |
+| `admin`       | Alias legacy (compatibilite)   | ❌ Non      |
 
 ### Protection des routes
 
@@ -196,8 +194,8 @@ Les routes sont protégées par des **middlewares de rôles** :
 // Route accessible uniquement aux coaches
 Route::middleware(['auth:sanctum', 'is_coach'])->get('/coach/dashboard', ...);
 
-// Route accessible aux coaches OU admins
-Route::middleware(['auth:sanctum', 'role:coach,admin'])->get('/statistics', ...);
+// Route accessible aux coaches OU gym managers
+Route::middleware(['auth:sanctum', 'role:coach,gym_manager'])->get('/statistics', ...);
 ```
 
 ### Réponses d'erreur
@@ -636,10 +634,10 @@ export const coachService = {
     },
 };
 
-// Routes admin
-export const adminService = {
+// Routes gym manager (admin = alias legacy)
+export const gymManagerService = {
     getUsers: async () => {
-        const { data } = await api.get("/admin/users");
+        const { data } = await api.get("/gym/users");
         return data;
     },
 };
@@ -721,14 +719,14 @@ function CoachDashboard() {
 // Vérifier le rôle de l'utilisateur
 const user = JSON.parse(localStorage.getItem("user"));
 const isCoach = user?.roles?.some((role) => role.name === "coach");
-const isAdmin = user?.roles?.some((role) => role.name === "admin");
+const isGymManager = user?.roles?.some((role) => ["gym_manager", "admin"].includes(role.name));
 
 // Affichage conditionnel
 {
     isCoach && <Link to="/coach/dashboard">Dashboard Coach</Link>;
 }
 {
-    isAdmin && <Link to="/admin/users">Gestion Utilisateurs</Link>;
+    isGymManager && <Link to="/gym/users">Gestion Utilisateurs</Link>;
 }
 
 // Protection de routes (React Router)

@@ -43,9 +43,9 @@ Gestion des partenariats & sous-traitance
 Prospect : utilisateur non inscrit ou sans contrat actif
 Client : personne ayant acheté une prestation
 Coach : prestataire principal
-Responsable de salle : gestionnaire d'une structure
+Gym manager (responsable de salle) : gestionnaire d'une structure
 Coach partenaire : sous-traitant / co-traitant
-Administrateur système (rôle technique)
+Admin (alias legacy, role technique)
 2.2 Exemples de droits généraux
 Action	Prospect	Client	Coach	Responsable
 Consulter les coachs	✔	✔	✔	✔
@@ -225,7 +225,7 @@ Communiquer avec mon coach et avec mon groupe
 Payer en ligne + consulter historique paiements
 Laisser des avis
 Acheter produits boutique du coach
-En tant que Responsable de salle, je peux...
+En tant que Gym manager (responsable de salle), je peux...
 Gérer les coachs affiliés + contrats
 Planifier séances salle
 Suivre inscriptions & occupation

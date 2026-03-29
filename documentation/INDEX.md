@@ -22,9 +22,17 @@ Cette documentation couvre:
 - endpoints backend par module
 - guide d'installation local
 - scenarios metier (auth, reservation, paiement, messagerie)
+- scenarios gym manager (pilotage salle, utilisateurs, seances, equipements)
 
 ## Structure du depot
 
 - BackEnd/: API Laravel 11
 - FrontEnd/: SPA React + TypeScript
 - documentation/: documentation complete du projet
+
+## Mini schema navigation par role
+
+- client: /client/dashboard -> /bookings -> /wallet -> /user/messages -> /client/programmes/reservations
+- coach: /coach/dashboard -> /coach/seances -> /coach/programmes -> /coach/exercices -> /coach/messages
+- gym_manager: /gym/dashboard -> /gym/users -> /gym/seances -> /gym/equipements
+- legacy: /admin/* redirige vers /gym/* cote frontend

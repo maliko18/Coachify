@@ -28,7 +28,7 @@
 
 ## Securite
 
-- Role middleware (coach/client/admin/gym manager)
+- Role middleware (coach/client/gym_manager + alias legacy admin)
 - Ownership middleware (ressources sensibles)
 - RateLimit middleware (60 req/min)
 - Audit middleware (actions critiques)

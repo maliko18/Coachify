@@ -68,10 +68,18 @@
 - GET /groups/{group}/messages
 - POST /groups/{group}/messages
 
-## Administration
+## Gym manager (pilotage salle)
 
-- GET /admin/users
-- GET /admin/audit-log
+- GET /gym/dashboard
+- GET /gym/users
+- PUT /gym/users/{user}/role
+- POST /gym/users/{user}/ban
+- DELETE /gym/users/{user}/ban
+- GET /gym/seances
+- GET /gym/equipements
+- POST /gym/equipements
+
+Note: le role `admin` reste un alias legacy de compatibilite et converge vers `gym_manager`.
 
 ## Règles transverses
 
