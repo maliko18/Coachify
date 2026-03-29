@@ -27,28 +27,49 @@ export default function MyProgrammeReservationsPage() {
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [reservingId, setReservingId] = useState<number | null>(null);
 
-  useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const res = await axiosClient.get("/test/programmes?statut=publie");
+const fetchData = async () => {
+  try {
+    const resAvailable = await axiosClient.get("/test/programmes?statut=publie");
+    setAvailableProgrammes(resAvailable.data.data || []);
+  } catch (err) {
+    console.error("Erreur programmes disponibles:", err);
+    setAvailableProgrammes([]);
+    setMessage("Erreur lors du chargement des programmes disponibles.");
+    setMessageType("error");
+  }
 
-      setAvailableProgrammes(res.data.data || []);
-      setReservedProgrammes([]); // temporaire
-    } catch (err) {
-      console.error(err);
-      setMessage("Erreur lors du chargement des programmes.");
-      setMessageType("error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const resReserved = await axiosClient.get("/test/programmes/reservations")
+    setReservedProgrammes(resReserved.data.data || []);
+  } catch (err) {
+    console.error("Erreur programmes réservés:", err);
+    setReservedProgrammes([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
+useEffect(() => {
   fetchData();
 }, []);
 
-  const handleReserve = (programmeId: number) => {
-  setMessage("Réservation pas encore disponible.");
-  setMessageType("error");
+
+  const handleReserve = async (programmeId: number) => {
+  try {
+    setReservingId(programmeId);
+
+    const res = await axiosClient.post(`/test/programmes/${programmeId}/reserve`);
+
+    setMessage(res.data.message || "Programme réservé avec succès.");
+    setMessageType("success");
+    await fetchData();
+  } catch (err: any) {
+    console.error(err);
+    setMessage(err.response?.data?.message || "Erreur réservation.");
+    setMessageType("error");
+  } finally {
+    setReservingId(null);
+  }
 };
 
   if (loading) {

@@ -17,10 +17,10 @@ interface User {
   id: number;
   first_name: string;
   last_name: string;
-  name: string;
+  name?: string;
   email: string;
   roles: Role[];
-  selectedRole?: string; // Temporary role from registration
+  selectedRole?: string;
 }
 
 interface AuthContextType {
@@ -35,16 +35,32 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function normalizeUser(raw: any): User {
+  const userData = raw?.data ? raw.data : raw;
+
+  return {
+    id: userData.id,
+    first_name: userData.first_name,
+    last_name: userData.last_name,
+    name:
+      userData.name ||
+      `${userData.first_name ?? ""} ${userData.last_name ?? ""}`.trim(),
+    email: userData.email,
+    roles: Array.isArray(userData.roles) ? userData.roles : [],
+    selectedRole: userData.selectedRole,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem("USER");
     return savedUser ? JSON.parse(savedUser) : null;
   });
-  
+
   const [token, setTokenState] = useState<string | null>(() => {
     return localStorage.getItem("ACCESS_TOKEN");
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
 
   const setToken = (newToken: string | null) => {
@@ -65,15 +81,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchCurrentUser = async (): Promise<User> => {
+    const response = await axiosClient.get("/user");
+    const normalizedUser = normalizeUser(response.data);
+    setUserAndPersist(normalizedUser);
+    return normalizedUser;
+  };
+
   const login = async (email: string, password: string): Promise<User> => {
     setIsLoading(true);
     try {
       const response = await axiosClient.post("/login", { email, password });
-      const { token: accessToken, user: userData } = response.data;
-      
+      const accessToken = response.data.token;
+
       setToken(accessToken);
-      setUserAndPersist(userData);
-      return userData;
+
+      const fullUser = await fetchCurrentUser();
+      return fullUser;
     } finally {
       setIsLoading(false);
     }
@@ -92,15 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Vérifier le token au chargement
   useEffect(() => {
     if (token && !user) {
       setIsLoading(true);
-      axiosClient
-        .get("/user")
-        .then(({ data }) => {
-          setUserAndPersist(data);
-        })
+      fetchCurrentUser()
         .catch(() => {
           setToken(null);
           setUserAndPersist(null);

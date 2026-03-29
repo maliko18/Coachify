@@ -183,6 +183,8 @@ Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions', 'monit
     });
      
     Route::get('/test/programmes', [ProgrammeController::class, 'index']);
+    Route::post('/test/programmes/{programme}/reserve', [ProgrammeController::class, 'reserveTest']);
+    Route::get('/test/programmes/reservations', [ProgrammeController::class, 'mesReservationsTest']);
     /*
     |--------------------------------------------------------------------------
     | Routes réservées aux CLIENTS
@@ -205,6 +207,8 @@ Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions', 'monit
         Route::get('/seances', [SeanceController::class, 'mesSeances']);
 
         Route::get('/programmes', [ProgrammeController::class, 'index']);
+
+        Route::get('/programmes/reservations', [ProgrammeController::class, 'mesReservationsTest']);
 
         // Dashboard client (Issue #23)
         Route::get('/dashboard/progression', [DashboardController::class, 'clientProgression']);

@@ -341,4 +341,85 @@ class ProgrammeController extends Controller
             'data' => new ProgrammeResource($nouveauProgramme),
         ], 201);
     }
+    public function reserveTest($programmeId)
+{
+    $user = auth()->user();
+
+    // 🔥 récupérer le client lié au user
+    $client = \App\Models\Client::where('user_id', $user->id)->first();
+
+    if (!$client) {
+        return response()->json([
+            'message' => 'Client non trouvé pour cet utilisateur'
+        ], 404);
+    }
+
+    // vérifier si déjà réservé
+    $exists = \DB::table('programme_client')
+        ->where('programme_id', $programmeId)
+        ->where('client_id', $client->id)
+        ->exists();
+
+    if ($exists) {
+        return response()->json([
+            'message' => 'Déjà réservé'
+        ], 400);
+    }
+
+    // insérer réservation
+    \DB::table('programme_client')->insert([
+        'programme_id' => $programmeId,
+        'client_id' => $client->id,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    return response()->json([
+        'message' => 'Programme réservé avec succès'
+    ]);
+}
+
+public function mesReservationsTest()
+{
+    $user = auth()->user();
+
+    $client = \App\Models\Client::where('user_id', $user->id)->first();
+
+    if (!$client) {
+        return response()->json([
+            'message' => 'Client non trouvé pour cet utilisateur'
+        ], 404);
+    }
+
+    $programmes = \DB::table('programme_client')
+        ->join('programmes', 'programme_client.programme_id', '=', 'programmes.id')
+        ->where('programme_client.client_id', $client->id)
+        ->select(
+            'programmes.id',
+            'programmes.titre',
+            'programmes.description',
+            'programmes.prix',
+            'programmes.duree_semaines',
+            'programmes.type',
+            'programme_client.created_at as reserved_at'
+        )
+        ->get()
+        ->map(function ($programme) {
+            return [
+                'id' => $programme->id,
+                'titre' => $programme->titre,
+                'description' => $programme->description,
+                'prix' => $programme->prix,
+                'duree_semaines' => $programme->duree_semaines,
+                'type' => $programme->type,
+                'pivot' => [
+                    'reserved_at' => $programme->reserved_at,
+                ],
+            ];
+        });
+
+    return response()->json([
+        'data' => $programmes
+    ]);
+}
 }

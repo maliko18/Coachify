@@ -18,13 +18,13 @@ export default function Login() {
     try {
       const user = await login(email, password);
       
-      // Redirect based on role - check if roles exist and have data
-      if (user.roles && user.roles.length > 0 && user.roles.some(role => role.name === "coach")) {
-        navigate("/coach/dashboard");
-      } else {
-        // Default to user dashboard if no roles or not a coach
-        navigate("/user/dashboard");
-      }
+      if (user.roles?.some((role) => role.name === "coach")) {
+  navigate("/coach/dashboard");
+} else if (user.roles?.some((role) => role.name === "client")) {
+  navigate("/user/dashboard");
+} else {
+  navigate("/user/dashboard");
+}
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
         const axiosError = err as { response?: { data?: { message?: string } } };
