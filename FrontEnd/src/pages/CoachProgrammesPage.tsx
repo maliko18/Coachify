@@ -1,20 +1,57 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axiosClient from "../api/axios";
 import Header from "../components/Header";
+
+type ProgrammeType =
+  | "perte_de_poids"
+  | "prise_de_masse"
+  | "remise_en_forme"
+  | "endurance"
+  | "force"
+  | "personnalise";
+
+type ProgrammeStatut = "brouillon" | "publie" | "archive";
 
 type Programme = {
   id: number;
   titre: string;
   description?: string;
+  duree_semaines: number;
+  type: ProgrammeType;
+  statut: ProgrammeStatut;
   prix?: number | null;
-  statut?: string;
-  duree_semaines?: number;
-  type?: string;
+  nombre_exercices?: number;
   created_at?: string;
 };
 
-const DEFAULT_PROGRAMME_TYPE = "remise_en_forme";
-const DEFAULT_PROGRAMME_DURATION = 8;
+const PROGRAMME_TYPES: ProgrammeType[] = [
+  "perte_de_poids",
+  "prise_de_masse",
+  "remise_en_forme",
+  "endurance",
+  "force",
+  "personnalise",
+];
+
+const PROGRAMME_STATUTS: ProgrammeStatut[] = ["brouillon", "publie", "archive"];
+
+type FormState = {
+  titre: string;
+  description: string;
+  duree_semaines: string;
+  type: ProgrammeType;
+  statut: ProgrammeStatut;
+  prix: string;
+};
+
+const defaultForm: FormState = {
+  titre: "",
+  description: "",
+  duree_semaines: "8",
+  type: "remise_en_forme",
+  statut: "brouillon",
+  prix: "",
+};
 
 const mapProgramme = (programme: any): Programme => ({
   ...programme,
@@ -24,58 +61,121 @@ const mapProgramme = (programme: any): Programme => ({
       : Number(programme.prix),
 });
 
+function formToPayload(form: FormState) {
+  return {
+    titre: form.titre.trim(),
+    description: form.description.trim() || undefined,
+    duree_semaines: Number(form.duree_semaines),
+    type: form.type,
+    statut: form.statut,
+    prix: form.prix.trim() ? Number(form.prix) : null,
+  };
+}
+
 export default function CoachProgrammesPage() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [editingProgrammeId, setEditingProgrammeId] = useState<number | null>(null);
+  const [form, setForm] = useState<FormState>(defaultForm);
 
-  const [titre, setTitre] = useState("");
-  const [description, setDescription] = useState("");
-
-  const [prix, setPrix] = useState<number>(0);
-
-  const resetForm = () => {
-    setEditingProgramme(null);
-    setShowForm(false);
-    setTitre("");
-    setDescription("");
-    setPrix(0);
-  };
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statutFilter, setStatutFilter] = useState<string>("all");
 
   const fetchProgrammes = async () => {
     try {
-      const res = await axiosClient.get("/coach/programmes");
-      setProgrammes((res.data.data || []).map(mapProgramme));
+      setLoading(true);
       setErrorMessage("");
-    } catch (err) {
+
+      const params: { type?: ProgrammeType; statut?: ProgrammeStatut } = {};
+      if (typeFilter !== "all") {
+        params.type = typeFilter as ProgrammeType;
+      }
+      if (statutFilter !== "all") {
+        params.statut = statutFilter as ProgrammeStatut;
+      }
+
+      const res = await axiosClient.get("/coach/programmes", { params });
+      setProgrammes((res.data.data || []).map(mapProgramme));
+    } catch (err: any) {
       console.error(err);
-      setErrorMessage("Impossible de charger les programmes.");
+      setErrorMessage(err?.response?.data?.message || "Impossible de charger les programmes.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const [editingProgramme, setEditingProgramme] = useState<Programme | null>(null);
   useEffect(() => {
     fetchProgrammes();
-  }, []);
+  }, [typeFilter, statutFilter]);
+
+  const resetForm = () => {
+    setForm(defaultForm);
+    setEditingProgrammeId(null);
+    setShowForm(false);
+  };
+
+  const filteredProgrammes = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) {
+      return programmes;
+    }
+
+    return programmes.filter(
+      (p) =>
+        p.titre.toLowerCase().includes(q) ||
+        (p.description || "").toLowerCase().includes(q) ||
+        p.type.toLowerCase().includes(q)
+    );
+  }, [programmes, search]);
 
   const createProgramme = async () => {
     try {
-      const res = await axiosClient.post("/coach/programmes", {
-        titre,
-        description,
-        duree_semaines: DEFAULT_PROGRAMME_DURATION,
-        type: DEFAULT_PROGRAMME_TYPE,
-        statut: "brouillon",
-        prix,
-      });
-
-      const newProgramme = mapProgramme(res.data.data);
-      setProgrammes((prev) => [newProgramme, ...prev]);
+      setSaving(true);
       setErrorMessage("");
+      setSuccessMessage("");
+
+      const res = await axiosClient.post("/coach/programmes", formToPayload(form));
+      const created = mapProgramme(res.data.data);
+      setProgrammes((prev) => [created, ...prev]);
+      setSuccessMessage("Programme cree avec succes.");
       resetForm();
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err.response?.data?.message || "Erreur lors de la creation du programme.");
+      setErrorMessage(err?.response?.data?.message || "Erreur lors de la creation du programme.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateProgramme = async () => {
+    if (!editingProgrammeId) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setErrorMessage("");
+      setSuccessMessage("");
+
+      const res = await axiosClient.put(
+        `/coach/programmes/${editingProgrammeId}`,
+        formToPayload(form)
+      );
+      const updated = mapProgramme(res.data.data);
+      setProgrammes((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      setSuccessMessage("Programme mis a jour avec succes.");
+      resetForm();
+    } catch (err: any) {
+      console.error(err);
+      setErrorMessage(err?.response?.data?.message || "Erreur lors de la mise a jour du programme.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -83,144 +183,122 @@ export default function CoachProgrammesPage() {
     try {
       await axiosClient.delete(`/coach/programmes/${id}`);
       setProgrammes((prev) => prev.filter((p) => p.id !== id));
+      setSuccessMessage("Programme supprime avec succes.");
       setErrorMessage("");
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err.response?.data?.message || "Erreur lors de la suppression du programme.");
+      setErrorMessage(err?.response?.data?.message || "Erreur lors de la suppression du programme.");
     }
   };
 
   const startEdit = (programme: Programme) => {
-    setEditingProgramme(programme);
-    setTitre(programme.titre);
-    setDescription(programme.description || "");
+    setEditingProgrammeId(programme.id);
+    setForm({
+      titre: programme.titre,
+      description: programme.description || "",
+      duree_semaines: String(programme.duree_semaines || 8),
+      type: programme.type,
+      statut: programme.statut,
+      prix: programme.prix === null || programme.prix === undefined ? "" : String(programme.prix),
+    });
     setShowForm(true);
-    setPrix(Number(programme.prix ?? 0));
     setErrorMessage("");
+    setSuccessMessage("");
   };
 
-  const updateProgramme = async () => {
-    if (!editingProgramme) {
-      return;
-    }
-
+  const applyProgrammeAction = async (
+    programmeId: number,
+    action: "publier" | "depublier" | "archiver" | "dupliquer"
+  ) => {
     try {
-      const res = await axiosClient.put(`/coach/programmes/${editingProgramme.id}`, {
-        titre,
-        description,
-        prix,
-        duree_semaines: editingProgramme.duree_semaines || DEFAULT_PROGRAMME_DURATION,
-        type: editingProgramme.type || DEFAULT_PROGRAMME_TYPE,
-        statut: editingProgramme.statut,
-      });
-
-      const updated = mapProgramme(res.data.data);
-
-      setProgrammes((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
       setErrorMessage("");
-      resetForm();
+      setSuccessMessage("");
+
+      const res = await axiosClient.post(`/coach/programmes/${programmeId}/${action}`);
+      const returned = res?.data?.data;
+
+      if (action === "dupliquer" && returned) {
+        setProgrammes((prev) => [mapProgramme(returned), ...prev]);
+      } else if (returned) {
+        const updated = mapProgramme(returned);
+        setProgrammes((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      } else {
+        await fetchProgrammes();
+      }
+
+      setSuccessMessage(`Action ${action} executee avec succes.`);
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err.response?.data?.message || "Erreur lors de la mise a jour du programme.");
+      setErrorMessage(err?.response?.data?.message || `Erreur pendant l'action ${action}.`);
     }
   };
-
-  const toggleStatus = async (programme: Programme) => {
-    const isPublished = programme.statut === "publie";
-    const endpoint = isPublished
-      ? `/coach/programmes/${programme.id}/depublier`
-      : `/coach/programmes/${programme.id}/publier`;
-
-    try {
-      const res = await axiosClient.post(endpoint);
-      const updated = mapProgramme(res.data.data);
-
-      setProgrammes((prev) => prev.map((p) => (p.id === programme.id ? updated : p)));
-      setErrorMessage("");
-    } catch (err: any) {
-      console.error(err);
-      setErrorMessage(err.response?.data?.message || "Impossible de changer le statut du programme.");
-    }
-  };
-
-   
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans">
+    <div className="min-h-screen bg-slate-100">
       <Header />
-      <div className="p-8">
-      {/* STATIC TOP NAV (From pic 2) */}
-      <div className="flex flex-wrap items-center justify-between mb-8 gap-4">
-        <div className="flex bg-white border border-gray-200 p-1 rounded-xl shadow-sm">
-  <button className="px-6 py-2 bg-[#1e293b] text-white rounded-lg text-sm font-medium">
-    All Programmes
-  </button>
-</div>
 
-        <div className="flex items-center gap-3">
-            <div className="bg-white border border-gray-200 px-4 py-2 rounded-lg text-sm text-gray-600 flex items-center gap-2 shadow-sm cursor-pointer">
-               <span>📅 This Week</span>
-               <span className="text-[10px]">▼</span>
-            </div>
-            <div className="relative">
-                <input 
-                    type="text" 
-                    placeholder="Search..." 
-                    className="bg-white border border-gray-200 pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none shadow-sm w-64"
-                />
-                <span className="absolute left-3 top-2.5 opacity-40">🔍</span>
-            </div>
-        </div>
-      </div>
-
-      {/* MAIN CONTENT BOX */}
-      <div className="bg-[#cbd5e1] rounded-[2.5rem] p-8 shadow-inner border border-gray-300">
-        
-        {/* HEADER AREA */}
-        <div className="flex justify-between items-start mb-8">
+      <div className="mx-auto max-w-7xl p-8">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Programmes</h1>
-            <p className="text-slate-600 mt-1">Explore top-quality coaching for your sporting activities</p>
+            <h1 className="text-3xl font-extrabold text-slate-900">Module Programme</h1>
+            <p className="mt-1 text-slate-600">Gestion des programmes (Issues #9, #10)</p>
           </div>
 
           <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-[#15803d] hover:bg-[#166534] text-white px-6 py-2.5 rounded-full font-bold flex items-center gap-2 transition-all shadow-lg active:scale-95"
+            onClick={() => {
+              if (showForm) {
+                resetForm();
+              } else {
+                setShowForm(true);
+              }
+            }}
+            className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700"
           >
-            <span className="text-xl">+</span> New Programme
+            {showForm ? "Fermer" : "Nouveau programme"}
           </button>
         </div>
 
-        {/* CREATE FORM (Nested Style) */}
-        {showForm && (
-          <div className="bg-white rounded-2xl p-6 mb-8 shadow-xl border border-white/50 animate-in fade-in slide-in-from-top-4 duration-300">
-            <input
-              placeholder="Programme Title"
-              value={titre}
-              onChange={(e) => setTitre(e.target.value)}
-              className="w-full text-xl font-semibold border-b border-gray-100 py-3 mb-4 focus:outline-none focus:border-green-500 transition-colors"
-            />
-            <textarea
-              placeholder="Provide a short description..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-gray-50 rounded-xl p-4 mb-6 focus:outline-none min-h-[100px] border border-gray-100"
-            />
-            <input
-  type="number"
-  placeholder="Price (€)"
-  value={prix}
-  onChange={(e) => setPrix(Number(e.target.value))}
-  className="w-full bg-gray-50 rounded-xl p-4 mb-4 border border-gray-100"
-/>
-            <button
-  onClick={editingProgramme ? updateProgramme : createProgramme}
-  className="bg-[#15803d] text-white px-10 py-3 rounded-full font-bold shadow-md hover:shadow-lg transition-all"
->
-  {editingProgramme ? "Update Programme" : "Save Programme"}
-</button>
-          </div>
-        )}
+        <div className="mb-6 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-4">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher un programme"
+            className="h-11 rounded-lg border border-slate-200 px-3"
+          />
+
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="h-11 rounded-lg border border-slate-200 px-3"
+          >
+            <option value="all">Tous types</option>
+            {PROGRAMME_TYPES.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={statutFilter}
+            onChange={(e) => setStatutFilter(e.target.value)}
+            className="h-11 rounded-lg border border-slate-200 px-3"
+          >
+            <option value="all">Tous statuts</option>
+            {PROGRAMME_STATUTS.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={fetchProgrammes}
+            className="h-11 rounded-lg bg-slate-900 px-4 font-semibold text-white hover:bg-slate-800"
+          >
+            Rafraichir
+          </button>
+        </div>
 
         {errorMessage && (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -228,78 +306,180 @@ export default function CoachProgrammesPage() {
           </div>
         )}
 
-        {/* REFINED TABLE */}
-        <div className="bg-[#f8fafc] rounded-3xl shadow-xl overflow-hidden border border-gray-200">
+        {successMessage && (
+          <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {successMessage}
+          </div>
+        )}
+
+        {showForm && (
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 className="mb-4 text-xl font-bold text-slate-900">
+              {editingProgrammeId ? "Modifier le programme" : "Creer un programme"}
+            </h2>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <input
+                value={form.titre}
+                onChange={(e) => setForm((prev) => ({ ...prev, titre: e.target.value }))}
+                placeholder="Titre *"
+                className="h-11 rounded-lg border border-slate-200 px-3"
+              />
+
+              <input
+                type="number"
+                min={1}
+                max={52}
+                value={form.duree_semaines}
+                onChange={(e) => setForm((prev) => ({ ...prev, duree_semaines: e.target.value }))}
+                placeholder="Duree (semaines)"
+                className="h-11 rounded-lg border border-slate-200 px-3"
+              />
+
+              <select
+                value={form.type}
+                onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value as ProgrammeType }))}
+                className="h-11 rounded-lg border border-slate-200 px-3"
+              >
+                {PROGRAMME_TYPES.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={form.statut}
+                onChange={(e) => setForm((prev) => ({ ...prev, statut: e.target.value as ProgrammeStatut }))}
+                className="h-11 rounded-lg border border-slate-200 px-3"
+              >
+                {PROGRAMME_STATUTS.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                min={0}
+                value={form.prix}
+                onChange={(e) => setForm((prev) => ({ ...prev, prix: e.target.value }))}
+                placeholder="Prix"
+                className="h-11 rounded-lg border border-slate-200 px-3"
+              />
+
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                placeholder="Description"
+                className="min-h-24 rounded-lg border border-slate-200 px-3 py-2 md:col-span-2"
+              />
+            </div>
+
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                onClick={editingProgrammeId ? updateProgramme : createProgramme}
+                disabled={saving}
+                className="rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {saving ? "Enregistrement..." : editingProgrammeId ? "Mettre a jour" : "Creer"}
+              </button>
+
+              <button
+                onClick={resetForm}
+                className="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
           <table className="w-full text-left">
-            <thead className="bg-[#f1f5f9] border-b border-gray-200">
-              <tr className="text-[11px] uppercase tracking-widest text-slate-500 font-bold">
-                <th className="px-8 py-5">Program Name</th>
-                <th className="px-6 py-5">Price</th>
-                <th className="px-6 py-5">Added On</th>
-                <th className="px-6 py-5 text-right">Status</th>
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Titre</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Duree</th>
+                <th className="px-4 py-3">Statut</th>
+                <th className="px-4 py-3">Exercices</th>
+                <th className="px-4 py-3">Prix</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-
-            <tbody className="divide-y divide-gray-100">
-              {programmes.map((p) => (
-                <tr key={p.id} className="hover:bg-white transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-slate-300 rounded-xl overflow-hidden flex-shrink-0 shadow-sm border border-white">
-                         <div className="w-full h-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-[8px] text-white font-black">COACH</div>
-                      </div>
-                      <div>
-                        <div className="font-bold text-slate-800 text-base">{p.titre}</div>
-                        <div className="text-xs text-slate-400 font-medium line-clamp-1 max-w-[250px]">{p.description}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className="font-bold text-slate-700">${p.prix ?? 0}</span>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className="text-sm text-slate-500 font-medium">
-                      {p.created_at ? new Date(p.created_at).toLocaleDateString() : "-"}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center justify-end gap-3">
-                        <div className="flex items-center justify-end gap-3">
-  <span
-    onClick={() => startEdit(p)}
-    className="text-blue-500 text-xs cursor-pointer hover:underline"
-  >
-    ✏️ Edit
-  </span>
-
-  <span
-    onClick={() => deleteProgramme(p.id)}
-    className="text-red-500 text-xs cursor-pointer hover:underline"
-  >
-    🗑 Delete
-  </span>
-</div>
-                        {/* Toggle Switch */}
-                        <div
-  onClick={() => toggleStatus(p)}
-  className={`w-10 h-5 rounded-full p-1 cursor-pointer ${
-    p.statut === "publie" ? "bg-green-500" : "bg-gray-300"
-  }`}
->
-  <div
-    className={`w-3 h-3 bg-white rounded-full transition-transform ${
-      p.statut === "publie" ? "translate-x-5" : ""
-    }`}
-  />
-</div>
-                    </div>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td className="px-4 py-8 text-center text-slate-500" colSpan={7}>
+                    Chargement des programmes...
                   </td>
                 </tr>
-              ))}
+              ) : filteredProgrammes.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-8 text-center text-slate-500" colSpan={7}>
+                    Aucun programme trouve.
+                  </td>
+                </tr>
+              ) : (
+                filteredProgrammes.map((p) => (
+                  <tr key={p.id} className="border-t border-slate-100">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-slate-900">{p.titre}</p>
+                      <p className="text-xs text-slate-500 line-clamp-1">{p.description || "-"}</p>
+                    </td>
+                    <td className="px-4 py-3">{p.type}</td>
+                    <td className="px-4 py-3">{p.duree_semaines} sem.</td>
+                    <td className="px-4 py-3">{p.statut}</td>
+                    <td className="px-4 py-3">{p.nombre_exercices ?? 0}</td>
+                    <td className="px-4 py-3">{p.prix ?? 0} EUR</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          onClick={() => startEdit(p)}
+                          className="rounded-lg border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                          Modifier
+                        </button>
+                        <button
+                          onClick={() => deleteProgramme(p.id)}
+                          className="rounded-lg border border-red-300 px-3 py-1 text-sm font-semibold text-red-600 hover:bg-red-50"
+                        >
+                          Supprimer
+                        </button>
+                        <button
+                          onClick={() => applyProgrammeAction(p.id, "publier")}
+                          className="rounded-lg border border-emerald-300 px-3 py-1 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+                        >
+                          Publier
+                        </button>
+                        <button
+                          onClick={() => applyProgrammeAction(p.id, "depublier")}
+                          className="rounded-lg border border-amber-300 px-3 py-1 text-sm font-semibold text-amber-700 hover:bg-amber-50"
+                        >
+                          Depublier
+                        </button>
+                        <button
+                          onClick={() => applyProgrammeAction(p.id, "archiver")}
+                          className="rounded-lg border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                          Archiver
+                        </button>
+                        <button
+                          onClick={() => applyProgrammeAction(p.id, "dupliquer")}
+                          className="rounded-lg border border-indigo-300 px-3 py-1 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+                        >
+                          Dupliquer
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-      </div>
       </div>
     </div>
   );

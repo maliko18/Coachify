@@ -6,6 +6,7 @@ import UserDashboard from "./pages/UserDashboard";
 import CoachDashboard from "./pages/CoachDashboard";
 import CoachOffersPage from "./pages/CoachOffersPage";
 import CoachExercicesPage from "./pages/CoachExercicesPage";
+import CoachSeancesPage from "./pages/CoachSeancesPage";
 import WalletPage from "./pages/WalletPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import BookingsPage from "./pages/BookingsPage";
@@ -53,6 +54,7 @@ export default function App() {
 
         <Route path="/coach/dashboard" element={<CoachDashboard />} />
         <Route path="/coach/offres" element={<CoachOffersPage />} />
+        <Route path="/coach/seances" element={<CoachSeancesPage />} />
         <Route path="/coach/exercices" element={<CoachExercicesPage />} />
         <Route path="/coach/programmes" element={<CoachProgrammesPage />} />
 

@@ -266,7 +266,7 @@ const [activeSection, setActiveSection] = useState<CoachSection>("dashboard");
 
 type StatusTab = "upcoming" | "completed" | "cancelled";
 type TypeTab = "court" | "coaching";
-type CoachSection = "dashboard" | "bookings" | "earnings" | "wallet" | "programmes" | "exercices";
+type CoachSection = "dashboard" | "bookings" | "earnings" | "wallet" | "programmes" | "exercices" | "seances";
 
 const [bookingsStatus, setBookingsStatus] = useState<StatusTab>("upcoming");
 const [bookingsType, setBookingsType] = useState<TypeTab>("coaching");
@@ -1132,6 +1132,16 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
   fetchSeances();
 }}
 />
+
+      <QuickNavCard
+        title="Seances"
+        icon={bookingsIcon}
+        active={activeSection === "seances"}
+        onClick={() => {
+          setActiveSection("seances");
+          navigate("/coach/seances");
+        }}
+      />
 
       <QuickNavCard
         title="Chat"
