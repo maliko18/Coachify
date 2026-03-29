@@ -1,31 +1,9 @@
-interface Step {
-  title: string;
-  description: string;
-  btn: string;
-}
-
-const steps: Step[] = [
-  {
-    title: "Join Us",
-    description:
-      "Quick and Easy Registration: Get started on our software platform  ",
-    btn: "Register Now →",
-  },
-  {
-    title: "Select Coaches/Venues",
-    description:
-      "Book  coaches and venues for expert guidance and premium facilities.",
-    btn: "Go To Coaches →",
-  },
-  {
-    title: "Booking Process",
-    description:
-      "Easily book, pay, and enjoy a seamless experience ",
-    btn: "Book Now →",
-  },
-];
+import { useNavigate } from "react-router-dom";
+import { howItWorksSteps } from "../data/howItWorks";
 
 const HowItWorks = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="py-24 bg-white">
       <div className="text-center mb-16">
@@ -38,9 +16,9 @@ const HowItWorks = () => {
       </div>
 
       <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-10 px-6">
-        {steps.map((step) => (
+        {howItWorksSteps.map((step) => (
           <div
-            key={step.title}
+            key={step.id}
             className="
               group relative rounded-2xl border border-[#E6EDF3] bg-white p-10 text-center
               transition-all duration-300
@@ -68,13 +46,15 @@ const HowItWorks = () => {
             </p>
 
             <button
+              type="button"
+              onClick={() => navigate(step.to)}
               className="
                 w-full py-3 rounded-xl font-semibold transition-all duration-300
                 border border-[color:var(--primary)] text-[color:var(--primary)]
                 group-hover:bg-[color:var(--primary)] group-hover:text-white
               "
             >
-              {step.btn}
+              {step.cta} →
             </button>
           </div>
         ))}

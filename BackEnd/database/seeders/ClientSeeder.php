@@ -19,6 +19,19 @@ class ClientSeeder extends Seeder
             return;
         }
 
+        // Assurer que les comptes "client" existants (ex: UserSeeder) ont bien un profil client.
+        \App\Models\User::whereHas('roles', function ($q) {
+            $q->where('name', \App\Models\Role::CLIENT);
+        })->get()->each(function ($user) use ($coaches) {
+            \App\Models\Client::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'coach_id' => $coaches->random()->id,
+                    'subscription_status' => 'active',
+                ]
+            );
+        });
+
         // Créer 20 clients et les assigner à des coachs
         \App\Models\User::factory()
             ->count(20)

@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosClient from "../api/axios";
-import paiementsApi, { type Paiement as Payment, type PaiementStatistiques as PaymentStats } from "../api/paiements";
+import paiementsApi, {
+  type Paiement as Payment,
+  type PaiementStatistiques as PaymentStats,
+} from "../api/paiements";
 import facturesApi, { type Facture, type FactureStats } from "../api/factures";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import dashboardIcon from "../assets/dashboard-icon.svg";
@@ -17,79 +20,243 @@ import stat01 from "../assets/statistics-01.svg";
 import stat02 from "../assets/statistics-02.svg";
 import stat03 from "../assets/statistics-03.svg";
 import stat04 from "../assets/statistics-04.svg";
-import bookingImg from "../assets/booking-01.jpg"; 
-import coachImg from "../assets/avatar-01.jpg";     
-import fav1 from "../assets/avatar-02.jpg"; 
+import bookingImg from "../assets/booking-01.jpg";
+import coachImg from "../assets/avatar-01.jpg";
+import fav1 from "../assets/avatar-02.jpg";
 import fav2 from "../assets/avatar-03.jpg";
-import fav3 from "../assets/avatar-04.jpg";  
+import fav3 from "../assets/avatar-04.jpg";
 import fav4 from "../assets/avatar-05.jpg";
 import fav5 from "../assets/avatar-06.jpg";
-import booking2 from "../assets/booking-02.jpg"; 
-import booking3 from "../assets/booking-03.jpg"; 
-import booking4 from "../assets/booking-04.jpg"; 
+import booking2 from "../assets/booking-02.jpg";
+import booking3 from "../assets/booking-03.jpg";
+import booking4 from "../assets/booking-04.jpg";
 import booking5 from "../assets/booking-05.jpg";
 import booking6 from "../assets/booking-06.jpg";
-import walletbkg from "../assets/walletbg.png"; 
+import walletbkg from "../assets/walletbg.png";
 import Header from "../components/Header";
 
+type StatusTab = "upcoming" | "completed" | "cancelled";
+type TypeTab = "court" | "coaching";
+type CoachSection =
+  | "dashboard"
+  | "bookings"
+  | "earnings"
+  | "wallet"
+  | "programmes"
+  | "exercices"
+  | "seances";
+
+type CommandeClient = {
+  id?: number;
+  user?: {
+    first_name?: string;
+    last_name?: string;
+  };
+};
+
+type Commande = {
+  id?: number;
+  client_id?: number;
+  client?: CommandeClient;
+  statut?: string;
+  total?: number | string;
+  date_commande?: string;
+};
+
+type SeanceClient = {
+  id?: number;
+  first_name?: string;
+  last_name?: string;
+  user?: {
+    first_name?: string;
+    last_name?: string;
+  };
+};
+
+type Seance = {
+  id: number;
+  coach_id?: number;
+  titre?: string;
+  title?: string;
+  date?: string;
+  heure_debut?: string;
+  heure_fin?: string;
+  start_time?: string;
+  end_time?: string;
+  duree?: number;
+  type?: string;
+  statut?: string;
+  capacite_max?: number | null;
+  lieu?: string | null;
+  notes?: string | null;
+  prix?: number | string | null;
+  montant?: number | string | null;
+  clients?: SeanceClient[];
+};
+
+type InvoiceRow = {
+  id: string;
+  img: string;
+  name: string;
+  sub: string;
+  invoice: string;
+  date: string;
+  time: string;
+  payment: string;
+  paidOn: string;
+  status: string;
+};
+
+type WalletStatut =
+  | "all"
+  | "brouillon"
+  | "emise"
+  | "payee"
+  | "annulee"
+  | "en_retard";
+type QuickValueKey = "v1" | "v2" | "v3" | "v4";
+
+type CoachKpisData = {
+  ca?: number;
+  taux_remplissage?: number;
+  fidelisation?: number;
+  panier_moyen?: number;
+};
+
+type NotificationEntry = {
+  id: number;
+  type?: string;
+  lue?: boolean;
+  created_at?: string;
+  data?: {
+    titre?: string;
+    date?: string;
+    heure_debut?: string;
+    [key: string]: unknown;
+  };
+};
+
+type ConversationUser = {
+  id?: number;
+  first_name?: string;
+  last_name?: string;
+};
+
+type ConversationEntry = {
+  id: number;
+  user_id?: number;
+  coach_id?: number;
+  last_message_at?: string;
+  messages_count?: number;
+  user?: ConversationUser;
+  coach?: ConversationUser;
+};
+
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error !== "object" || error === null) return fallback;
+
+  const maybeError = error as {
+    message?: string;
+    response?: {
+      data?: unknown;
+    };
+  };
+
+  const responseData = maybeError.response?.data;
+  if (typeof responseData === "string" && responseData.trim()) {
+    return responseData;
+  }
+
+  if (
+    typeof responseData === "object" &&
+    responseData !== null &&
+    "message" in responseData
+  ) {
+    const responseMessage = (responseData as { message?: unknown }).message;
+    if (typeof responseMessage === "string" && responseMessage.trim()) {
+      return responseMessage;
+    }
+  }
+
+  if (typeof maybeError.message === "string" && maybeError.message.trim()) {
+    return maybeError.message;
+  }
+
+  return fallback;
+};
+
+const formatRelativeTime = (iso?: string) => {
+  if (!iso) return "-";
+  const value = new Date(iso);
+  if (Number.isNaN(value.getTime())) return "-";
+
+  const diffMs = Date.now() - value.getTime();
+  const diffMin = Math.max(1, Math.floor(diffMs / 60000));
+  if (diffMin < 60) return `${diffMin} min ago`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours} h ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} d ago`;
+};
 
 export default function CoachDashboard() {
   function StatCard({
-  icon,
-  value,
-  label,
-}: {
-  icon: string;
-  value: string;
-  label: string;
-}) {
-  return (
-    <div className="rounded-xl bg-gray-50 border border-gray-100 p-5 flex items-center justify-between">
-      <div>
-        <p className="text-2xl font-extrabold text-green-700">{value}</p>
-        <p className="text-sm text-gray-600 mt-1">{label}</p>
+    icon,
+    value,
+    label,
+  }: {
+    icon: string;
+    value: string;
+    label: string;
+  }) {
+    return (
+      <div className="rounded-xl bg-gray-50 border border-gray-100 p-5 flex items-center justify-between">
+        <div>
+          <p className="text-2xl font-extrabold text-green-700">{value}</p>
+          <p className="text-sm text-gray-600 mt-1">{label}</p>
+        </div>
+        <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center">
+          <img src={icon} alt={label} className="w-7 h-7" />
+        </div>
       </div>
-      <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center">
-        <img src={icon} alt={label} className="w-7 h-7" />
-      </div>
-    </div>
-  );
-}
+    );
+  }
 
-function BadgeDone({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-semibold">
-      ✓ {label}
-    </span>
-  );
-}
+  function BadgeDone({ label }: { label: string }) {
+    return (
+      <span className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-semibold">
+        ✓ {label}
+      </span>
+    );
+  }
 
-function BadgeTodo({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-semibold">
-      ✕ {label}
-    </span>
-  );
-}
-
+  function BadgeTodo({ label }: { label: string }) {
+    return (
+      <span className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-semibold">
+        ✕ {label}
+      </span>
+    );
+  }
 
   function QuickNavCard({
-  title,
-  icon,
-  active = false,
-  badge,
-  onClick,
-}: {
-  title: string;
-  icon: string;
-  active?: boolean;
-  badge?: string;
-  onClick?: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      className={`
+    title,
+    icon,
+    active = false,
+    badge,
+    onClick,
+  }: {
+    title: string;
+    icon: string;
+    active?: boolean;
+    badge?: string;
+    onClick?: () => void;
+  }) {
+    return (
+      <div
+        onClick={onClick}
+        className={`
         relative cursor-pointer rounded-2xl border p-6
         flex flex-col items-center justify-center gap-3
         transition-all duration-200
@@ -99,77 +266,56 @@ function BadgeTodo({ label }: { label: string }) {
             : "bg-white border-gray-200 text-gray-800 hover:bg-green-700 hover:text-white"
         }
       `}
-    >
-      {badge && (
-        <span className="absolute top-3 right-4 text-xs font-bold bg-red-500 text-white rounded-full px-2 py-0.5">
-          {badge}
-        </span>
-      )}
+      >
+        {badge && (
+          <span className="absolute top-3 right-4 text-xs font-bold bg-red-500 text-white rounded-full px-2 py-0.5">
+            {badge}
+          </span>
+        )}
 
-      <img
-        src={icon}
-        alt={title}
-        className={`w-7 h-7 ${
-          active ? "invert" : "group-hover:invert"
-        }`}
-      />
+        <img
+          src={icon}
+          alt={title}
+          className={`w-7 h-7 ${active ? "invert" : "group-hover:invert"}`}
+        />
 
-      <p className="font-semibold text-sm">{title}</p>
-    </div>
-  );
-}
+        <p className="font-semibold text-sm">{title}</p>
+      </div>
+    );
+  }
 
   const navigate = useNavigate();
 
+  const [activeSection, setActiveSection] = useState<CoachSection>("dashboard");
 
-const [activeSection, setActiveSection] = useState<CoachSection>("dashboard");
+  const [bookingsStatus, setBookingsStatus] = useState<StatusTab>("upcoming");
+  const [bookingsType, setBookingsType] = useState<TypeTab>("coaching");
+  const [bookingsSearch, setBookingsSearch] = useState("");
 
-type StatusTab = "upcoming" | "completed" | "cancelled";
-type TypeTab = "court" | "coaching";
-type CoachSection = "dashboard" | "bookings" | "earnings" | "wallet" | "programmes" | "exercices" | "seances";
-
-const [bookingsStatus, setBookingsStatus] = useState<StatusTab>("upcoming");
-const [bookingsType, setBookingsType] = useState<TypeTab>("coaching");
-const [bookingsSearch, setBookingsSearch] = useState("");
-
-const [seances, setSeances] = useState<any[]>([]);
-const [loadingSeances, setLoadingSeances] = useState(false);
-const [errorSeances, setErrorSeances] = useState("");
-const [commandes, setCommandes] = useState<any[]>([]);
-const [localBookingRequests, setLocalBookingRequests] = useState<any[]>([]);
+  const [seances, setSeances] = useState<Seance[]>([]);
+  const [loadingSeances, setLoadingSeances] = useState(false);
+  const [errorSeances, setErrorSeances] = useState("");
+  const [commandes, setCommandes] = useState<Commande[]>([]);
+  const [coachKpis, setCoachKpis] = useState<CoachKpisData | null>(null);
+  const [notifications, setNotifications] = useState<NotificationEntry[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [conversations, setConversations] = useState<ConversationEntry[]>([]);
+  const [loadingConversations, setLoadingConversations] = useState(false);
 
   // Booking Requests tabs
   const [bookingTab, setBookingTab] = useState<"court" | "coaching">("court");
 
   const bookingRequestsData = useMemo(() => {
-    const pendingLocal = localBookingRequests
-      .filter((r: any) => String(r?.statut ?? "").toLowerCase() === "attente")
-      .slice(0, 3);
-
-    if (pendingLocal.length > 0) {
-      return pendingLocal.map((r: any, index: number) => {
-        const imagePool = bookingTab === "court"
-          ? [booking2, booking3, booking4]
-          : [coachImg, fav2, fav3];
-
-        return {
-          img: imagePool[index % imagePool.length],
-          name: String(r?.client_name || "Client"),
-          court: `Request • ${Number(r?.total ?? 0).toFixed(2)} €`,
-          date: String(r?.date_commande ?? "").slice(0, 10),
-        };
-      });
-    }
-
     const pendingCommandes = commandes
-      .filter((c: any) => String(c?.statut ?? "").toLowerCase() === "attente")
+      .filter((c) => String(c?.statut ?? "").toLowerCase() === "attente")
       .slice(0, 3);
 
     if (pendingCommandes.length > 0) {
-      return pendingCommandes.map((c: any, index: number) => {
-        const imagePool = bookingTab === "court"
-          ? [booking2, booking3, booking4]
-          : [coachImg, fav2, fav3];
+      return pendingCommandes.map((c, index: number) => {
+        const imagePool =
+          bookingTab === "court"
+            ? [booking2, booking3, booking4]
+            : [coachImg, fav2, fav3];
 
         const clientName = c?.client?.user
           ? `${c.client.user.first_name ?? ""} ${c.client.user.last_name ?? ""}`.trim()
@@ -187,2465 +333,3038 @@ const [localBookingRequests, setLocalBookingRequests] = useState<any[]>([]);
     const source = seances.slice(0, 3);
 
     if (source.length === 0) {
-      return [] as Array<{ img: string; name: string; court: string; date?: string }>;
+      return [] as Array<{
+        img: string;
+        name: string;
+        court: string;
+        date?: string;
+      }>;
     }
 
-    return source.map((s: any, index: number) => {
-      const imagePool = bookingTab === "court"
-        ? [booking2, booking3, booking4]
-        : [coachImg, fav2, fav3];
+    return source.map((s, index: number) => {
+      const imagePool =
+        bookingTab === "court"
+          ? [booking2, booking3, booking4]
+          : [coachImg, fav2, fav3];
 
       return {
         img: imagePool[index % imagePool.length],
-        name: bookingTab === "court"
-          ? String(s?.titre ?? `Séance #${s?.id ?? index + 1}`)
-          : "Coach",
+        name:
+          bookingTab === "court"
+            ? String(s?.titre ?? `Séance #${s?.id ?? index + 1}`)
+            : "Coach",
         court: String(s?.lieu ?? s?.type ?? "-"),
         date: String(s?.date ?? ""),
       };
     });
-  }, [bookingTab, seances, commandes, localBookingRequests]);
+  }, [bookingTab, seances, commandes]);
 
   const pendingRequestsCount = useMemo(() => {
-    const commandesCount = commandes.filter((c: any) => String(c?.statut ?? "").toLowerCase() === "attente").length;
-    const localCount = localBookingRequests.filter((r: any) => String(r?.statut ?? "").toLowerCase() === "attente").length;
-    return localCount > 0 ? localCount : commandesCount;
-  }, [commandes, localBookingRequests]);
-  
-  const [earningsHover, setEarningsHover] = useState<null | "court" | "coaching">(null);
+    return commandes.filter(
+      (c) => String(c?.statut ?? "").toLowerCase() === "attente",
+    ).length;
+  }, [commandes]);
+
+  const [earningsHover, setEarningsHover] = useState<
+    null | "court" | "coaching"
+  >(null);
 
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-const [walletAmount, setWalletAmount] = useState("");
-const [selectedValue, setSelectedValue] = useState<null | "v1" | "v2" | "v3" | "v4">("v1");
-const [gateway, setGateway] = useState<"card" | "paypal">("paypal");
+  const [walletAmount, setWalletAmount] = useState("");
+  const [selectedValue, setSelectedValue] = useState<QuickValueKey | null>(
+    "v1",
+  );
+  const [gateway, setGateway] = useState<"card" | "paypal">("paypal");
 
-const [myBookingsTab, setMyBookingsTab] = useState<"court" | "coaching">("court");
-const [openBookingMenuId, setOpenBookingMenuId] = useState<string | null>(null);
+  const [myBookingsTab, setMyBookingsTab] = useState<"court" | "coaching">(
+    "court",
+  );
+  const [openBookingMenuId, setOpenBookingMenuId] = useState<string | null>(
+    null,
+  );
 
-const formatDateUI = (isoDate?: string) => {
-  if (!isoDate) return "-";
-  const d = new Date(isoDate);
-  if (Number.isNaN(d.getTime())) return isoDate;
-  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-};
-
-const formatTimeUI = (value?: string) => {
-  if (!value) return "--:--";
-  return value.length >= 5 ? value.slice(0, 5) : value;
-};
-
-const seancesSorted = useMemo(() => {
-  return [...seances].sort((a, b) => {
-    const aKey = `${a?.date ?? ""}T${a?.heure_debut ?? "00:00:00"}`;
-    const bKey = `${b?.date ?? ""}T${b?.heure_debut ?? "00:00:00"}`;
-    return new Date(aKey).getTime() - new Date(bKey).getTime();
-  });
-}, [seances]);
-
-const myBookingsData = useMemo(() => {
-  const imagePool = myBookingsTab === "court"
-    ? [booking2, booking3, booking4, booking5, booking6, bookingImg]
-    : [coachImg, fav1, fav2, fav3, fav4, fav5];
-
-  return seancesSorted.slice(0, 6).map((s: any, idx: number) => {
-    const estimatedPrice = Number(s?.prix ?? s?.montant ?? 0);
-    return {
-      id: `${myBookingsTab}-${s?.id ?? idx}`,
-      img: imagePool[idx % imagePool.length],
-      title: String(s?.titre ?? `Séance #${s?.id ?? idx + 1}`),
-      subtitle: myBookingsTab === "court" ? String(s?.lieu ?? "Session") : String(s?.type ?? "Coaching"),
-      guests: `Guests : ${Number(s?.capacite_max ?? 1)}`,
-      duration: `${Number(s?.duree ?? 0)} min`,
-      date: formatDateUI(s?.date),
-      time: `${formatTimeUI(s?.heure_debut)} - ${formatTimeUI(s?.heure_fin)}`,
-      price: estimatedPrice > 0 ? `${estimatedPrice.toFixed(2)} €` : "-",
-    };
-  });
-}, [myBookingsTab, seancesSorted]);
-
-const [invoiceTab, setInvoiceTab] = useState<"court" | "coaching">("court");
-const fetchSeances = async () => {
-  setLoadingSeances(true);
-  setErrorSeances("");
-  try {
-    const res = await axiosClient.get("/coach/seances");
-    const data = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-    setSeances(data);
-  } catch (e: any) {
-    setErrorSeances(e?.response?.data?.message || "Erreur lors du chargement des séances");
-  } finally {
-    setLoadingSeances(false);
-  }
-};
-
-const fetchCommandes = async () => {
-  try {
-    const res = await axiosClient.get("/commandes", { params: { per_page: 100 } });
-    const payload = res.data?.data;
-    const list = Array.isArray(payload)
-      ? payload
-      : Array.isArray(payload?.data)
-      ? payload.data
-      : [];
-    setCommandes(list);
-  } catch {
-    setCommandes([]);
-  }
-};
-
-const fetchLocalBookingRequests = () => {
-  const key = "COACH_BOOKING_REQUESTS";
-  try {
-    const raw = localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : [];
-    setLocalBookingRequests(Array.isArray(parsed) ? parsed : []);
-  } catch {
-    setLocalBookingRequests([]);
-  }
-};
-
-useEffect(() => {
-  fetchSeances();
-  fetchCommandes();
-  fetchLocalBookingRequests();
-}, []);
-
-useEffect(() => {
-  if (activeSection === "dashboard") {
-    fetchSeances();
-    fetchCommandes();
-    fetchLocalBookingRequests();
-    fetchEarnings();
-    fetchFactures();
-    fetchFacturesStats();
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [activeSection]);
-
-type Seance = {
-  id: number;
-  coach_id: number;
-  titre: string;
-  date: string;          // YYYY-MM-DD
-  heure_debut: string;   // HH:MM:SS ou HH:MM
-  duree: number;
-  type: string;          // individuelle | collective | en_ligne ...
-  statut: string;        // planifiee | en_cours | terminee | annulee ...
-  capacite_max?: number | null;
-  lieu?: string | null;
-  notes?: string | null;
-};
-
-const [openActionId, setOpenActionId] = useState<number | null>(null);
-
-// modal
-const [isModalOpen, setIsModalOpen] = useState(false);
-const [modalMode, setModalMode] = useState<"view" | "edit">("view");
-const [selectedSeance, setSelectedSeance] = useState<Seance | null>(null);
-
-// form (edit)
-const [editForm, setEditForm] = useState({
-  titre: "",
-  date: "",
-  heure_debut: "",
-  duree: 60,
-  type: "individuelle",
-  statut: "planifiee",
-  capacite_max: 1,
-  lieu: "",
-  notes: "",
-});
-
-const [actionLoading, setActionLoading] = useState(false);
-
-
-const openViewSeance = async (id: number) => {
-  setActionLoading(true);
-  try {
-    const res = await axiosClient.get(`/coach/seances/${id}`);
-    const data: Seance = res.data;
-    setSelectedSeance(data);
-    setModalMode("view");
-    setIsModalOpen(true);
-  } catch (e: any) {
-    alert(e?.response?.data?.message || "Impossible de charger la séance");
-  } finally {
-    setActionLoading(false);
-  }
-};
-
-const saveEditSeance = async () => {
-  if (!selectedSeance?.id) return;
-
-  try {
-    const payload = {
-      titre: editForm.titre,
-      date: editForm.date,                 // "YYYY-MM-DD"
-      heure_debut: editForm.heure_debut.length === 5
-        ? `${editForm.heure_debut}:00`      // "HH:MM:SS"
-        : editForm.heure_debut,
-      duree: Number(editForm.duree),
-      type: editForm.type,
-      statut: editForm.statut,
-      capacite_max: Number(editForm.capacite_max),
-      lieu: editForm.lieu ?? "",
-      notes: editForm.notes ?? "",
-    };
-
-    await axiosClient.put(`/coach/seances/${selectedSeance.id}`, payload);
-
-    setIsModalOpen(false);
-    fetchSeances();
-  } catch (err: any) {
-    console.error(err);
-    const msg =
-      err?.response?.data?.message ||
-      JSON.stringify(err?.response?.data) ||
-      "Invalid data";
-    alert(msg);
-  }
-};
-
-const deleteSeance = async (id: number) => {
-  const ok = window.confirm("Supprimer cette séance ?");
-  if (!ok) return;
-
-  setActionLoading(true);
-  try {
-    await axiosClient.delete(`/coach/seances/${id}`);
-
-    // refresh list
-    await fetchSeances();
-
-    setOpenActionId(null);
-    if (selectedSeance?.id === id) {
-      setIsModalOpen(false);
-      setSelectedSeance(null);
-    }
-  } catch (e: any) {
-    alert(e?.response?.data?.message || "Delete failed");
-  } finally {
-    setActionLoading(false);
-  }
-};
-
-const closeModal = () => {
-  setIsModalOpen(false);
-  setSelectedSeance(null);
-};
-
-
-// ===================== EARNINGS (PAIEMENTS) =====================
-
-type PeriodKey = "week" | "month" | "year" | "custom";
-
-const [earningsPeriod, setEarningsPeriod] = useState<PeriodKey>("week");
-const [earningsSearch, setEarningsSearch] = useState("");
-const [earningsStatus, setEarningsStatus] = useState<string>(""); // "" = all
-
-const [earningsDateDebut, setEarningsDateDebut] = useState<string>("");
-const [earningsDateFin, setEarningsDateFin] = useState<string>("");
-
-const [payments, setPayments] = useState<Payment[]>([]);
-const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null);
-const [loadingEarnings, setLoadingEarnings] = useState(false);
-const [errorEarnings, setErrorEarnings] = useState("");
-
-const [openPaymentActionId, setOpenPaymentActionId] = useState<number | null>(null);
-const [earningsActionLoading, setEarningsActionLoading] = useState(false);
-
-// refund modal
-const [refundModalOpen, setRefundModalOpen] = useState(false);
-const [refundTarget, setRefundTarget] = useState<Payment | null>(null);
-const [refundAmount, setRefundAmount] = useState<string>("");
-const [refundMotif, setRefundMotif] = useState<string>("");
-
-// helpers date
-const toISODate = (d: Date) => d.toISOString().slice(0, 10);
-const startOfWeekMonday = (d: Date) => {
-  const x = new Date(d);
-  const day = x.getDay(); // 0 Sun .. 6 Sat
-  const diff = (day === 0 ? -6 : 1) - day; // monday
-  x.setDate(x.getDate() + diff);
-  x.setHours(0, 0, 0, 0);
-  return x;
-};
-const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
-const startOfYear = (d: Date) => new Date(d.getFullYear(), 0, 1);
-
-// set default dates when period changes
-useEffect(() => {
-  const now = new Date();
-  let a = new Date(now);
-  let b = new Date(now);
-
-  if (earningsPeriod === "week") {
-    a = startOfWeekMonday(now);
-    b = new Date(a);
-    b.setDate(a.getDate() + 6);
-  } else if (earningsPeriod === "month") {
-    a = startOfMonth(now);
-    b = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  } else if (earningsPeriod === "year") {
-    a = startOfYear(now);
-    b = new Date(now.getFullYear(), 11, 31);
-  } else {
-    // custom: keep current values
-    return;
-  }
-
-  // update states safely (only if empty or changing period)
-  setEarningsDateDebut(toISODate(a));
-  setEarningsDateFin(toISODate(b));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [earningsPeriod]);
-
-const buildPaymentsParams = () => {
-  const params: any = {};
-  if (earningsDateDebut) params.date_debut = earningsDateDebut;
-  if (earningsDateFin) params.date_fin = earningsDateFin;
-  if (earningsStatus) params.statut = earningsStatus;
-  return params;
-};
-
-const fetchEarnings = async () => {
-  setLoadingEarnings(true);
-  setErrorEarnings("");
-
-  try {
-    const params = buildPaymentsParams();
-
-    const [list, stats] = await Promise.all([
-      paiementsApi.list(params),
-      paiementsApi.statistiques({ date_debut: earningsDateDebut, date_fin: earningsDateFin }),
-    ]);
-
-    setPayments(list);
-    setPaymentStats(stats);
-  } catch (e: any) {
-    setErrorEarnings(e?.response?.data?.message || "Erreur lors du chargement des paiements");
-  } finally {
-    setLoadingEarnings(false);
-  }
-};
-
-// auto fetch when entering earnings + when date range changes
-useEffect(() => {
-  if (activeSection === "earnings" && earningsDateDebut && earningsDateFin) {
-    fetchEarnings();
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [activeSection, earningsDateDebut, earningsDateFin, earningsStatus]);
-
-const postPaymentAction = async (id: number, action: "valider" | "annuler") => {
-  setEarningsActionLoading(true);
-  try {
-    if (action === "valider") {
-      await paiementsApi.valider(id);
-    } else {
-      await paiementsApi.annuler(id);
-    }
-    await fetchEarnings();
-  } catch (e: any) {
-    alert(e?.response?.data?.message || "Action échouée");
-  } finally {
-    setEarningsActionLoading(false);
-    setOpenPaymentActionId(null);
-  }
-};
-
-const openRefundModal = (p: Payment) => {
-  setRefundTarget(p);
-  setRefundAmount(String(p?.montant?.amount ?? ""));
-  setRefundMotif("");
-  setRefundModalOpen(true);
-};
-
-const submitRefund = async () => {
-  if (!refundTarget?.id) return;
-  const amountNumber = Number(refundAmount);
-  if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
-    alert("Montant de remboursement invalide");
-    return;
-  }
-
-  setEarningsActionLoading(true);
-  try {
-    await paiementsApi.rembourser(refundTarget.id, {
-      montant: amountNumber,
-      motif: refundMotif || "Remboursement",
+  const formatDateUI = (isoDate?: string) => {
+    if (!isoDate) return "-";
+    const d = new Date(isoDate);
+    if (Number.isNaN(d.getTime())) return isoDate;
+    return d.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
     });
-    setRefundModalOpen(false);
-    setRefundTarget(null);
-    await fetchEarnings();
-  } catch (e: any) {
-    alert(e?.response?.data?.message || "Remboursement échoué");
-  } finally {
-    setEarningsActionLoading(false);
-  }
-};
-
-
-
-const deletePayment = async (id: number) => {
-  const ok = window.confirm("Supprimer ce paiement ?");
-  if (!ok) return;
-
-  setEarningsActionLoading(true);
-  try {
-    await paiementsApi.delete(id);
-    await fetchEarnings();
-  } catch (e: any) {
-    alert(e?.response?.data?.message || "Suppression échouée");
-  } finally {
-    setEarningsActionLoading(false);
-    setOpenPaymentActionId(null);
-  }
-};
-
-// --------- Chart data (build from payments list) ---------
-const chartData = useMemo(() => {
-  // two series: validés vs en_attente
-  // group by day for week/month, by month for year
-  const items = payments || [];
-  const group: Record<string, { label: string; valid: number; pending: number }> = {};
-
-  const isYear = earningsPeriod === "year";
-  const keyOf = (iso: string) => {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return "";
-    if (isYear) {
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      return `${d.getFullYear()}-${m}`;
-    }
-    return iso.slice(0, 10);
   };
 
-  for (const p of items) {
-    const k = keyOf(p.date_paiement);
-    if (!k) continue;
+  const formatTimeUI = (value?: string) => {
+    if (!value) return "--:--";
+    return value.length >= 5 ? value.slice(0, 5) : value;
+  };
 
-    if (!group[k]) group[k] = { label: k, valid: 0, pending: 0 };
+  const seancesSorted = useMemo(() => {
+    return [...seances].sort((a, b) => {
+      const aKey = `${a?.date ?? ""}T${a?.heure_debut ?? "00:00:00"}`;
+      const bKey = `${b?.date ?? ""}T${b?.heure_debut ?? "00:00:00"}`;
+      return new Date(aKey).getTime() - new Date(bKey).getTime();
+    });
+  }, [seances]);
 
-    const amount = Number(p.montant?.amount ?? 0) || 0;
-    if (p.statut === "valide") group[k].valid += amount;
-    if (p.statut === "en_attente") group[k].pending += amount;
-  }
+  const myBookingsData = useMemo(() => {
+    const imagePool =
+      myBookingsTab === "court"
+        ? [booking2, booking3, booking4, booking5, booking6, bookingImg]
+        : [coachImg, fav1, fav2, fav3, fav4, fav5];
 
-  const rows = Object.values(group).sort((a, b) => a.label.localeCompare(b.label));
+    return seancesSorted.slice(0, 6).map((s, idx: number) => {
+      const estimatedPrice = Number(s?.prix ?? s?.montant ?? 0);
+      return {
+        id: `${myBookingsTab}-${s?.id ?? idx}`,
+        img: imagePool[idx % imagePool.length],
+        title: String(s?.titre ?? `Séance #${s?.id ?? idx + 1}`),
+        subtitle:
+          myBookingsTab === "court"
+            ? String(s?.lieu ?? "Session")
+            : String(s?.type ?? "Coaching"),
+        guests: `Guests : ${Number(s?.capacite_max ?? 1)}`,
+        duration: `${Number(s?.duree ?? 0)} min`,
+        date: formatDateUI(s?.date),
+        time: `${formatTimeUI(s?.heure_debut)} - ${formatTimeUI(s?.heure_fin)}`,
+        price: estimatedPrice > 0 ? `${estimatedPrice.toFixed(2)} €` : "-",
+      };
+    });
+  }, [myBookingsTab, seancesSorted]);
 
-  // prettify labels
-  const pretty = rows.map((r) => {
-    if (isYear) {
-      const [y, m] = r.label.split("-");
-      return { ...r, label: `${m}/${y}` };
+  const [invoiceTab, setInvoiceTab] = useState<"court" | "coaching">("court");
+  const fetchSeances = async () => {
+    setLoadingSeances(true);
+    setErrorSeances("");
+    try {
+      const res = await axiosClient.get("/coach/seances");
+      const data = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+      setSeances(data as Seance[]);
+    } catch (e: unknown) {
+      setErrorSeances(
+        getApiErrorMessage(e, "Erreur lors du chargement des séances"),
+      );
+    } finally {
+      setLoadingSeances(false);
     }
-    // dd/mm
-    const [, m, d] = r.label.split("-");
-    return { ...r, label: `${d}/${m}` };
+  };
+
+  const fetchCommandes = async () => {
+    try {
+      const res = await axiosClient.get("/commandes", {
+        params: { per_page: 100 },
+      });
+      const payload = res.data?.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+      setCommandes(list as Commande[]);
+    } catch {
+      setCommandes([]);
+    }
+  };
+
+  const fetchCoachKpis = async () => {
+    try {
+      const res = await axiosClient.get("/coach/dashboard/kpis", {
+        params: { period: "month" },
+      });
+      const payload = res.data?.data;
+      setCoachKpis(
+        typeof payload === "object" && payload !== null
+          ? (payload as CoachKpisData)
+          : null,
+      );
+    } catch {
+      setCoachKpis(null);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    setLoadingNotifications(true);
+    try {
+      const res = await axiosClient.get("/notifications", {
+        params: { per_page: 6 },
+      });
+      const payload = res.data?.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+      setNotifications(list as NotificationEntry[]);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const markNotificationAsRead = async (id: number) => {
+    try {
+      await axiosClient.put(`/notifications/${id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, lue: true } : n)),
+      );
+    } catch {
+      // Silently fail to avoid breaking dashboard UX.
+    }
+  };
+
+  const fetchConversations = async () => {
+    setLoadingConversations(true);
+    try {
+      const res = await axiosClient.get("/conversations", {
+        params: { per_page: 6 },
+      });
+      const payload = res.data?.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+      setConversations(list as ConversationEntry[]);
+    } catch {
+      setConversations([]);
+    } finally {
+      setLoadingConversations(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSeances();
+    fetchCommandes();
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === "dashboard") {
+      fetchSeances();
+      fetchCommandes();
+      fetchCoachKpis();
+      fetchNotifications();
+      fetchConversations();
+      fetchEarnings();
+      fetchFactures();
+      fetchFacturesStats();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection]);
+
+  const filteredSeances = useMemo(() => {
+    const now = new Date();
+
+    return seances.filter((s) => {
+      if (bookingsType === "court") {
+        return false;
+      }
+
+      const status = String(s?.statut ?? "").toLowerCase();
+      const when = new Date(`${s?.date ?? ""}T${s?.heure_debut ?? "00:00:00"}`);
+      const isFuture = !Number.isNaN(when.getTime()) && when >= now;
+
+      if (bookingsStatus === "upcoming") {
+        return (
+          !status.includes("annul") && !status.includes("term") && isFuture
+        );
+      }
+      if (bookingsStatus === "completed") {
+        return (
+          status.includes("term") ||
+          status.includes("complete") ||
+          status.includes("done")
+        );
+      }
+      return status.includes("annul") || status.includes("cancel");
+    });
+  }, [seances, bookingsStatus, bookingsType]);
+
+  const [openActionId, setOpenActionId] = useState<number | null>(null);
+
+  // modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"view" | "edit">("view");
+  const [selectedSeance, setSelectedSeance] = useState<Seance | null>(null);
+
+  // form (edit)
+  const [editForm, setEditForm] = useState({
+    titre: "",
+    date: "",
+    heure_debut: "",
+    duree: 60,
+    type: "individuelle",
+    statut: "planifiee",
+    capacite_max: 1,
+    lieu: "",
+    notes: "",
   });
 
-  // if empty, create placeholders for week view
-  if (pretty.length === 0 && earningsPeriod === "week" && earningsDateDebut) {
-    const base = new Date(earningsDateDebut);
-    const tmp = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(base);
-      d.setDate(base.getDate() + i);
-      tmp.push({ label: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`, valid: 0, pending: 0 });
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const openViewSeance = async (id: number) => {
+    setActionLoading(true);
+    try {
+      const res = await axiosClient.get(`/coach/seances/${id}`);
+      const data = res.data as Seance;
+      setSelectedSeance(data);
+      setModalMode("view");
+      setIsModalOpen(true);
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, "Impossible de charger la séance"));
+    } finally {
+      setActionLoading(false);
     }
-    return tmp;
-  }
+  };
 
-  return pretty;
-}, [payments, earningsPeriod, earningsDateDebut]);
+  const saveEditSeance = async () => {
+    if (!selectedSeance?.id) return;
 
-const chartMax = useMemo(() => {
-  let m = 0;
-  for (const r of chartData) {
-    m = Math.max(m, r.valid, r.pending);
-  }
-  return m || 1;
-}, [chartData]);
+    try {
+      const payload = {
+        titre: editForm.titre,
+        date: editForm.date, // "YYYY-MM-DD"
+        heure_debut:
+          editForm.heure_debut.length === 5
+            ? `${editForm.heure_debut}:00` // "HH:MM:SS"
+            : editForm.heure_debut,
+        duree: Number(editForm.duree),
+        type: editForm.type,
+        statut: editForm.statut,
+        capacite_max: Number(editForm.capacite_max),
+        lieu: editForm.lieu ?? "",
+        notes: editForm.notes ?? "",
+      };
 
-function MiniBarChart({
-  data,
-  max,
-}: {
-  data: { label: string; valid: number; pending: number }[];
-  max: number;
-}) {
-  return (
-    <div className="mt-5">
-      {/* axis */}
-      <div className="h-[320px] w-full rounded-2xl bg-gray-50 border border-gray-100 p-6">
-        <div className="h-full flex items-end justify-between gap-4">
-          {data.map((r) => {
-            const h1 = Math.round((r.valid / max) * 100);
-            const h2 = Math.round((r.pending / max) * 100);
+      await axiosClient.put(`/coach/seances/${selectedSeance.id}`, payload);
 
-            return (
-              <div key={r.label} className="flex-1 flex flex-col items-center gap-2">
-                <div className="w-full flex items-end justify-center gap-2 h-[260px]">
-                  {/* series-1 (valid) */}
-                  <div
-                    className="w-5 rounded-t-lg bg-lime-400"
-                    style={{ height: `${h1}%` }}
-                    title={`Validés: ${r.valid.toFixed(2)}`}
-                  />
-                  {/* series-2 (pending) */}
-                  <div
-                    className="w-5 rounded-t-lg bg-emerald-700"
-                    style={{ height: `${h2}%` }}
-                    title={`En attente: ${r.pending.toFixed(2)}`}
-                  />
+      setIsModalOpen(false);
+      fetchSeances();
+    } catch (err: unknown) {
+      console.error(err);
+      const msg = getApiErrorMessage(err, "Invalid data");
+      alert(msg);
+    }
+  };
+
+  const deleteSeance = async (id: number) => {
+    const ok = window.confirm("Supprimer cette séance ?");
+    if (!ok) return;
+
+    setActionLoading(true);
+    try {
+      await axiosClient.delete(`/coach/seances/${id}`);
+
+      // refresh list
+      await fetchSeances();
+
+      setOpenActionId(null);
+      if (selectedSeance?.id === id) {
+        setIsModalOpen(false);
+        setSelectedSeance(null);
+      }
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, "Delete failed"));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedSeance(null);
+  };
+
+  // ===================== EARNINGS (PAIEMENTS) =====================
+
+  type PeriodKey = "week" | "month" | "year" | "custom";
+
+  const [earningsPeriod, setEarningsPeriod] = useState<PeriodKey>("week");
+  const [earningsSearch, setEarningsSearch] = useState("");
+  const [earningsStatus, setEarningsStatus] = useState<string>(""); // "" = all
+
+  const [earningsDateDebut, setEarningsDateDebut] = useState<string>("");
+  const [earningsDateFin, setEarningsDateFin] = useState<string>("");
+
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [paymentStats, setPaymentStats] = useState<PaymentStats | null>(null);
+  const [loadingEarnings, setLoadingEarnings] = useState(false);
+  const [errorEarnings, setErrorEarnings] = useState("");
+
+  const [openPaymentActionId, setOpenPaymentActionId] = useState<number | null>(
+    null,
+  );
+  const [earningsActionLoading, setEarningsActionLoading] = useState(false);
+
+  // refund modal
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<Payment | null>(null);
+  const [refundAmount, setRefundAmount] = useState<string>("");
+  const [refundMotif, setRefundMotif] = useState<string>("");
+
+  // helpers date
+  const toISODate = (d: Date) => d.toISOString().slice(0, 10);
+  const startOfWeekMonday = (d: Date) => {
+    const x = new Date(d);
+    const day = x.getDay(); // 0 Sun .. 6 Sat
+    const diff = (day === 0 ? -6 : 1) - day; // monday
+    x.setDate(x.getDate() + diff);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  };
+  const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
+  const startOfYear = (d: Date) => new Date(d.getFullYear(), 0, 1);
+
+  // set default dates when period changes
+  useEffect(() => {
+    const now = new Date();
+    let a = new Date(now);
+    let b = new Date(now);
+
+    if (earningsPeriod === "week") {
+      a = startOfWeekMonday(now);
+      b = new Date(a);
+      b.setDate(a.getDate() + 6);
+    } else if (earningsPeriod === "month") {
+      a = startOfMonth(now);
+      b = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (earningsPeriod === "year") {
+      a = startOfYear(now);
+      b = new Date(now.getFullYear(), 11, 31);
+    } else {
+      // custom: keep current values
+      return;
+    }
+
+    // update states safely (only if empty or changing period)
+    setEarningsDateDebut(toISODate(a));
+    setEarningsDateFin(toISODate(b));
+  }, [earningsPeriod]);
+
+  const buildPaymentsParams = (): Record<string, string> => {
+    const params: Record<string, string> = {};
+    if (earningsDateDebut) params.date_debut = earningsDateDebut;
+    if (earningsDateFin) params.date_fin = earningsDateFin;
+    if (earningsStatus) params.statut = earningsStatus;
+    return params;
+  };
+
+  const fetchEarnings = async () => {
+    setLoadingEarnings(true);
+    setErrorEarnings("");
+
+    try {
+      const params = buildPaymentsParams();
+
+      const [list, stats] = await Promise.all([
+        paiementsApi.list(params),
+        paiementsApi.statistiques({
+          date_debut: earningsDateDebut,
+          date_fin: earningsDateFin,
+        }),
+      ]);
+
+      setPayments(list);
+      setPaymentStats(stats);
+    } catch (e: unknown) {
+      setErrorEarnings(
+        getApiErrorMessage(e, "Erreur lors du chargement des paiements"),
+      );
+    } finally {
+      setLoadingEarnings(false);
+    }
+  };
+
+  // auto fetch when entering earnings + when date range changes
+  useEffect(() => {
+    if (activeSection === "earnings" && earningsDateDebut && earningsDateFin) {
+      fetchEarnings();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, earningsDateDebut, earningsDateFin, earningsStatus]);
+
+  const postPaymentAction = async (
+    id: number,
+    action: "valider" | "annuler",
+  ) => {
+    setEarningsActionLoading(true);
+    try {
+      if (action === "valider") {
+        await paiementsApi.valider(id);
+      } else {
+        await paiementsApi.annuler(id);
+      }
+      await fetchEarnings();
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, "Action échouée"));
+    } finally {
+      setEarningsActionLoading(false);
+      setOpenPaymentActionId(null);
+    }
+  };
+
+  const openRefundModal = (p: Payment) => {
+    setRefundTarget(p);
+    setRefundAmount(String(p?.montant?.amount ?? ""));
+    setRefundMotif("");
+    setRefundModalOpen(true);
+  };
+
+  const submitRefund = async () => {
+    if (!refundTarget?.id) return;
+    const amountNumber = Number(refundAmount);
+    if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+      alert("Montant de remboursement invalide");
+      return;
+    }
+
+    setEarningsActionLoading(true);
+    try {
+      await paiementsApi.rembourser(refundTarget.id, {
+        montant: amountNumber,
+        motif: refundMotif || "Remboursement",
+      });
+      setRefundModalOpen(false);
+      setRefundTarget(null);
+      await fetchEarnings();
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, "Remboursement échoué"));
+    } finally {
+      setEarningsActionLoading(false);
+    }
+  };
+
+  const deletePayment = async (id: number) => {
+    const ok = window.confirm("Supprimer ce paiement ?");
+    if (!ok) return;
+
+    setEarningsActionLoading(true);
+    try {
+      await paiementsApi.delete(id);
+      await fetchEarnings();
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, "Suppression échouée"));
+    } finally {
+      setEarningsActionLoading(false);
+      setOpenPaymentActionId(null);
+    }
+  };
+
+  // --------- Chart data (build from payments list) ---------
+  const chartData = useMemo(() => {
+    // two series: validés vs en_attente
+    // group by day for week/month, by month for year
+    const items = payments || [];
+    const group: Record<
+      string,
+      { label: string; valid: number; pending: number }
+    > = {};
+
+    const isYear = earningsPeriod === "year";
+    const keyOf = (iso: string) => {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      if (isYear) {
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        return `${d.getFullYear()}-${m}`;
+      }
+      return iso.slice(0, 10);
+    };
+
+    for (const p of items) {
+      const k = keyOf(p.date_paiement);
+      if (!k) continue;
+
+      if (!group[k]) group[k] = { label: k, valid: 0, pending: 0 };
+
+      const amount = Number(p.montant?.amount ?? 0) || 0;
+      if (p.statut === "valide") group[k].valid += amount;
+      if (p.statut === "en_attente") group[k].pending += amount;
+    }
+
+    const rows = Object.values(group).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    );
+
+    // prettify labels
+    const pretty = rows.map((r) => {
+      if (isYear) {
+        const [y, m] = r.label.split("-");
+        return { ...r, label: `${m}/${y}` };
+      }
+      // dd/mm
+      const [, m, d] = r.label.split("-");
+      return { ...r, label: `${d}/${m}` };
+    });
+
+    // if empty, create placeholders for week view
+    if (pretty.length === 0 && earningsPeriod === "week" && earningsDateDebut) {
+      const base = new Date(earningsDateDebut);
+      const tmp = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i);
+        tmp.push({
+          label: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`,
+          valid: 0,
+          pending: 0,
+        });
+      }
+      return tmp;
+    }
+
+    return pretty;
+  }, [payments, earningsPeriod, earningsDateDebut]);
+
+  const chartMax = useMemo(() => {
+    let m = 0;
+    for (const r of chartData) {
+      m = Math.max(m, r.valid, r.pending);
+    }
+    return m || 1;
+  }, [chartData]);
+
+  function MiniBarChart({
+    data,
+    max,
+  }: {
+    data: { label: string; valid: number; pending: number }[];
+    max: number;
+  }) {
+    return (
+      <div className="mt-5">
+        {/* axis */}
+        <div className="h-80 w-full rounded-2xl bg-gray-50 border border-gray-100 p-6">
+          <div className="h-full flex items-end justify-between gap-4">
+            {data.map((r) => {
+              const h1 = Math.round((r.valid / max) * 100);
+              const h2 = Math.round((r.pending / max) * 100);
+
+              return (
+                <div
+                  key={r.label}
+                  className="flex-1 flex flex-col items-center gap-2"
+                >
+                  <div className="w-full flex items-end justify-center gap-2 h-65">
+                    {/* series-1 (valid) */}
+                    <div
+                      className="w-5 rounded-t-lg bg-lime-400"
+                      style={{ height: `${h1}%` }}
+                      title={`Validés: ${r.valid.toFixed(2)}`}
+                    />
+                    {/* series-2 (pending) */}
+                    <div
+                      className="w-5 rounded-t-lg bg-emerald-700"
+                      style={{ height: `${h2}%` }}
+                      title={`En attente: ${r.pending.toFixed(2)}`}
+                    />
+                  </div>
+                  <div className="text-xs text-gray-500 font-semibold">
+                    {r.label}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 font-semibold">{r.label}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* legend */}
-        <div className="mt-4 flex items-center justify-center gap-6 text-sm font-semibold text-gray-700">
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-sm bg-lime-400" />
-            Validés
+              );
+            })}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-block w-3 h-3 rounded-sm bg-emerald-700" />
-            En attente
+
+          {/* legend */}
+          <div className="mt-4 flex items-center justify-center gap-6 text-sm font-semibold text-gray-700">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-sm bg-lime-400" />
+              Validés
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-sm bg-emerald-700" />
+              En attente
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-
-
-const [factures, setFactures] = useState<Facture[]>([]);
-const [loadingFactures, setLoadingFactures] = useState(false);
-const [errorFactures, setErrorFactures] = useState("");
-
-const [facturesStats, setFacturesStats] = useState<FactureStats | null>(null);
-const [loadingFacturesStats, setLoadingFacturesStats] = useState(false);
-
-const [walletSearch, setWalletSearch] = useState("");
-const [walletStatut, setWalletStatut] = useState<
-  "all" | "brouillon" | "emise" | "payee" | "annulee" | "en_retard"
->("all");
-
-// simple période (tu peux garder “This Week” UI only, ou faire date_debut/date_fin)
-const [walletDateDebut, setWalletDateDebut] = useState<string>("");
-const [walletDateFin, setWalletDateFin] = useState<string>("");
-
-const [openFactureActionId, setOpenFactureActionId] = useState<number | null>(null);
-
-const invoicesData = useMemo(() => {
-  const imagePool = invoiceTab === "court"
-    ? [bookingImg, booking2, booking3, booking4, booking5, booking6]
-    : [coachImg, fav1, fav2, fav3, fav4, fav5];
-
-  return factures.slice(0, 6).map((f, idx) => {
-    const clientName = `${f?.client?.first_name ?? ""} ${f?.client?.last_name ?? ""}`.trim() || `Client #${f?.client?.id ?? "-"}`;
-    return {
-      id: `inv-${f.id}`,
-      img: imagePool[idx % imagePool.length],
-      name: clientName,
-      sub: f.numero ?? `FAC-${f.id}`,
-      invoice: f.statut_label ?? f.statut,
-      date: formatDateUI(f.date_emission),
-      time: formatDateUI(f.date_echeance),
-      payment: `${Number(f.montant_ttc ?? 0).toFixed(2)} €`,
-      paidOn: f.statut === "payee" ? formatDateUI(f.updated_at) : "-",
-      status: f.statut_label ?? f.statut,
-    };
-  });
-}, [factures, invoiceTab]);
-
-
-
-const fetchFactures = async () => {
-  setLoadingFactures(true);
-  setErrorFactures("");
-  try {
-    const params: any = {};
-
-    if (walletStatut !== "all") params.statut = walletStatut;
-    if (walletDateDebut) params.date_debut = walletDateDebut;
-    if (walletDateFin) params.date_fin = walletDateFin;
-
-    setFactures(await facturesApi.list(params));
-  } catch (e: any) {
-    setErrorFactures(e?.response?.data?.message || "Erreur lors du chargement des factures");
-  } finally {
-    setLoadingFactures(false);
-  }
-};
-
-const fetchFacturesStats = async () => {
-  setLoadingFacturesStats(true);
-  try {
-    setFacturesStats(
-      await facturesApi.stats({
-        date_debut: walletDateDebut || undefined,
-        date_fin: walletDateFin || undefined,
-      }),
     );
-  } catch {
-    setFacturesStats(null);
-  } finally {
-    setLoadingFacturesStats(false);
   }
-};
 
-// Download PDF (backend: /factures/{id}/pdf) :contentReference[oaicite:6]{index=6}
-const downloadFacturePdf = async (id: number) => {
-  try {
-    const res = await axiosClient.get(facturesApi.pdfUrl(id), {
-      responseType: "blob",
+  const [factures, setFactures] = useState<Facture[]>([]);
+  const [loadingFactures, setLoadingFactures] = useState(false);
+  const [errorFactures, setErrorFactures] = useState("");
+
+  const [facturesStats, setFacturesStats] = useState<FactureStats | null>(null);
+  const [loadingFacturesStats, setLoadingFacturesStats] = useState(false);
+
+  const [walletSearch, setWalletSearch] = useState("");
+  const [walletStatut, setWalletStatut] = useState<WalletStatut>("all");
+
+  // simple période (tu peux garder “This Week” UI only, ou faire date_debut/date_fin)
+  const [walletDateDebut, setWalletDateDebut] = useState<string>("");
+  const [walletDateFin, setWalletDateFin] = useState<string>("");
+
+  const [openFactureActionId, setOpenFactureActionId] = useState<number | null>(
+    null,
+  );
+
+  const invoicesData = useMemo(() => {
+    const imagePool =
+      invoiceTab === "court"
+        ? [bookingImg, booking2, booking3, booking4, booking5, booking6]
+        : [coachImg, fav1, fav2, fav3, fav4, fav5];
+
+    return factures.slice(0, 6).map((f, idx): InvoiceRow => {
+      const clientName =
+        `${f?.client?.first_name ?? ""} ${f?.client?.last_name ?? ""}`.trim() ||
+        `Client #${f?.client?.id ?? "-"}`;
+      return {
+        id: `inv-${f.id}`,
+        img: imagePool[idx % imagePool.length],
+        name: clientName,
+        sub: f.numero ?? `FAC-${f.id}`,
+        invoice: f.statut_label ?? f.statut,
+        date: formatDateUI(f.date_emission),
+        time: formatDateUI(f.date_echeance),
+        payment: `${Number(f.montant_ttc ?? 0).toFixed(2)} €`,
+        paidOn: f.statut === "payee" ? formatDateUI(f.updated_at) : "-",
+        status: f.statut_label ?? f.statut,
+      };
     });
-    const blob = new Blob([res.data], { type: "application/pdf" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `facture-${id}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (e: any) {
-    alert(e?.response?.data?.message || "Téléchargement PDF impossible");
-  }
-};
+  }, [factures, invoiceTab]);
 
-// Actions facture (cycle de vie) :contentReference[oaicite:7]{index=7}
-const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler") => {
-  try {
-    if (action === "emettre") {
-      await facturesApi.emettre(id);
-    } else if (action === "payer") {
-      await facturesApi.payer(id);
-    } else {
-      await facturesApi.annuler(id);
+  const fetchFactures = async () => {
+    setLoadingFactures(true);
+    setErrorFactures("");
+    try {
+      const params: Record<string, string> = {};
+
+      if (walletStatut !== "all") params.statut = walletStatut;
+      if (walletDateDebut) params.date_debut = walletDateDebut;
+      if (walletDateFin) params.date_fin = walletDateFin;
+
+      setFactures(await facturesApi.list(params));
+    } catch (e: unknown) {
+      setErrorFactures(
+        getApiErrorMessage(e, "Erreur lors du chargement des factures"),
+      );
+    } finally {
+      setLoadingFactures(false);
     }
-    await fetchFactures();
-    await fetchFacturesStats();
-  } catch (e: any) {
-    alert(e?.response?.data?.message || "Action impossible");
-  } finally {
-    setOpenFactureActionId(null);
-  }
-};
+  };
 
-const upcomingSeances = useMemo(() => {
-  const now = new Date();
-  return seancesSorted.filter((s) => {
-    const key = `${s?.date ?? ""}T${s?.heure_debut ?? "00:00:00"}`;
-    const d = new Date(key);
-    return !Number.isNaN(d.getTime()) && d >= now && String(s?.statut ?? "").toLowerCase() !== "annulee";
-  });
-}, [seancesSorted]);
-
-const completedLessonsCount = useMemo(() => {
-  return seances.filter((s: any) => {
-    const st = String(s?.statut ?? "").toLowerCase();
-    return st.includes("term") || st.includes("complete") || st.includes("done");
-  }).length;
-}, [seances]);
-
-const paymentsTotalAmount = useMemo(() => {
-  if (paymentStats) return Number(paymentStats.ca_net ?? 0);
-  return payments.reduce((acc, p) => {
-    if (p?.statut === "valide") {
-      return acc + Number(p?.montant?.amount ?? 0);
+  const fetchFacturesStats = async () => {
+    setLoadingFacturesStats(true);
+    try {
+      setFacturesStats(
+        await facturesApi.stats({
+          date_debut: walletDateDebut || undefined,
+          date_fin: walletDateFin || undefined,
+        }),
+      );
+    } catch {
+      setFacturesStats(null);
+    } finally {
+      setLoadingFacturesStats(false);
     }
-    return acc;
-  }, 0);
-}, [paymentStats, payments]);
+  };
 
-const dashboardWalletBalance = useMemo(() => {
-  if (facturesStats) return Number(facturesStats.montant_paye ?? 0);
-  return Number(paymentsTotalAmount || 0);
-}, [facturesStats, paymentsTotalAmount]);
+  // Download PDF (backend: /factures/{id}/pdf) :contentReference[oaicite:6]{index=6}
+  const downloadFacturePdf = async (id: number) => {
+    try {
+      const res = await axiosClient.get(facturesApi.pdfUrl(id), {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `facture-${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, "Téléchargement PDF impossible"));
+    }
+  };
 
-const currentAppointment = upcomingSeances[0] ?? null;
+  // Actions facture (cycle de vie) :contentReference[oaicite:7]{index=7}
+  const actionFacture = async (
+    id: number,
+    action: "emettre" | "payer" | "annuler",
+  ) => {
+    try {
+      if (action === "emettre") {
+        await facturesApi.emettre(id);
+      } else if (action === "payer") {
+        await facturesApi.payer(id);
+      } else {
+        await facturesApi.annuler(id);
+      }
+      await fetchFactures();
+      await fetchFacturesStats();
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, "Action impossible"));
+    } finally {
+      setOpenFactureActionId(null);
+    }
+  };
+
+  const upcomingSeances = useMemo(() => {
+    const now = new Date();
+    return seancesSorted.filter((s) => {
+      const key = `${s?.date ?? ""}T${s?.heure_debut ?? "00:00:00"}`;
+      const d = new Date(key);
+      return (
+        !Number.isNaN(d.getTime()) &&
+        d >= now &&
+        String(s?.statut ?? "").toLowerCase() !== "annulee"
+      );
+    });
+  }, [seancesSorted]);
+
+  const completedLessonsCount = useMemo(() => {
+    return seances.filter((s) => {
+      const st = String(s?.statut ?? "").toLowerCase();
+      return (
+        st.includes("term") || st.includes("complete") || st.includes("done")
+      );
+    }).length;
+  }, [seances]);
+
+  const paymentsTotalAmount = useMemo(() => {
+    if (paymentStats) return Number(paymentStats.ca_net ?? 0);
+    return payments.reduce((acc, p) => {
+      if (p?.statut === "valide") {
+        return acc + Number(p?.montant?.amount ?? 0);
+      }
+      return acc;
+    }, 0);
+  }, [paymentStats, payments]);
+
+  const dashboardWalletBalance = useMemo(() => {
+    if (facturesStats) return Number(facturesStats.montant_paye ?? 0);
+    return Number(paymentsTotalAmount || 0);
+  }, [facturesStats, paymentsTotalAmount]);
+
+  const unreadNotificationsCount = useMemo(() => {
+    return notifications.filter((n) => !n.lue).length;
+  }, [notifications]);
+
+  const notificationsPreview = useMemo(() => {
+    return notifications.slice(0, 3).map((notification) => {
+      const rawTitle =
+        typeof notification.data?.titre === "string"
+          ? notification.data.titre
+          : "";
+      const title =
+        rawTitle || notification.type?.replaceAll("_", " ") || "Notification";
+      return {
+        id: notification.id,
+        title: title.charAt(0).toUpperCase() + title.slice(1),
+        read: Boolean(notification.lue),
+        createdAt: formatRelativeTime(notification.created_at),
+      };
+    });
+  }, [notifications]);
+
+  const recentChatsPreview = useMemo(() => {
+    return conversations.slice(0, 4).map((conversation) => {
+      const userName =
+        `${conversation.user?.first_name ?? ""} ${conversation.user?.last_name ?? ""}`.trim();
+      const coachName =
+        `${conversation.coach?.first_name ?? ""} ${conversation.coach?.last_name ?? ""}`.trim();
+      const displayName =
+        userName || coachName || `Conversation #${conversation.id}`;
+
+      return {
+        id: conversation.id,
+        name: displayName,
+        count: `${Number(conversation.messages_count ?? 0)} messages`,
+        time: formatRelativeTime(conversation.last_message_at),
+      };
+    });
+  }, [conversations]);
+
+  const currentAppointment = upcomingSeances[0] ?? null;
+
+  const currentAppointmentClientName = useMemo(() => {
+    const client = currentAppointment?.clients?.[0];
+    if (!client) return "-";
+
+    const firstName = client?.user?.first_name ?? client?.first_name ?? "";
+    const lastName = client?.user?.last_name ?? client?.last_name ?? "";
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName || "Client";
+  }, [currentAppointment]);
+
+  const favouriteClients = useMemo(() => {
+    const byClient = new Map<
+      string,
+      { name: string; count: number; date?: string }
+    >();
+
+    commandes.forEach((c) => {
+      const id = String(c?.client?.id ?? c?.client_id ?? "");
+      if (!id) return;
+
+      const name = c?.client?.user
+        ? `${c.client.user.first_name ?? ""} ${c.client.user.last_name ?? ""}`.trim()
+        : `Client #${id}`;
+
+      const prev = byClient.get(id);
+      byClient.set(id, {
+        name: name || `Client #${id}`,
+        count: (prev?.count ?? 0) + 1,
+        date: c?.date_commande ?? prev?.date,
+      });
+    });
+
+    return Array.from(byClient.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+      .map((f, i) => ({
+        img: [fav1, fav2, fav3][i % 3],
+        name: f.name,
+        count: `${f.count} Bookings`,
+        date: formatDateUI(f.date),
+      }));
+  }, [commandes]);
+
+  const availabilityDays = useMemo(() => {
+    const grouped = new Map<
+      string,
+      { date: string; day: string; starts: string[]; ends: string[] }
+    >();
+
+    upcomingSeances.forEach((s) => {
+      const date = String(s?.date ?? "");
+      if (!date) return;
+
+      const d = new Date(date);
+      const day = Number.isNaN(d.getTime())
+        ? "-"
+        : d.toLocaleDateString("en-US", { weekday: "long" });
+
+      const start = formatTimeUI(s?.heure_debut);
+      const end = formatTimeUI(s?.heure_fin);
+
+      const current = grouped.get(date) ?? { date, day, starts: [], ends: [] };
+      current.starts.push(start);
+      current.ends.push(end);
+      grouped.set(date, current);
+    });
+
+    return Array.from(grouped.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, 6)
+      .map((x) => ({
+        date: formatDateUI(x.date),
+        day: x.day,
+        range: `${x.starts.sort()[0] ?? "--:--"} to ${x.ends.sort().reverse()[0] ?? "--:--"}`,
+      }));
+  }, [upcomingSeances]);
+
+  const earningsValidAmount = useMemo(() => {
+    return payments.reduce((acc, p) => {
+      return String(p?.statut ?? "").toLowerCase() === "valide"
+        ? acc + Number(p?.montant?.amount ?? 0)
+        : acc;
+    }, 0);
+  }, [payments]);
+
+  const earningsPendingAmount = useMemo(() => {
+    return payments.reduce((acc, p) => {
+      return String(p?.statut ?? "").toLowerCase() === "en_attente"
+        ? acc + Number(p?.montant?.amount ?? 0)
+        : acc;
+    }, 0);
+  }, [payments]);
+
+  const earningsTotalAmount = Math.max(
+    earningsValidAmount + earningsPendingAmount,
+    1,
+  );
+  const earningsValidPercent = Math.round(
+    (earningsValidAmount / earningsTotalAmount) * 100,
+  );
+  const earningsPendingPercent = Math.round(
+    (earningsPendingAmount / earningsTotalAmount) * 100,
+  );
+
+  const profileChecklist = useMemo(
+    () => [
+      {
+        label: "Basic Details",
+        done: seances.length > 0 || commandes.length > 0,
+      },
+      {
+        label: "Payment Setup",
+        done: payments.length > 0 || factures.length > 0,
+      },
+      { label: "Availability", done: availabilityDays.length > 0 },
+      { label: "Setup level for your Profile", done: commandes.length > 0 },
+      { label: "Add Lesson type", done: seances.some((s) => Boolean(s.type)) },
+    ],
+    [seances, commandes, payments, factures, availabilityDays],
+  );
+
+  const completedProfileItems = useMemo(
+    () => profileChecklist.filter((item) => item.done),
+    [profileChecklist],
+  );
+
+  const pendingProfileItems = useMemo(
+    () => profileChecklist.filter((item) => !item.done),
+    [profileChecklist],
+  );
+
+  const profileCompletionPercent = useMemo(() => {
+    if (profileChecklist.length === 0) return 0;
+    return Math.round(
+      (completedProfileItems.length / profileChecklist.length) * 100,
+    );
+  }, [profileChecklist, completedProfileItems]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-{/* ================= HERO ================= */}
-<div
-  className="relative w-full h-[260px] flex items-center"
-  style={{
-    backgroundImage: `url(${heroBg})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-  }}
->
-  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />
-
-  <div className="relative z-10 px-12 text-left">
-    <p className="text-sm font-extrabold tracking-widest text-lime-300">
-      🏋️ COACHIFY
-    </p>
-
-    <h1 className="mt-3 text-4xl font-extrabold text-white">
-      Coach Dashboard
-    </h1>
-
-    <p className="mt-3 text-white/90 text-sm font-semibold">
-      Home <span className="mx-2">›</span> Coach Dashboard
-    </p>
-  </div>
-</div>
-
-{/* ================= QUICK NAV (Coach) ================= */}
-<div className="bg-gray-50">
-  <div className="px-12 lg:px-24 py-10">
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-
-      <QuickNavCard
-  title="Dashboard"
-  icon={dashboardIcon}
-  active={activeSection === "dashboard"}
-  onClick={() => setActiveSection("dashboard")}
-/>
-
-      <QuickNavCard
-        title="Courts"
-        icon={courtsIcon}
-      />
-
-      <QuickNavCard
-        title="Requests"
-        icon={requestsIcon}
-        badge={String(pendingRequestsCount)}
-      />
-
-      <QuickNavCard
-        title="Offers"
-        icon={requestsIcon}
-        onClick={() => navigate("/coach/offres")}
-      />
-
-      <QuickNavCard
-  title="Bookings"
-  icon={bookingsIcon}
-  active={activeSection === "bookings"}
-  onClick={() => {
-  setActiveSection("bookings");
-  fetchSeances();
-}}
-/>
-
-      <QuickNavCard
-        title="Seances"
-        icon={bookingsIcon}
-        active={activeSection === "seances"}
-        onClick={() => {
-          setActiveSection("seances");
-          navigate("/coach/seances");
+      {/* ================= HERO ================= */}
+      <div
+        className="relative w-full h-65 flex items-center"
+        style={{
+          backgroundImage: `url(${heroBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
-      />
+      >
+        <div className="absolute inset-0 bg-linear-to-r from-black/70 via-black/40 to-black/10" />
 
-      <QuickNavCard
-        title="Chat"
-        icon={chatIcon}
-      />
+        <div className="relative z-10 px-12 text-left">
+          <p className="text-sm font-extrabold tracking-widest text-lime-300">
+            🏋️ COACHIFY
+          </p>
 
-      <QuickNavCard
-  title="Earnings"
-  icon={earningsIcon}
-  active={activeSection === "earnings"}
-  onClick={() => {
-    setActiveSection("earnings");
-    // fetchEarnings sera appelé via useEffect quand la section est active
-  }}
-/>
+          <h1 className="mt-3 text-4xl font-extrabold text-white">
+            Coach Dashboard
+          </h1>
 
-      <QuickNavCard
-  title="Wallet"
-  icon={walletIcon}
-  active={activeSection === "wallet"}
-  onClick={() => {
-    setActiveSection("wallet");
-    fetchFactures();
-    fetchFacturesStats();
-  }}
-/>
+          <p className="mt-3 text-white/90 text-sm font-semibold">
+            Home <span className="mx-2">›</span> Coach Dashboard
+          </p>
+        </div>
+      </div>
 
-      <QuickNavCard
-        title="Profile Setting"
-        icon={profileIcon}
-        onClick={() => navigate("/coach/profile")}
-      />
+      {/* ================= QUICK NAV (Coach) ================= */}
+      <div className="bg-gray-50">
+        <div className="px-12 lg:px-24 py-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+            <QuickNavCard
+              title="Dashboard"
+              icon={dashboardIcon}
+              active={activeSection === "dashboard"}
+              onClick={() => setActiveSection("dashboard")}
+            />
 
-      <QuickNavCard
-        title="Programmes"
-        icon={programmesIcon}
-        active={activeSection === "programmes"}
-        onClick={() => {
-    setActiveSection("programmes");
-    navigate("/coach/programmes");
-  }}
-/>
+            <QuickNavCard
+              title="Courts"
+              icon={courtsIcon}
+              onClick={() => navigate("/coach/analytics")}
+            />
 
-      <QuickNavCard
-        title="Exercices"
-        icon={requestsIcon}
-        active={activeSection === "exercices"}
-        onClick={() => {
-          setActiveSection("exercices");
-          navigate("/coach/exercices");
-        }}
-      />
+            <QuickNavCard
+              title="Requests"
+              icon={requestsIcon}
+              badge={String(pendingRequestsCount)}
+            />
 
-    </div>
-  </div>
-</div>
+            <QuickNavCard
+              title="Offers"
+              icon={requestsIcon}
+              onClick={() => navigate("/coach/offres")}
+            />
 
+            <QuickNavCard
+              title="Bookings"
+              icon={bookingsIcon}
+              active={activeSection === "bookings"}
+              onClick={() => {
+                setActiveSection("bookings");
+                fetchSeances();
+              }}
+            />
 
+            <QuickNavCard
+              title="Seances"
+              icon={bookingsIcon}
+              active={activeSection === "seances"}
+              onClick={() => {
+                setActiveSection("seances");
+                navigate("/coach/seances");
+              }}
+            />
+
+            <QuickNavCard
+              title="Chat"
+              icon={chatIcon}
+              onClick={() => navigate("/coach/messages")}
+            />
+
+            <QuickNavCard
+              title="Earnings"
+              icon={earningsIcon}
+              active={activeSection === "earnings"}
+              onClick={() => {
+                setActiveSection("earnings");
+                // fetchEarnings sera appelé via useEffect quand la section est active
+              }}
+            />
+
+            <QuickNavCard
+              title="Wallet"
+              icon={walletIcon}
+              active={activeSection === "wallet"}
+              onClick={() => {
+                setActiveSection("wallet");
+                fetchFactures();
+                fetchFacturesStats();
+              }}
+            />
+
+            <QuickNavCard
+              title="Profile Setting"
+              icon={profileIcon}
+              onClick={() => navigate("/coach/profile")}
+            />
+
+            <QuickNavCard
+              title="Programmes"
+              icon={programmesIcon}
+              active={activeSection === "programmes"}
+              onClick={() => {
+                setActiveSection("programmes");
+                navigate("/coach/programmes");
+              }}
+            />
+
+            <QuickNavCard
+              title="Exercices"
+              icon={requestsIcon}
+              active={activeSection === "exercices"}
+              onClick={() => {
+                setActiveSection("exercices");
+                navigate("/coach/exercices");
+              }}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Content */}
-     {activeSection === "bookings" && (
-  <div className="max-w-7xl mx-auto px-6 py-10">
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      {activeSection === "bookings" && (
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-extrabold text-gray-900">
+                  Bookings
+                </h2>
+                <p className="text-gray-500 mt-1">
+                  Effortlessly track and manage your completed bookings
+                </p>
+              </div>
+            </div>
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-extrabold text-gray-900">Bookings</h2>
-          <p className="text-gray-500 mt-1">
-            Effortlessly track and manage your completed bookings
-          </p>
-        </div>
+            {/* Tabs */}
+            <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
+                {(["upcoming", "completed", "cancelled"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setBookingsStatus(t)}
+                    className={
+                      bookingsStatus === t
+                        ? "px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-semibold"
+                        : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+                    }
+                  >
+                    {t === "upcoming"
+                      ? "Upcoming"
+                      : t === "completed"
+                        ? "Completed"
+                        : "Cancelled"}
+                  </button>
+                ))}
+              </div>
 
-  
-      </div>
+              <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
+                <button
+                  onClick={() => setBookingsType("court")}
+                  className={
+                    bookingsType === "court"
+                      ? "px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold"
+                      : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+                  }
+                >
+                  Court
+                </button>
+                <button
+                  onClick={() => setBookingsType("coaching")}
+                  className={
+                    bookingsType === "coaching"
+                      ? "px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold"
+                      : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+                  }
+                >
+                  Coaching
+                </button>
+              </div>
+            </div>
 
-      {/* Tabs */}
-      <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
-          {(["upcoming","completed","cancelled"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setBookingsStatus(t)}
-              className={
-                bookingsStatus === t
-                  ? "px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-semibold"
-                  : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
-              }
-            >
-              {t === "upcoming" ? "Upcoming" : t === "completed" ? "Completed" : "Cancelled"}
-            </button>
-          ))}
-        </div>
+            {/* Search + Refresh */}
+            <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
+              <input
+                value={bookingsSearch}
+                onChange={(e) => setBookingsSearch(e.target.value)}
+                placeholder="Search by title..."
+                className="w-80 max-w-full border border-gray-200 rounded-xl px-4 py-3"
+              />
 
-        <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
-          <button
-            onClick={() => setBookingsType("court")}
-            className={
-              bookingsType === "court"
-                ? "px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold"
-                : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
-            }
-          >
-            Court
-          </button>
-          <button
-            onClick={() => setBookingsType("coaching")}
-            className={
-              bookingsType === "coaching"
-                ? "px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold"
-                : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
-            }
-          >
-            Coaching
-          </button>
-        </div>
-      </div>
+              <button
+                onClick={fetchSeances}
+                className="px-4 py-3 rounded-xl bg-(--primary) text-white font-semibold"
+              >
+                Refresh
+              </button>
+            </div>
 
-      {/* Search + Refresh */}
-      <div className="mt-6 flex items-center justify-between gap-4 flex-wrap">
-        <input
-          value={bookingsSearch}
-          onChange={(e) => setBookingsSearch(e.target.value)}
-          placeholder="Search by title..."
-          className="w-80 max-w-full border border-gray-200 rounded-xl px-4 py-3"
-        />
+            {/* Table */}
+            <div className="mt-6 overflow-x-auto">
+              <div className="min-w-225">
+                <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl">
+                  <div className="col-span-4">Titre</div>
+                  <div className="col-span-3">Date & Time</div>
+                  <div className="col-span-3">Type / Statut</div>
+                  <div className="col-span-2">Action</div>
+                </div>
 
-        <button
-          onClick={fetchSeances}
-          className="px-4 py-3 rounded-xl bg-[color:var(--primary)] text-white font-semibold"
-        >
-          Refresh
-        </button>
-      </div>
+                {loadingSeances && (
+                  <p className="mt-4 text-gray-500">Loading…</p>
+                )}
+                {actionLoading && (
+                  <p className="mt-2 text-sm text-gray-500">
+                    Traitement de la séance…
+                  </p>
+                )}
+                {errorSeances && (
+                  <p className="mt-4 text-red-600">{errorSeances}</p>
+                )}
 
-      {/* Table */}
-      <div className="mt-6 overflow-x-auto">
-        <div className="min-w-[900px]">
-          <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl">
-            <div className="col-span-4">Titre</div>
-            <div className="col-span-3">Date & Time</div>
-            <div className="col-span-3">Type / Statut</div>
-            <div className="col-span-2">Action</div>
+                <div className="divide-y divide-gray-100">
+                  {filteredSeances
+                    .filter((s) => {
+                      // filtre search simple
+                      if (!bookingsSearch.trim()) return true;
+                      const q = bookingsSearch.toLowerCase();
+                      return String(s.titre ?? s.title ?? "")
+                        .toLowerCase()
+                        .includes(q);
+                    })
+                    .map((s) => (
+                      <div
+                        key={s.id}
+                        className="grid grid-cols-12 gap-4 items-center px-4 py-4"
+                      >
+                        <div className="col-span-4">
+                          <p className="font-bold text-gray-900">
+                            {s.titre ?? s.title ?? `Séance #${s.id}`}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {s.lieu ?? "-"}
+                          </p>
+                        </div>
+
+                        <div className="col-span-3 text-sm text-gray-700">
+                          <p>{s.date ?? "-"}</p>
+                          <p className="text-gray-500">
+                            {s.heure_debut ?? s.start_time ?? "--:--"} -{" "}
+                            {s.heure_fin ?? s.end_time ?? "--:--"}
+                          </p>
+                        </div>
+
+                        <div className="col-span-3 text-sm text-gray-700">
+                          <p className="font-semibold">{s.type ?? "-"}</p>
+                          <p className="text-gray-500">{s.statut ?? "-"}</p>
+                        </div>
+
+                        <div className="relative">
+                          <button
+                            onClick={() =>
+                              setOpenActionId((prev) =>
+                                prev === s.id ? null : s.id,
+                              )
+                            }
+                            className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center"
+                          >
+                            •••
+                          </button>
+
+                          {openActionId === s.id && (
+                            <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+                              <button
+                                onClick={() => {
+                                  setOpenActionId(null);
+                                  openViewSeance(s.id);
+                                }}
+                                className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                              >
+                                👁️ View
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setOpenActionId(null);
+                                  setSelectedSeance(s);
+                                  setIsModalOpen(true);
+                                  setModalMode("edit");
+                                }}
+                                className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                              >
+                                ✏️ Edit
+                              </button>
+
+                              <button
+                                onClick={() => deleteSeance(s.id)}
+                                className="w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 text-left"
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                  {!loadingSeances &&
+                    !errorSeances &&
+                    filteredSeances.length === 0 && (
+                      <p className="mt-4 text-gray-500">
+                        Aucune séance trouvée.
+                      </p>
+                    )}
+                </div>
+              </div>
+            </div>
+            {isModalOpen && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold">
+                      {modalMode === "view" ? "Seance Details" : "Edit Seance"}
+                    </h2>
+                    <button onClick={closeModal}>✕</button>
+                  </div>
+
+                  {modalMode === "view" && selectedSeance && (
+                    <div className="space-y-2 text-sm">
+                      <p>
+                        <b>Title:</b> {selectedSeance.titre}
+                      </p>
+                      <p>
+                        <b>Date:</b> {selectedSeance.date}
+                      </p>
+                      <p>
+                        <b>Start:</b> {selectedSeance.heure_debut}
+                      </p>
+                      <p>
+                        <b>Duration:</b> {selectedSeance.duree} min
+                      </p>
+                      <p>
+                        <b>Type:</b> {selectedSeance.type}
+                      </p>
+                      <p>
+                        <b>Status:</b> {selectedSeance.statut}
+                      </p>
+                    </div>
+                  )}
+
+                  {modalMode === "edit" && (
+                    <div className="space-y-3">
+                      <input
+                        value={editForm.titre}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, titre: e.target.value })
+                        }
+                        className="w-full border p-2 rounded"
+                      />
+
+                      <input
+                        type="date"
+                        value={editForm.date}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, date: e.target.value })
+                        }
+                        className="w-full border p-2 rounded"
+                      />
+
+                      <input
+                        type="time"
+                        value={editForm.heure_debut}
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            heure_debut: e.target.value,
+                          })
+                        }
+                        className="w-full border p-2 rounded"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={saveEditSeance}
+                        className="bg-black text-white px-4 py-2 rounded"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* NOTE: court tab */}
+            {bookingsType === "court" && (
+              <p className="mt-4 text-sm text-orange-600">
+                ⚠️ Court bookings: pas d’endpoint backend fourni dans le guide.
+                Utilise Coaching = Séances.
+              </p>
+            )}
           </div>
+        </div>
+      )}
 
-          {loadingSeances && <p className="mt-4 text-gray-500">Loading…</p>}
-          {actionLoading && <p className="mt-2 text-sm text-gray-500">Traitement de la séance…</p>}
-          {errorSeances && <p className="mt-4 text-red-600">{errorSeances}</p>}
+      {activeSection === "earnings" && (
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            {/* Header (like screenshot) */}
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-2xl font-extrabold text-gray-900">
+                  Invoices
+                </h2>
+                <p className="text-gray-500 mt-1">
+                  Maximize your coaching earnings and financial success
+                </p>
+              </div>
 
-          <div className="divide-y divide-gray-100">
-            {seances
-              .filter((s) => {
-                // filtre search simple
-                if (!bookingsSearch.trim()) return true;
-                const q = bookingsSearch.toLowerCase();
-                return String(s.titre ?? s.title ?? "").toLowerCase().includes(q);
-              })
-              .map((s) => (
-                <div key={s.id} className="grid grid-cols-12 gap-4 items-center px-4 py-4">
-                  <div className="col-span-4">
-                    <p className="font-bold text-gray-900">{s.titre ?? s.title ?? `Séance #${s.id}`}</p>
-                    <p className="text-sm text-gray-500">{s.lieu ?? "-"}</p>
-                  </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Search */}
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 w-70 max-w-full">
+                  <input
+                    value={earningsSearch}
+                    onChange={(e) => setEarningsSearch(e.target.value)}
+                    placeholder="Search"
+                    className="bg-transparent outline-none flex-1 text-sm"
+                  />
+                  <span className="text-gray-500">🔎</span>
+                </div>
 
-                  <div className="col-span-3 text-sm text-gray-700">
-                    <p>{s.date ?? "-"}</p>
-                    <p className="text-gray-500">
-                      {s.heure_debut ?? s.start_time ?? "--:--"} - {s.heure_fin ?? s.end_time ?? "--:--"}
-                    </p>
-                  </div>
+                {/* Status dropdown like “All Invoices” */}
+                <select
+                  value={earningsStatus}
+                  onChange={(e) => setEarningsStatus(e.target.value)}
+                  className="border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 bg-white"
+                >
+                  <option value="">All Invoices</option>
+                  <option value="en_attente">En attente</option>
+                  <option value="valide">Validé</option>
+                  <option value="refuse">Refusé</option>
+                  <option value="rembourse">Remboursé</option>
+                  <option value="annule">Annulé</option>
+                </select>
 
-                  <div className="col-span-3 text-sm text-gray-700">
-                    <p className="font-semibold">{s.type ?? "-"}</p>
-                    <p className="text-gray-500">{s.statut ?? "-"}</p>
-                  </div>
+                {/* Period dropdown like “This Week” */}
+                <select
+                  value={earningsPeriod}
+                  onChange={(e) =>
+                    setEarningsPeriod(e.target.value as PeriodKey)
+                  }
+                  className="border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 bg-white"
+                >
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                  <option value="custom">Custom</option>
+                </select>
 
-                  <div className="relative">
-  <button
-    onClick={() =>
-      setOpenActionId((prev) => (prev === s.id ? null : s.id))
-    }
-    className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center"
-  >
-    •••
-  </button>
+                <button
+                  onClick={fetchEarnings}
+                  className="px-4 py-3 rounded-xl bg-(--primary) text-white font-semibold"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
 
-  {openActionId === s.id && (
-    <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
-      <button
-        onClick={() => {
-          setOpenActionId(null);
-          openViewSeance(s.id);
-        }}
-        className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
-      >
-        👁️ View
-      </button>
+            {/* Custom date range (only if custom) */}
+            {earningsPeriod === "custom" && (
+              <div className="mt-5 grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-700">
+                    Date début
+                  </label>
+                  <input
+                    type="date"
+                    value={earningsDateDebut}
+                    onChange={(e) => setEarningsDateDebut(e.target.value)}
+                    className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-3"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-700">
+                    Date fin
+                  </label>
+                  <input
+                    type="date"
+                    value={earningsDateFin}
+                    onChange={(e) => setEarningsDateFin(e.target.value)}
+                    className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-3"
+                  />
+                </div>
+                <div className="md:col-span-2 flex items-end justify-end">
+                  <button
+                    onClick={fetchEarnings}
+                    className="px-4 py-3 rounded-xl bg-gray-900 text-white font-semibold"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            )}
 
-      <button
-        onClick={() => {
-          setOpenActionId(null);
-          setSelectedSeance(s);
-          setIsModalOpen(true);
-          setModalMode("edit");
-        }}
-        className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
-      >
-        ✏️ Edit
-      </button>
-
-      <button
-        onClick={() => deleteSeance(s.id)}
-        className="w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 text-left"
-      >
-        🗑️ Delete
-      </button>
-    </div>
-  )}
-</div>
+            {/* Stats row (optional but aligned backend) */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+              {[
+                {
+                  label: "Revenue",
+                  value: paymentStats
+                    ? `${paymentStats.chiffre_affaires.toFixed(2)} €`
+                    : "—",
+                },
+                {
+                  label: "Net",
+                  value: paymentStats
+                    ? `${paymentStats.ca_net.toFixed(2)} €`
+                    : "—",
+                },
+                {
+                  label: "Pending",
+                  value: paymentStats
+                    ? `${paymentStats.en_attente.toFixed(2)} €`
+                    : "—",
+                },
+                {
+                  label: "Refunded",
+                  value: paymentStats
+                    ? `${paymentStats.total_rembourse.toFixed(2)} €`
+                    : "—",
+                },
+              ].map((c) => (
+                <div
+                  key={c.label}
+                  className="rounded-2xl bg-gray-50 border border-gray-100 p-5"
+                >
+                  <p className="text-sm text-gray-600 font-semibold">
+                    {c.label}
+                  </p>
+                  <p className="text-2xl font-extrabold text-gray-900 mt-2">
+                    {c.value}
+                  </p>
                 </div>
               ))}
+            </div>
 
-            {!loadingSeances && !errorSeances && seances.length === 0 && (
-              <p className="mt-4 text-gray-500">Aucune séance trouvée.</p>
-            )}
-          </div>
-        </div>
-      </div>
-      {isModalOpen && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl p-6">
-      
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">
-          {modalMode === "view" ? "Seance Details" : "Edit Seance"}
-        </h2>
-        <button onClick={closeModal}>✕</button>
-      </div>
+            {/* Chart like screenshot */}
+            <MiniBarChart data={chartData} max={chartMax} />
 
-      {modalMode === "view" && selectedSeance && (
-        <div className="space-y-2 text-sm">
-          <p><b>Title:</b> {selectedSeance.titre}</p>
-          <p><b>Date:</b> {selectedSeance.date}</p>
-          <p><b>Start:</b> {selectedSeance.heure_debut}</p>
-          <p><b>Duration:</b> {selectedSeance.duree} min</p>
-          <p><b>Type:</b> {selectedSeance.type}</p>
-          <p><b>Status:</b> {selectedSeance.statut}</p>
-        </div>
-      )}
+            {/* Table like screenshot */}
+            <div className="mt-8 overflow-x-auto">
+              <div className="min-w-275">
+                <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl">
+                  <div className="col-span-3">Client</div>
+                  <div className="col-span-2">Method</div>
+                  <div className="col-span-2">Date & Time</div>
+                  <div className="col-span-2">Payment</div>
+                  <div className="col-span-2">Status</div>
+                  <div className="col-span-1">Action</div>
+                </div>
 
-      {modalMode === "edit" && (
-        <div className="space-y-3">
-          <input
-            value={editForm.titre}
-            onChange={(e) => setEditForm({...editForm, titre: e.target.value})}
-            className="w-full border p-2 rounded"
-          />
+                {loadingEarnings && (
+                  <p className="mt-4 text-gray-500">Loading…</p>
+                )}
+                {errorEarnings && (
+                  <p className="mt-4 text-red-600">{errorEarnings}</p>
+                )}
 
-          <input
-            type="date"
-            value={editForm.date}
-            onChange={(e) => setEditForm({...editForm, date: e.target.value})}
-            className="w-full border p-2 rounded"
-          />
+                <div className="divide-y divide-gray-100">
+                  {payments
+                    .filter((p) => {
+                      if (!earningsSearch.trim()) return true;
+                      const q = earningsSearch.toLowerCase();
+                      const clientName = String(
+                        (p.client?.full_name ||
+                          `${p.client?.first_name ?? ""} ${p.client?.last_name ?? ""}`.trim()) ??
+                          "",
+                      );
+                      return (
+                        String(clientName).toLowerCase().includes(q) ||
+                        String(p.reference ?? "")
+                          .toLowerCase()
+                          .includes(q) ||
+                        String(p.description ?? "")
+                          .toLowerCase()
+                          .includes(q) ||
+                        String(p.methode_label ?? p.methode ?? "")
+                          .toLowerCase()
+                          .includes(q) ||
+                        String(p.statut_label ?? p.statut ?? "")
+                          .toLowerCase()
+                          .includes(q)
+                      );
+                    })
+                    .map((p) => {
+                      const clientName = String(
+                        p.client?.full_name ||
+                          `${p.client?.first_name ?? ""} ${p.client?.last_name ?? ""}`.trim() ||
+                          `Client #${p.client?.id ?? "-"}`,
+                      );
 
-          <input
-            type="time"
-            value={editForm.heure_debut}
-            onChange={(e) => setEditForm({...editForm, heure_debut: e.target.value})}
-            className="w-full border p-2 rounded"
-          />
+                      const dateOnly = (p.date_paiement || "").slice(0, 10);
+                      const timeOnly = (p.date_paiement || "").slice(11, 16);
 
-          <button
-  type="button"
-  onClick={saveEditSeance}
-  className="bg-black text-white px-4 py-2 rounded"
->
-  Save
-</button>
-        </div>
-      )}
+                      return (
+                        <div
+                          key={p.id}
+                          className="grid grid-cols-12 gap-4 items-center px-4 py-4"
+                        >
+                          <div className="col-span-3 flex items-center gap-3">
+                            {/* avatar placeholder (backend ne donne pas d'image) */}
+                            <div className="w-12 h-12 rounded-xl bg-gray-200" />
+                            <div>
+                              <p className="font-bold text-gray-900">
+                                {clientName}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {p.reference ?? `PAY-${p.id}`}
+                              </p>
+                            </div>
+                          </div>
 
-    </div>
-  </div>
-)}
+                          <div className="col-span-2 text-sm text-gray-700">
+                            {p.methode_label ?? p.methode}
+                          </div>
 
-      {/* NOTE: court tab */}
-      {bookingsType === "court" && (
-        <p className="mt-4 text-sm text-orange-600">
-          ⚠️ Court bookings: pas d’endpoint backend fourni dans le guide. Utilise Coaching = Séances.
-        </p>
-      )}
-    </div>
-  </div>
-)}
+                          <div className="col-span-2 text-sm text-gray-700">
+                            <p className="font-semibold text-gray-900">
+                              {dateOnly || "-"}
+                            </p>
+                            <p className="text-gray-500">{timeOnly || ""}</p>
+                          </div>
 
-{activeSection === "earnings" && (
-  <div className="max-w-7xl mx-auto px-6 py-10">
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                          <div className="col-span-2 font-extrabold text-gray-900">
+                            {p.montant?.formatted ??
+                              `${p.montant?.amount ?? 0} ${p.montant?.currency ?? ""}`}
+                          </div>
 
-      {/* Header (like screenshot) */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-2xl font-extrabold text-gray-900">Invoices</h2>
-          <p className="text-gray-500 mt-1">
-            Maximize your coaching earnings and financial success
-          </p>
-        </div>
+                          <div className="col-span-2">
+                            <span className="px-3 py-1 rounded-lg bg-gray-100 text-gray-800 text-xs font-bold inline-flex items-center gap-2">
+                              <span className="inline-block w-3 h-3 bg-gray-400 rounded-sm" />
+                              {p.statut_label ?? p.statut}
+                            </span>
+                          </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Search */}
-          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 w-[280px] max-w-full">
-            <input
-              value={earningsSearch}
-              onChange={(e) => setEarningsSearch(e.target.value)}
-              placeholder="Search"
-              className="bg-transparent outline-none flex-1 text-sm"
-            />
-            <span className="text-gray-500">🔎</span>
-          </div>
+                          <div className="col-span-1 relative flex justify-end">
+                            <button
+                              disabled={earningsActionLoading}
+                              onClick={() =>
+                                setOpenPaymentActionId((prev) =>
+                                  prev === p.id ? null : p.id,
+                                )
+                              }
+                              className="w-10 h-10 rounded-full bg-emerald-700 text-white flex items-center justify-center disabled:opacity-50"
+                            >
+                              •••
+                            </button>
 
-          {/* Status dropdown like “All Invoices” */}
-          <select
-            value={earningsStatus}
-            onChange={(e) => setEarningsStatus(e.target.value)}
-            className="border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 bg-white"
-          >
-            <option value="">All Invoices</option>
-            <option value="en_attente">En attente</option>
-            <option value="valide">Validé</option>
-            <option value="refuse">Refusé</option>
-            <option value="rembourse">Remboursé</option>
-            <option value="annule">Annulé</option>
-          </select>
+                            {openPaymentActionId === p.id && (
+                              <div className="absolute right-0 top-12 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                                <button
+                                  onClick={() =>
+                                    postPaymentAction(p.id, "valider")
+                                  }
+                                  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                                >
+                                  ✅ Validate
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    postPaymentAction(p.id, "annuler")
+                                  }
+                                  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                                >
+                                  ⛔ Cancel
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setOpenPaymentActionId(null);
+                                    openRefundModal(p);
+                                  }}
+                                  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                                >
+                                  💸 Refund
+                                </button>
+                                <button
+                                  onClick={() => deletePayment(p.id)}
+                                  className="w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 text-left"
+                                >
+                                  🗑️ Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
 
-          {/* Period dropdown like “This Week” */}
-          <select
-            value={earningsPeriod}
-            onChange={(e) => setEarningsPeriod(e.target.value as PeriodKey)}
-            className="border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 bg-white"
-          >
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="year">This Year</option>
-            <option value="custom">Custom</option>
-          </select>
+                  {!loadingEarnings &&
+                    !errorEarnings &&
+                    payments.length === 0 && (
+                      <p className="mt-4 text-gray-500">
+                        Aucun paiement trouvé.
+                      </p>
+                    )}
+                </div>
+              </div>
+            </div>
 
-          <button
-            onClick={fetchEarnings}
-            className="px-4 py-3 rounded-xl bg-[color:var(--primary)] text-white font-semibold"
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
+            {/* Refund Modal */}
+            {refundModalOpen && refundTarget && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <button
+                  type="button"
+                  className="absolute inset-0"
+                  onClick={() => setRefundModalOpen(false)}
+                  aria-label="Close"
+                />
+                <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-extrabold text-gray-900">
+                      Refund Payment
+                    </h3>
+                    <button
+                      onClick={() => setRefundModalOpen(false)}
+                      className="text-xl font-bold text-gray-500"
+                    >
+                      ×
+                    </button>
+                  </div>
 
-      {/* Custom date range (only if custom) */}
-      {earningsPeriod === "custom" && (
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-4 gap-3">
-          <div>
-            <label className="text-xs font-bold text-gray-700">Date début</label>
-            <input
-              type="date"
-              value={earningsDateDebut}
-              onChange={(e) => setEarningsDateDebut(e.target.value)}
-              className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-3"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-gray-700">Date fin</label>
-            <input
-              type="date"
-              value={earningsDateFin}
-              onChange={(e) => setEarningsDateFin(e.target.value)}
-              className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-3"
-            />
-          </div>
-          <div className="md:col-span-2 flex items-end justify-end">
-            <button
-              onClick={fetchEarnings}
-              className="px-4 py-3 rounded-xl bg-gray-900 text-white font-semibold"
-            >
-              Apply
-            </button>
-          </div>
-        </div>
-      )}
+                  <p className="text-sm text-gray-500 mt-2">
+                    {refundTarget.reference ?? `PAY-${refundTarget.id}`} •{" "}
+                    {refundTarget.montant?.formatted ?? ""}
+                  </p>
 
-      {/* Stats row (optional but aligned backend) */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[
-          { label: "Revenue", value: paymentStats ? `${paymentStats.chiffre_affaires.toFixed(2)} €` : "—" },
-          { label: "Net", value: paymentStats ? `${paymentStats.ca_net.toFixed(2)} €` : "—" },
-          { label: "Pending", value: paymentStats ? `${paymentStats.en_attente.toFixed(2)} €` : "—" },
-          { label: "Refunded", value: paymentStats ? `${paymentStats.total_rembourse.toFixed(2)} €` : "—" },
-        ].map((c) => (
-          <div key={c.label} className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
-            <p className="text-sm text-gray-600 font-semibold">{c.label}</p>
-            <p className="text-2xl font-extrabold text-gray-900 mt-2">{c.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Chart like screenshot */}
-      <MiniBarChart data={chartData} max={chartMax} />
-
-      {/* Table like screenshot */}
-      <div className="mt-8 overflow-x-auto">
-        <div className="min-w-[1100px]">
-          <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl">
-            <div className="col-span-3">Client</div>
-            <div className="col-span-2">Method</div>
-            <div className="col-span-2">Date & Time</div>
-            <div className="col-span-2">Payment</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-1">Action</div>
-          </div>
-
-          {loadingEarnings && <p className="mt-4 text-gray-500">Loading…</p>}
-          {errorEarnings && <p className="mt-4 text-red-600">{errorEarnings}</p>}
-
-          <div className="divide-y divide-gray-100">
-            {payments
-              .filter((p) => {
-                if (!earningsSearch.trim()) return true;
-                const q = earningsSearch.toLowerCase();
-                const clientName = String(
-                  (p.client?.full_name ||
-                    `${p.client?.first_name ?? ""} ${p.client?.last_name ?? ""}`.trim()) ?? "",
-                );
-                return (
-                  String(clientName).toLowerCase().includes(q) ||
-                  String(p.reference ?? "").toLowerCase().includes(q) ||
-                  String(p.description ?? "").toLowerCase().includes(q) ||
-                  String(p.methode_label ?? p.methode ?? "").toLowerCase().includes(q) ||
-                  String(p.statut_label ?? p.statut ?? "").toLowerCase().includes(q)
-                );
-              })
-              .map((p) => {
-                const clientName = String(
-                  p.client?.full_name ||
-                    `${p.client?.first_name ?? ""} ${p.client?.last_name ?? ""}`.trim() ||
-                    `Client #${p.client?.id ?? "-"}`,
-                );
-
-                const dateOnly = (p.date_paiement || "").slice(0, 10);
-                const timeOnly = (p.date_paiement || "").slice(11, 16);
-
-                return (
-                  <div key={p.id} className="grid grid-cols-12 gap-4 items-center px-4 py-4">
-                    <div className="col-span-3 flex items-center gap-3">
-                      {/* avatar placeholder (backend ne donne pas d'image) */}
-                      <div className="w-12 h-12 rounded-xl bg-gray-200" />
-                      <div>
-                        <p className="font-bold text-gray-900">{clientName}</p>
-                        <p className="text-sm text-gray-500">{p.reference ?? `PAY-${p.id}`}</p>
-                      </div>
+                  <div className="mt-5 space-y-3">
+                    <div>
+                      <label className="text-xs font-bold text-gray-700">
+                        Amount
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={refundAmount}
+                        onChange={(e) => setRefundAmount(e.target.value)}
+                        className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-3"
+                      />
                     </div>
 
-                    <div className="col-span-2 text-sm text-gray-700">
-                      {p.methode_label ?? p.methode}
+                    <div>
+                      <label className="text-xs font-bold text-gray-700">
+                        Reason
+                      </label>
+                      <input
+                        value={refundMotif}
+                        onChange={(e) => setRefundMotif(e.target.value)}
+                        placeholder="Reason..."
+                        className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-3"
+                      />
                     </div>
 
-                    <div className="col-span-2 text-sm text-gray-700">
-                      <p className="font-semibold text-gray-900">{dateOnly || "-"}</p>
-                      <p className="text-gray-500">{timeOnly || ""}</p>
-                    </div>
-
-                    <div className="col-span-2 font-extrabold text-gray-900">
-                      {p.montant?.formatted ?? `${p.montant?.amount ?? 0} ${p.montant?.currency ?? ""}`}
-                    </div>
-
-                    <div className="col-span-2">
-                      <span className="px-3 py-1 rounded-lg bg-gray-100 text-gray-800 text-xs font-bold inline-flex items-center gap-2">
-                        <span className="inline-block w-3 h-3 bg-gray-400 rounded-sm" />
-                        {p.statut_label ?? p.statut}
-                      </span>
-                    </div>
-
-                    <div className="col-span-1 relative flex justify-end">
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                      <button
+                        onClick={() => setRefundModalOpen(false)}
+                        className="px-4 py-3 rounded-xl border border-gray-200 font-semibold text-gray-700"
+                      >
+                        Cancel
+                      </button>
                       <button
                         disabled={earningsActionLoading}
-                        onClick={() => setOpenPaymentActionId((prev) => (prev === p.id ? null : p.id))}
-                        className="w-10 h-10 rounded-full bg-emerald-700 text-white flex items-center justify-center disabled:opacity-50"
+                        onClick={submitRefund}
+                        className="px-4 py-3 rounded-xl bg-gray-900 text-white font-semibold disabled:opacity-50"
                       >
-                        •••
+                        Refund
                       </button>
-
-                      {openPaymentActionId === p.id && (
-                        <div className="absolute right-0 top-12 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
-                          <button
-                            onClick={() => postPaymentAction(p.id, "valider")}
-                            className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
-                          >
-                            ✅ Validate
-                          </button>
-                          <button
-                            onClick={() => postPaymentAction(p.id, "annuler")}
-                            className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
-                          >
-                            ⛔ Cancel
-                          </button>
-                          <button
-                            onClick={() => {
-                              setOpenPaymentActionId(null);
-                              openRefundModal(p);
-                            }}
-                            className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
-                          >
-                            💸 Refund
-                          </button>
-                          <button
-                            onClick={() => deletePayment(p.id)}
-                            className="w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 text-left"
-                          >
-                            🗑️ Delete
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </div>
-                );
-              })}
-
-            {!loadingEarnings && !errorEarnings && payments.length === 0 && (
-              <p className="mt-4 text-gray-500">Aucun paiement trouvé.</p>
+                </div>
+              </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Refund Modal */}
-      {refundModalOpen && refundTarget && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <button
-            type="button"
-            className="absolute inset-0"
-            onClick={() => setRefundModalOpen(false)}
-            aria-label="Close"
-          />
-          <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-extrabold text-gray-900">Refund Payment</h3>
-              <button onClick={() => setRefundModalOpen(false)} className="text-xl font-bold text-gray-500">×</button>
-            </div>
-
-            <p className="text-sm text-gray-500 mt-2">
-              {refundTarget.reference ?? `PAY-${refundTarget.id}`} • {refundTarget.montant?.formatted ?? ""}
-            </p>
-
-            <div className="mt-5 space-y-3">
-              <div>
-                <label className="text-xs font-bold text-gray-700">Amount</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={refundAmount}
-                  onChange={(e) => setRefundAmount(e.target.value)}
-                  className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-3"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-gray-700">Reason</label>
-                <input
-                  value={refundMotif}
-                  onChange={(e) => setRefundMotif(e.target.value)}
-                  placeholder="Reason..."
-                  className="mt-1 w-full border border-gray-200 rounded-xl px-4 py-3"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  onClick={() => setRefundModalOpen(false)}
-                  className="px-4 py-3 rounded-xl border border-gray-200 font-semibold text-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  disabled={earningsActionLoading}
-                  onClick={submitRefund}
-                  className="px-4 py-3 rounded-xl bg-gray-900 text-white font-semibold disabled:opacity-50"
-                >
-                  Refund
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}
 
-    </div>
-  </div>
-)}
+      {activeSection === "wallet" && (
+        <div className="max-w-7xl mx-auto px-6 py-10">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-2xl font-extrabold text-gray-900">
+                  Wallet
+                </h2>
+                <p className="text-gray-500 mt-1">
+                  Factures (stats, PDF, cycle de vie)
+                </p>
+              </div>
 
-{activeSection === "wallet" && (
-  <div className="max-w-7xl mx-auto px-6 py-10">
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="relative">
+                  <input
+                    value={walletSearch}
+                    onChange={(e) => setWalletSearch(e.target.value)}
+                    placeholder="Search (numero / client)..."
+                    className="w-72 max-w-full border border-gray-200 rounded-xl px-4 py-3 pr-10"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    🔎
+                  </span>
+                </div>
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-2xl font-extrabold text-gray-900">Wallet</h2>
-          <p className="text-gray-500 mt-1">
-            Factures (stats, PDF, cycle de vie)
-          </p>
-        </div>
+                <select
+                  value={walletStatut}
+                  onChange={(e) =>
+                    setWalletStatut(e.target.value as WalletStatut)
+                  }
+                  className="border border-gray-200 rounded-xl px-4 py-3 bg-white"
+                >
+                  <option value="all">All</option>
+                  <option value="brouillon">Brouillon</option>
+                  <option value="emise">Émise</option>
+                  <option value="payee">Payée</option>
+                  <option value="annulee">Annulée</option>
+                  <option value="en_retard">En retard</option>
+                </select>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative">
-            <input
-              value={walletSearch}
-              onChange={(e) => setWalletSearch(e.target.value)}
-              placeholder="Search (numero / client)..."
-              className="w-72 max-w-full border border-gray-200 rounded-xl px-4 py-3 pr-10"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">🔎</span>
-          </div>
+                <input
+                  type="date"
+                  value={walletDateDebut}
+                  onChange={(e) => setWalletDateDebut(e.target.value)}
+                  className="border border-gray-200 rounded-xl px-4 py-3 bg-white"
+                />
+                <input
+                  type="date"
+                  value={walletDateFin}
+                  onChange={(e) => setWalletDateFin(e.target.value)}
+                  className="border border-gray-200 rounded-xl px-4 py-3 bg-white"
+                />
 
-          <select
-            value={walletStatut}
-            onChange={(e) => setWalletStatut(e.target.value as any)}
-            className="border border-gray-200 rounded-xl px-4 py-3 bg-white"
-          >
-            <option value="all">All</option>
-            <option value="brouillon">Brouillon</option>
-            <option value="emise">Émise</option>
-            <option value="payee">Payée</option>
-            <option value="annulee">Annulée</option>
-            <option value="en_retard">En retard</option>
-          </select>
+                <button
+                  onClick={() => {
+                    fetchFactures();
+                    fetchFacturesStats();
+                  }}
+                  className="px-4 py-3 rounded-xl bg-gray-900 text-white font-semibold"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
 
-          <input
-            type="date"
-            value={walletDateDebut}
-            onChange={(e) => setWalletDateDebut(e.target.value)}
-            className="border border-gray-200 rounded-xl px-4 py-3 bg-white"
-          />
-          <input
-            type="date"
-            value={walletDateFin}
-            onChange={(e) => setWalletDateFin(e.target.value)}
-            className="border border-gray-200 rounded-xl px-4 py-3 bg-white"
-          />
+            {/* Summary cards (backend stats) */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                <p className="text-sm text-gray-500 font-semibold">Total TTC</p>
+                <p className="text-2xl font-extrabold text-gray-900 mt-2">
+                  {loadingFacturesStats
+                    ? "…"
+                    : `${facturesStats?.total_ttc?.toFixed(2) ?? "0.00"} €`}
+                </p>
+              </div>
 
-          <button
-            onClick={() => { fetchFactures(); fetchFacturesStats(); }}
-            className="px-4 py-3 rounded-xl bg-gray-900 text-white font-semibold"
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                <p className="text-sm text-gray-500 font-semibold">Paid</p>
+                <p className="text-2xl font-extrabold text-emerald-700 mt-2">
+                  {loadingFacturesStats
+                    ? "…"
+                    : `${facturesStats?.montant_paye?.toFixed(2) ?? "0.00"} €`}
+                </p>
+              </div>
 
-      {/* Summary cards (backend stats) */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
-          <p className="text-sm text-gray-500 font-semibold">Total TTC</p>
-          <p className="text-2xl font-extrabold text-gray-900 mt-2">
-            {loadingFacturesStats ? "…" : `${facturesStats?.total_ttc?.toFixed(2) ?? "0.00"} €`}
-          </p>
-        </div>
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                <p className="text-sm text-gray-500 font-semibold">Pending</p>
+                <p className="text-2xl font-extrabold text-amber-600 mt-2">
+                  {loadingFacturesStats
+                    ? "…"
+                    : `${facturesStats?.montant_en_attente?.toFixed(2) ?? "0.00"} €`}
+                </p>
+              </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
-          <p className="text-sm text-gray-500 font-semibold">Paid</p>
-          <p className="text-2xl font-extrabold text-emerald-700 mt-2">
-            {loadingFacturesStats ? "…" : `${facturesStats?.montant_paye?.toFixed(2) ?? "0.00"} €`}
-          </p>
-        </div>
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                <p className="text-sm text-gray-500 font-semibold">
+                  Total Invoices
+                </p>
+                <p className="text-2xl font-extrabold text-gray-900 mt-2">
+                  {loadingFacturesStats
+                    ? "…"
+                    : `${facturesStats?.total_factures ?? 0}`}
+                </p>
+              </div>
+            </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
-          <p className="text-sm text-gray-500 font-semibold">Pending</p>
-          <p className="text-2xl font-extrabold text-amber-600 mt-2">
-            {loadingFacturesStats ? "…" : `${facturesStats?.montant_en_attente?.toFixed(2) ?? "0.00"} €`}
-          </p>
-        </div>
+            {/* Table */}
+            <div className="mt-6 overflow-x-auto">
+              <div className="min-w-262.5">
+                <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl">
+                  <div className="col-span-3">Invoice</div>
+                  <div className="col-span-3">Client</div>
+                  <div className="col-span-2">Dates</div>
+                  <div className="col-span-2">Amount (TTC)</div>
+                  <div className="col-span-1">Status</div>
+                  <div className="col-span-1 text-right">Action</div>
+                </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
-          <p className="text-sm text-gray-500 font-semibold">Total Invoices</p>
-          <p className="text-2xl font-extrabold text-gray-900 mt-2">
-            {loadingFacturesStats ? "…" : `${facturesStats?.total_factures ?? 0}`}
-          </p>
-        </div>
-      </div>
+                {loadingFactures && (
+                  <p className="mt-4 text-gray-500">Loading…</p>
+                )}
+                {errorFactures && (
+                  <p className="mt-4 text-red-600">{errorFactures}</p>
+                )}
 
-      {/* Table */}
-      <div className="mt-6 overflow-x-auto">
-        <div className="min-w-[1050px]">
-          <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl">
-            <div className="col-span-3">Invoice</div>
-            <div className="col-span-3">Client</div>
-            <div className="col-span-2">Dates</div>
-            <div className="col-span-2">Amount (TTC)</div>
-            <div className="col-span-1">Status</div>
-            <div className="col-span-1 text-right">Action</div>
-          </div>
+                <div className="divide-y divide-gray-100">
+                  {factures
+                    .filter((f) => {
+                      if (!walletSearch.trim()) return true;
+                      const q = walletSearch.toLowerCase();
+                      const clientFullName =
+                        typeof f.client?.full_name === "string"
+                          ? f.client.full_name
+                          : "";
+                      const fallbackClientName =
+                        `${String(f.client?.first_name ?? "")} ${String(f.client?.last_name ?? "")}`.trim();
+                      const clientName = clientFullName || fallbackClientName;
+                      return (
+                        String(f.numero ?? "")
+                          .toLowerCase()
+                          .includes(q) || clientName.toLowerCase().includes(q)
+                      );
+                    })
+                    .map((f) => {
+                      const clientFullName =
+                        typeof f.client?.full_name === "string"
+                          ? f.client.full_name
+                          : "";
+                      const fallbackClientName =
+                        `${String(f.client?.first_name ?? "")} ${String(f.client?.last_name ?? "")}`.trim();
+                      const clientName =
+                        clientFullName || fallbackClientName || "—";
 
-          {loadingFactures && <p className="mt-4 text-gray-500">Loading…</p>}
-          {errorFactures && <p className="mt-4 text-red-600">{errorFactures}</p>}
+                      return (
+                        <div
+                          key={f.id}
+                          className="grid grid-cols-12 gap-4 items-center px-4 py-4"
+                        >
+                          <div className="col-span-3">
+                            <p className="font-bold text-gray-900">
+                              {f.numero ?? `FAC#${f.id}`}
+                            </p>
+                            <p className="text-xs text-gray-500">ID: {f.id}</p>
+                          </div>
 
-          <div className="divide-y divide-gray-100">
-            {factures
-              .filter((f) => {
-                if (!walletSearch.trim()) return true;
-                const q = walletSearch.toLowerCase();
-                const clientFullName =
-                  typeof f.client?.full_name === "string" ? f.client.full_name : "";
-                const fallbackClientName =
-                  `${String(f.client?.first_name ?? "")} ${String(f.client?.last_name ?? "")}`.trim();
-                const clientName = clientFullName || fallbackClientName;
-                return (
-                  String(f.numero ?? "").toLowerCase().includes(q) ||
-                  clientName.toLowerCase().includes(q)
-                );
-              })
-              .map((f) => {
-                const clientFullName =
-                  typeof f.client?.full_name === "string" ? f.client.full_name : "";
-                const fallbackClientName =
-                  `${String(f.client?.first_name ?? "")} ${String(f.client?.last_name ?? "")}`.trim();
-                const clientName = clientFullName || fallbackClientName || "—";
+                          <div className="col-span-3">
+                            <p className="font-semibold text-gray-900">
+                              {clientName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              client_id: {f.client?.id ?? "—"}
+                            </p>
+                          </div>
 
-                return (
-                  <div key={f.id} className="grid grid-cols-12 gap-4 items-center px-4 py-4">
-                    <div className="col-span-3">
-                      <p className="font-bold text-gray-900">{f.numero ?? `FAC#${f.id}`}</p>
-                      <p className="text-xs text-gray-500">ID: {f.id}</p>
-                    </div>
+                          <div className="col-span-2 text-sm text-gray-700">
+                            <p>Emit: {f.date_emission ?? "—"}</p>
+                            <p className="text-gray-500">
+                              Due: {f.date_echeance ?? "—"}
+                            </p>
+                          </div>
 
-                    <div className="col-span-3">
-                      <p className="font-semibold text-gray-900">{clientName}</p>
-                      <p className="text-xs text-gray-500">client_id: {f.client?.id ?? "—"}</p>
-                    </div>
+                          <div className="col-span-2 font-extrabold text-emerald-700">
+                            {(typeof f.montant_ttc === "number"
+                              ? f.montant_ttc
+                              : 0
+                            ).toFixed(2)}{" "}
+                            €
+                          </div>
 
-                    <div className="col-span-2 text-sm text-gray-700">
-                      <p>Emit: {f.date_emission ?? "—"}</p>
-                      <p className="text-gray-500">Due: {f.date_echeance ?? "—"}</p>
-                    </div>
-
-                    <div className="col-span-2 font-extrabold text-emerald-700">
-                      {(typeof f.montant_ttc === "number" ? f.montant_ttc : 0).toFixed(2)} €
-                    </div>
-
-                    <div className="col-span-1">
-                      <span
-                        className={`px-3 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-2
+                          <div className="col-span-1">
+                            <span
+                              className={`px-3 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-2
                           ${
                             f.statut === "payee"
                               ? "bg-emerald-100 text-emerald-700"
                               : f.statut === "emise"
-                              ? "bg-blue-100 text-blue-700"
-                              : f.statut === "en_retard"
-                              ? "bg-red-100 text-red-700"
-                              : f.statut === "annulee"
-                              ? "bg-gray-100 text-gray-600"
-                              : "bg-amber-100 text-amber-700"
+                                ? "bg-blue-100 text-blue-700"
+                                : f.statut === "en_retard"
+                                  ? "bg-red-100 text-red-700"
+                                  : f.statut === "annulee"
+                                    ? "bg-gray-100 text-gray-600"
+                                    : "bg-amber-100 text-amber-700"
                           }`}
-                      >
-                        {f.statut_label ?? f.statut}
-                      </span>
+                            >
+                              {f.statut_label ?? f.statut}
+                            </span>
+                          </div>
+
+                          <div className="col-span-1 flex justify-end relative">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenFactureActionId(
+                                  openFactureActionId === f.id ? null : f.id,
+                                )
+                              }
+                              className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center"
+                            >
+                              •••
+                            </button>
+
+                            {openFactureActionId === f.id && (
+                              <div className="absolute right-0 top-12 w-52 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
+                                <button
+                                  type="button"
+                                  onClick={() => downloadFacturePdf(f.id)}
+                                  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                                >
+                                  ⬇️ Download PDF
+                                </button>
+
+                                <div className="h-px bg-gray-100" />
+
+                                <button
+                                  type="button"
+                                  onClick={() => actionFacture(f.id, "emettre")}
+                                  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                                >
+                                  📤 Émettre
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => actionFacture(f.id, "payer")}
+                                  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                                >
+                                  ✅ Marquer payée
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => actionFacture(f.id, "annuler")}
+                                  className="w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 text-left"
+                                >
+                                  ⛔ Annuler
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                  {!loadingFactures &&
+                    !errorFactures &&
+                    factures.length === 0 && (
+                      <p className="mt-4 text-gray-500">
+                        Aucune facture trouvée.
+                      </p>
+                    )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {activeSection === "dashboard" && (
+        <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
+          {/* ================= STATS + PROFILE ================= */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* --------- STATISTICS (LEFT) --------- */}
+            <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
+              <h2 className="text-xl font-extrabold text-gray-900">
+                Statistics
+              </h2>
+              <p className="text-gray-500 mt-1">
+                Track progress and improve coaching performance
+              </p>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <StatCard
+                  icon={stat01}
+                  value={String(seances.length)}
+                  label="Total Courts Booked"
+                />
+                <StatCard
+                  icon={stat02}
+                  value={String(upcomingSeances.length)}
+                  label="Upcoming Bookings"
+                />
+                <StatCard
+                  icon={stat03}
+                  value={String(completedLessonsCount)}
+                  label="Total Lessons Taken"
+                />
+                <StatCard
+                  icon={stat04}
+                  value={`${Number(coachKpis?.ca ?? paymentsTotalAmount).toFixed(2)} €`}
+                  label="Coach Revenue"
+                />
+              </div>
+            </div>
+
+            {/* --------- PROFILE (RIGHT) --------- */}
+            <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
+              <h2 className="text-xl font-extrabold text-gray-900">Profile</h2>
+              <p className="text-gray-500 mt-1">
+                Impress potential students with an interesting profile
+              </p>
+
+              {/* Progress */}
+              <div className="mt-6">
+                <div className="flex justify-between text-sm font-semibold text-gray-700">
+                  <span>Today</span>
+                  <span>{profileCompletionPercent}%</span>
+                </div>
+                <div className="mt-2 h-2 rounded-full bg-gray-200 overflow-hidden">
+                  <div
+                    className="h-full bg-green-600"
+                    style={{ width: `${profileCompletionPercent}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                  Taux de remplissage:{" "}
+                  {Number(coachKpis?.taux_remplissage ?? 0).toFixed(1)}%
+                </p>
+              </div>
+
+              {/* Completed */}
+              <div className="mt-6">
+                <p className="text-sm font-bold text-gray-900">Completed</p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {completedProfileItems.map((item) => (
+                    <BadgeDone key={item.label} label={item.label} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Need to complete */}
+              <div className="mt-6">
+                <p className="text-sm font-bold text-gray-900">
+                  Need to Complete
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {pendingProfileItems.map((item) => (
+                    <BadgeTodo key={item.label} label={item.label} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ================= UPCOMING / NEXT APPOINTMENT ================= */}
+          <div className="mt-6 rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-extrabold text-gray-900">
+                  Ongoing Appointment
+                </h2>
+                <p className="text-gray-500 mt-1">
+                  Manage appointments with our convenient scheduling system
+                </p>
+              </div>
+
+              <span className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition duration-200">
+                Complete
+              </span>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-7 gap-6 items-center">
+              {/* Court */}
+              <div className="flex items-center gap-3 md:col-span-2">
+                <img
+                  src={bookingImg}
+                  alt="Court"
+                  className="w-14 h-14 rounded-xl object-cover"
+                />
+                <div>
+                  <p className="font-bold text-gray-900">
+                    {currentAppointment?.titre ?? "Aucun rendez-vous"}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {currentAppointment?.lieu ?? "-"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Client */}
+              <div className="flex items-center gap-3">
+                <img
+                  src={coachImg} // 👈 second image you mentioned
+                  alt="Client"
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <p className="font-semibold text-gray-900">
+                  {currentAppointmentClientName}
+                </p>
+              </div>
+
+              {/* Date */}
+              <div>
+                <p className="text-sm font-semibold text-gray-900">
+                  Appointment Date
+                </p>
+                <p className="text-sm text-gray-500">
+                  {formatDateUI(currentAppointment?.date)}
+                </p>
+              </div>
+
+              {/* Start */}
+              <div>
+                <p className="text-sm font-semibold text-gray-900">
+                  Start Time
+                </p>
+                <p className="text-sm text-gray-500">
+                  {formatTimeUI(currentAppointment?.heure_debut)}
+                </p>
+              </div>
+
+              {/* End */}
+              <div>
+                <p className="text-sm font-semibold text-gray-900">End Time</p>
+                <p className="text-sm text-gray-500">
+                  {formatTimeUI(currentAppointment?.heure_fin)}
+                </p>
+              </div>
+
+              {/* Guests */}
+              <div>
+                <p className="text-sm font-semibold text-gray-900">
+                  Additional Guests
+                </p>
+                <p className="text-sm text-gray-500">
+                  {Number(currentAppointment?.capacite_max ?? 1)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* ================= BOOKING REQUESTS ================= */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    Booking Requests
+                    <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                      {String(bookingRequestsData.length).padStart(2, "0")}
+                    </span>
+                  </h2>
+                  <p className="text-gray-500 text-sm mt-1">
+                    Easily handle court booking requests
+                  </p>
+                </div>
+
+                <div className="flex gap-2 bg-gray-50 p-1 rounded-full">
+                  <button
+                    onClick={() => setBookingTab("court")}
+                    className={
+                      bookingTab === "court"
+                        ? "bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full"
+                        : "bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full"
+                    }
+                  >
+                    Court
+                  </button>
+
+                  <button
+                    onClick={() => setBookingTab("coaching")}
+                    className={
+                      bookingTab === "coaching"
+                        ? "bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full"
+                        : "bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full"
+                    }
+                  >
+                    Coaching
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-5 divide-y">
+                {bookingRequestsData.map((b, i) => (
+                  <div
+                    key={i}
+                    className="py-3 flex justify-between items-center"
+                  >
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={b.img}
+                        className="w-10 h-10 rounded-lg object-cover"
+                      />
+                      <div>
+                        <p className="font-semibold text-sm text-gray-900">
+                          {b.name}
+                        </p>
+                        <p className="text-xs text-gray-500">{b.court}</p>
+                      </div>
                     </div>
 
-                    <div className="col-span-1 flex justify-end relative">
+                    <p className="text-xs text-gray-500">
+                      Date: {formatDateUI(b.date || seances[i]?.date)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ================= MY FAVOURITES ================= */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    My Favourites
+                  </h2>
+                  <p className="text-gray-500 text-sm mt-1">
+                    Lorem Ipsum is simply
+                  </p>
+                </div>
+
+                <button className="text-sm font-semibold text-gray-700 hover:underline">
+                  View All
+                </button>
+              </div>
+
+              <div className="mt-5 divide-y">
+                {favouriteClients.map((f, i) => (
+                  <div
+                    key={i}
+                    className="py-3 flex justify-between items-center"
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* 🔥 SQUARE AVATAR */}
+                      <img
+                        src={f.img}
+                        className="w-10 h-10 rounded-lg object-cover"
+                      />
+                      <div>
+                        <p className="font-semibold text-sm text-gray-900">
+                          {f.name}
+                        </p>
+                        <p className="text-xs text-gray-500">{f.count}</p>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-500">Date: {f.date}</p>
+                  </div>
+                ))}
+                {favouriteClients.length === 0 && (
+                  <p className="py-3 text-sm text-gray-500">
+                    Aucune donnee favorite disponible.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* ================= EARNINGS ================= */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-extrabold text-gray-900">
+                  Earnings
+                </h2>
+
+                <select className="border border-gray-200 rounded-lg px-3 py-1 text-sm">
+                  <option>This Week</option>
+                </select>
+              </div>
+
+              <div className="mt-8 flex justify-center">
+                <div className="relative w-40 h-40 flex items-center justify-center">
+                  {/* SVG donut */}
+                  <svg viewBox="0 0 36 36" className="w-40 h-40">
+                    {/* Background ring */}
+                    <path
+                      d="M18 2 a 16 16 0 1 1 0 32 a 16 16 0 1 1 0 -32"
+                      fill="none"
+                      stroke="#e5e7eb"
+                      strokeWidth="4"
+                    />
+
+                    {/* Valides */}
+                    <path
+                      d="M18 2 a 16 16 0 1 1 0 32 a 16 16 0 1 1 0 -32"
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth="4"
+                      strokeDasharray={`${earningsValidPercent} ${100 - earningsValidPercent}`}
+                      strokeDashoffset="0"
+                      onMouseEnter={() => setEarningsHover("court")}
+                      onMouseLeave={() => setEarningsHover(null)}
+                      style={{ cursor: "pointer" }}
+                    />
+
+                    {/* En attente */}
+                    <path
+                      d="M18 2 a 16 16 0 1 1 0 32 a 16 16 0 1 1 0 -32"
+                      fill="none"
+                      stroke="#86efac"
+                      strokeWidth="4"
+                      strokeDasharray={`${earningsPendingPercent} ${100 - earningsPendingPercent}`}
+                      strokeDashoffset={`-${earningsValidPercent}`}
+                      onMouseEnter={() => setEarningsHover("coaching")}
+                      onMouseLeave={() => setEarningsHover(null)}
+                      style={{ cursor: "pointer" }}
+                    />
+                  </svg>
+
+                  {/* Center label */}
+                  <div className="absolute w-28 h-28 bg-white rounded-full flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-sm text-gray-500">
+                        {earningsHover === "court"
+                          ? `Valide (${earningsValidPercent}%)`
+                          : earningsHover === "coaching"
+                            ? `En attente (${earningsPendingPercent}%)`
+                            : "Total Earnings"}
+                      </p>
+                      <p className="text-2xl font-extrabold text-gray-900">
+                        {paymentsTotalAmount.toFixed(2)} €
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ================= MY AVAILABILITY ================= */}
+          <div className="mt-8 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-extrabold text-gray-900">
+                  My Availability
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Easily communicate your availability for a seamless coaching
+                  experience.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700">
+                  <option>This Week</option>
+                </select>
+
+                <button className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800">
+                  Edit Availability
+                </button>
+              </div>
+            </div>
+
+            {/* Days */}
+            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {availabilityDays.map((d, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-center"
+                >
+                  <p className="font-semibold text-gray-900 text-sm">
+                    {d.date}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{d.day}</p>
+
+                  <div className="mt-4">
+                    <p className="text-xs text-gray-500">Time</p>
+                    <p className="text-sm font-semibold text-green-600 mt-1">
+                      {d.range}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {availabilityDays.length === 0 && (
+                <p className="col-span-full text-sm text-gray-500">
+                  Aucune disponibilite detectee sur les prochaines seances.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* BOOKINGS + SIDEBAR */}
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {/* LEFT – MY BOOKINGS */}
+            <div className="lg:col-span-2 rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
+              {/* Header + Tabs */}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-extrabold text-(--primary)">
+                    My Bookings
+                  </h2>
+                  <p className="text-gray-500 mt-1">
+                    Expertly manage court bookings
+                  </p>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMyBookingsTab("court");
+                      setOpenBookingMenuId(null);
+                    }}
+                    className={
+                      myBookingsTab === "court"
+                        ? "px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold"
+                        : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+                    }
+                  >
+                    Court
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMyBookingsTab("coaching");
+                      setOpenBookingMenuId(null);
+                    }}
+                    className={
+                      myBookingsTab === "coaching"
+                        ? "px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold"
+                        : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+                    }
+                  >
+                    Coaching
+                  </button>
+                </div>
+              </div>
+
+              {/* Rows */}
+              <div className="mt-6 divide-y divide-gray-100">
+                {myBookingsData.map((b) => (
+                  <div
+                    key={b.id}
+                    className="py-4 flex items-center justify-between relative"
+                  >
+                    {/* Left */}
+                    <div className="flex items-center gap-4">
+                      <img
+                        src={b.img}
+                        className="w-16 h-16 rounded-xl object-cover"
+                      />
+                      <div>
+                        <p className="font-bold text-gray-900">{b.title}</p>
+                        <p className="text-sm text-green-600">{b.subtitle}</p>
+
+                        <div className="mt-2 flex items-center gap-3 text-sm text-gray-500">
+                          <span>{b.guests}</span>
+                          <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                          <span>{b.duration}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Middle */}
+                    <div className="text-sm text-gray-500">
+                      <p className="font-semibold text-gray-900">Date & Time</p>
+                      <p>{b.date}</p>
+                      <p>{b.time}</p>
+                    </div>
+
+                    {/* Right */}
+                    <div className="flex items-center gap-4 relative">
+                      <p className="text-lg font-extrabold text-green-600">
+                        {b.price}
+                      </p>
+
+                      {/* 3 dots */}
                       <button
                         type="button"
-                        onClick={() => setOpenFactureActionId(openFactureActionId === f.id ? null : f.id)}
-                        className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center"
+                        onClick={() =>
+                          setOpenBookingMenuId((prev) =>
+                            prev === b.id ? null : b.id,
+                          )
+                        }
+                        className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center"
                       >
                         •••
                       </button>
 
-                      {openFactureActionId === f.id && (
-                        <div className="absolute right-0 top-12 w-52 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
+                      {/* Dropdown */}
+                      {openBookingMenuId === b.id && (
+                        <div className="absolute right-0 top-12 w-40 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20">
                           <button
                             type="button"
-                            onClick={() => downloadFacturePdf(f.id)}
-                            className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                            onClick={() => {
+                              alert(`Cancel booking: ${b.id} (UI only)`);
+                              setOpenBookingMenuId(null);
+                            }}
+                            className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                           >
-                            ⬇️ Download PDF
-                          </button>
-
-                          <div className="h-px bg-gray-100" />
-
-                          <button
-                            type="button"
-                            onClick={() => actionFacture(f.id, "emettre")}
-                            className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
-                          >
-                            📤 Émettre
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => actionFacture(f.id, "payer")}
-                            className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
-                          >
-                            ✅ Marquer payée
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => actionFacture(f.id, "annuler")}
-                            className="w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 text-left"
-                          >
-                            ⛔ Annuler
+                            ⓧ Cancel
                           </button>
                         </div>
                       )}
                     </div>
                   </div>
-                );
-              })}
-
-            {!loadingFactures && !errorFactures && factures.length === 0 && (
-              <p className="mt-4 text-gray-500">Aucune facture trouvée.</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-)}
-{activeSection === "dashboard" && (
-<div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
-
-        {/* ================= STATS + PROFILE ================= */}
-<div className="grid gap-6 lg:grid-cols-2">
-
-  {/* --------- STATISTICS (LEFT) --------- */}
-  <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
-    <h2 className="text-xl font-extrabold text-gray-900">Statistics</h2>
-    <p className="text-gray-500 mt-1">
-      Track progress and improve coaching performance
-    </p>
-
-    <div className="mt-6 grid gap-4 sm:grid-cols-2">
-      <StatCard
-        icon={stat01}
-        value={String(seances.length)}
-        label="Total Courts Booked"
-      />
-      <StatCard
-        icon={stat02}
-        value={String(upcomingSeances.length)}
-        label="Upcoming Bookings"
-      />
-      <StatCard
-        icon={stat03}
-        value={String(completedLessonsCount)}
-        label="Total Lessons Taken"
-      />
-      <StatCard
-        icon={stat04}
-        value={`${paymentsTotalAmount.toFixed(2)} €`}
-        label="Payments"
-      />
-    </div>
-  </div>
-
-  {/* --------- PROFILE (RIGHT) --------- */}
-  <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
-    <h2 className="text-xl font-extrabold text-gray-900">Profile</h2>
-    <p className="text-gray-500 mt-1">
-      Impress potential students with an interesting profile
-    </p>
-
-    {/* Progress */}
-    <div className="mt-6">
-      <div className="flex justify-between text-sm font-semibold text-gray-700">
-        <span>Today</span>
-        <span>70%</span>
-      </div>
-      <div className="mt-2 h-2 rounded-full bg-gray-200 overflow-hidden">
-        <div className="h-full bg-green-600 w-[70%]" />
-      </div>
-    </div>
-
-    {/* Completed */}
-    <div className="mt-6">
-      <p className="text-sm font-bold text-gray-900">Completed</p>
-      <div className="mt-3 flex flex-wrap gap-3">
-        <BadgeDone label="Basic Details" />
-        <BadgeDone label="Payment Setup" />
-        <BadgeDone label="Availability" />
-      </div>
-    </div>
-
-    {/* Need to complete */}
-    <div className="mt-6">
-      <p className="text-sm font-bold text-gray-900">Need to Complete</p>
-      <div className="mt-3 flex flex-wrap gap-3">
-        <BadgeTodo label="Setup level for your Profile" />
-        <BadgeTodo label="Add Lesson type" />
-      </div>
-    </div>
-  </div>
-
-</div>
-
-
-        {/* ================= UPCOMING / NEXT APPOINTMENT ================= */}
-<div className="mt-6 rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
-  <div className="flex items-start justify-between gap-4">
-    <div>
-      <h2 className="text-xl font-extrabold text-gray-900">
-        Ongoing Appointment
-      </h2>
-      <p className="text-gray-500 mt-1">
-        Manage appointments with our convenient scheduling system
-      </p>
-    </div>
-
-    <span className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 transition duration-200">
-  Complete
-</span>
-  </div>
-
-  <div className="mt-6 grid grid-cols-1 md:grid-cols-7 gap-6 items-center">
-    {/* Court */}
-    <div className="flex items-center gap-3 md:col-span-2">
-      <img
-        src={bookingImg}   
-        alt="Court"
-        className="w-14 h-14 rounded-xl object-cover"
-      />
-      <div>
-        <p className="font-bold text-gray-900">{currentAppointment?.titre ?? "Aucun rendez-vous"}</p>
-        <p className="text-sm text-gray-500">{currentAppointment?.lieu ?? "-"}</p>
-      </div>
-    </div>
-
-    {/* Client */}
-    <div className="flex items-center gap-3">
-      <img
-        src={coachImg}   // 👈 second image you mentioned
-        alt="Client"
-        className="w-10 h-10 rounded-full object-cover"
-      />
-      <p className="font-semibold text-gray-900">Coach</p>
-    </div>
-
-    {/* Date */}
-    <div>
-      <p className="text-sm font-semibold text-gray-900">Appointment Date</p>
-      <p className="text-sm text-gray-500">{formatDateUI(currentAppointment?.date)}</p>
-    </div>
-
-    {/* Start */}
-    <div>
-      <p className="text-sm font-semibold text-gray-900">Start Time</p>
-      <p className="text-sm text-gray-500">{formatTimeUI(currentAppointment?.heure_debut)}</p>
-    </div>
-
-    {/* End */}
-    <div>
-      <p className="text-sm font-semibold text-gray-900">End Time</p>
-      <p className="text-sm text-gray-500">{formatTimeUI(currentAppointment?.heure_fin)}</p>
-    </div>
-
-    {/* Guests */}
-    <div>
-      <p className="text-sm font-semibold text-gray-900">
-        Additional Guests
-      </p>
-      <p className="text-sm text-gray-500">{Number(currentAppointment?.capacite_max ?? 1)}</p>
-    </div>
-  </div>
-</div>
-
-
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-  {/* ================= BOOKING REQUESTS ================= */}
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-  <div className="flex justify-between items-start">
-    <div>
-      <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-        Booking Requests
-        <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-          {String(bookingRequestsData.length).padStart(2, "0")}
-        </span>
-      </h2>
-      <p className="text-gray-500 text-sm mt-1">
-        Easily handle court booking requests
-      </p>
-    </div>
-
-    <div className="flex gap-2 bg-gray-50 p-1 rounded-full">
-  <button
-    onClick={() => setBookingTab("court")}
-    className={
-      bookingTab === "court"
-        ? "bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full"
-        : "bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full"
-    }
-  >
-    Court
-  </button>
-
-  <button
-    onClick={() => setBookingTab("coaching")}
-    className={
-      bookingTab === "coaching"
-        ? "bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full"
-        : "bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full"
-    }
-  >
-    Coaching
-  </button>
-</div>
-  </div>
-
-  <div className="mt-5 divide-y">
-    {bookingRequestsData.map((b, i) => (
-      <div key={i} className="py-3 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <img src={b.img} className="w-10 h-10 rounded-lg object-cover" />
-          <div>
-            <p className="font-semibold text-sm text-gray-900">{b.name}</p>
-            <p className="text-xs text-gray-500">
-              {b.court} | 06:00 PM – 08:00 PM
-            </p>
-          </div>
-        </div>
-
-        <p className="text-xs text-gray-500">Date: {formatDateUI(b.date || seances[i]?.date)}</p>
-      </div>
-    ))}
-  </div>
-</div>
-
-
-  {/* ================= MY FAVOURITES ================= */}
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-  <div className="flex justify-between items-start">
-    <div>
-      <h2 className="text-lg font-bold text-gray-900">
-        My Favourites
-      </h2>
-      <p className="text-gray-500 text-sm mt-1">
-        Lorem Ipsum is simply
-      </p>
-    </div>
-
-    <button className="text-sm font-semibold text-gray-700 hover:underline">
-      View All
-    </button>
-  </div>
-
-  <div className="mt-5 divide-y">
-    {[
-      { img: fav1, name: "Harry", count: "10 Bookings", date: "Tue, Jul 11" },
-      { img: fav2, name: "Johnson", count: "15 Bookings", date: "Wed, Jul 10" },
-      { img: fav3, name: "Andy", count: "12 Bookings", date: "Fri, Jul 13" },
-    ].map((f, i) => (
-      <div key={i} className="py-3 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          {/* 🔥 SQUARE AVATAR */}
-          <img
-            src={f.img}
-            className="w-10 h-10 rounded-lg object-cover"
-          />
-          <div>
-            <p className="font-semibold text-sm text-gray-900">{f.name}</p>
-            <p className="text-xs text-gray-500">{f.count}</p>
-          </div>
-        </div>
-
-        <p className="text-xs text-gray-500">
-          Date: {f.date}
-        </p>
-      </div>
-    ))}
-  </div>
-</div>
-
-
-  {/* ================= EARNINGS ================= */}
-  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-    <div className="flex justify-between items-center">
-      <h2 className="text-lg font-extrabold text-gray-900">
-        Earnings
-      </h2>
-
-      <select className="border border-gray-200 rounded-lg px-3 py-1 text-sm">
-        <option>This Week</option>
-      </select>
-    </div>
-
-    <div className="mt-8 flex justify-center">
-  <div className="relative w-40 h-40 flex items-center justify-center">
-    {/* SVG donut */}
-    <svg viewBox="0 0 36 36" className="w-40 h-40">
-      {/* Background ring */}
-      <path
-        d="M18 2 a 16 16 0 1 1 0 32 a 16 16 0 1 1 0 -32"
-        fill="none"
-        stroke="#e5e7eb"
-        strokeWidth="4"
-      />
-
-      {/* Courts segment (example: 65%) */}
-      <path
-        d="M18 2 a 16 16 0 1 1 0 32 a 16 16 0 1 1 0 -32"
-        fill="none"
-        stroke="#22c55e"
-        strokeWidth="4"
-        strokeDasharray="65 35"
-        strokeDashoffset="0"
-        onMouseEnter={() => setEarningsHover("court")}
-        onMouseLeave={() => setEarningsHover(null)}
-        style={{ cursor: "pointer" }}
-      />
-
-      {/* Coaching segment (example: 15%) */}
-      {/* 65% already used, so this starts after it => dashoffset -65 */}
-      <path
-        d="M18 2 a 16 16 0 1 1 0 32 a 16 16 0 1 1 0 -32"
-        fill="none"
-        stroke="#86efac"
-        strokeWidth="4"
-        strokeDasharray="15 85"
-        strokeDashoffset="-65"
-        onMouseEnter={() => setEarningsHover("coaching")}
-        onMouseLeave={() => setEarningsHover(null)}
-        style={{ cursor: "pointer" }}
-      />
-    </svg>
-
-    {/* Center label */}
-    <div className="absolute w-28 h-28 bg-white rounded-full flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-sm text-gray-500">
-          {earningsHover === "court"
-            ? "Courts (65%)"
-            : earningsHover === "coaching"
-            ? "Coaching (15%)"
-            : "Total Earnings"}
-        </p>
-        <p className="text-2xl font-extrabold text-gray-900">4050</p>
-      </div>
-    </div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-{/* ================= MY AVAILABILITY ================= */}
-<div className="mt-8 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-  
-  {/* Header */}
-  <div className="flex justify-between items-center">
-    <div>
-      <h2 className="text-lg font-extrabold text-gray-900">
-        My Availability
-      </h2>
-      <p className="text-sm text-gray-500 mt-1">
-        Easily communicate your availability for a seamless coaching experience.
-      </p>
-    </div>
-
-    <div className="flex gap-3">
-      <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700">
-        <option>This Week</option>
-      </select>
-
-      <button className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800">
-        Edit Availability
-      </button>
-    </div>
-  </div>
-
-  {/* Days */}
-  <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-    {[
-      { date: "23 Jul 2023", day: "Monday" },
-      { date: "24 Jul 2023", day: "Tuesday" },
-      { date: "25 Jul 2023", day: "Wednesday" },
-      { date: "26 Jul 2023", day: "Thursday" },
-      { date: "27 Jul 2023", day: "Friday" },
-      { date: "28 Jul 2023", day: "Saturday" },
-    ].map((d, i) => (
-      <div
-        key={i}
-        className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-center"
-      >
-        <p className="font-semibold text-gray-900 text-sm">{d.date}</p>
-        <p className="text-xs text-gray-500 mt-1">{d.day}</p>
-
-        <div className="mt-4">
-          <p className="text-xs text-gray-500">Time</p>
-          <p className="text-sm font-semibold text-green-600 mt-1">
-            09:00 AM to 7:00 PM
-          </p>
-        </div>
-      </div>
-    ))}
-  </div>
-
-</div>
-
-
-{/* BOOKINGS + SIDEBAR */}
-<div className="mt-10 grid gap-6 lg:grid-cols-3">
-  
-  {/* LEFT – MY BOOKINGS */}
-<div className="lg:col-span-2 rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
-  {/* Header + Tabs */}
-  <div className="flex items-start justify-between gap-4">
-    <div>
-      <h2 className="text-xl font-extrabold text-[color:var(--primary)]">
-        My Bookings
-      </h2>
-      <p className="text-gray-500 mt-1">Expertly manage court bookings</p>
-    </div>
-
-    {/* Tabs */}
-    <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
-      <button
-        type="button"
-        onClick={() => {
-          setMyBookingsTab("court");
-          setOpenBookingMenuId(null);
-        }}
-        className={
-          myBookingsTab === "court"
-            ? "px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold"
-            : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
-        }
-      >
-        Court
-      </button>
-
-      <button
-        type="button"
-        onClick={() => {
-          setMyBookingsTab("coaching");
-          setOpenBookingMenuId(null);
-        }}
-        className={
-          myBookingsTab === "coaching"
-            ? "px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold"
-            : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
-        }
-      >
-        Coaching
-      </button>
-    </div>
-  </div>
-
-  {/* Rows */}
-  <div className="mt-6 divide-y divide-gray-100">
-    {myBookingsData.map((b) => (
-      <div
-        key={b.id}
-        className="py-4 flex items-center justify-between relative"
-      >
-        {/* Left */}
-        <div className="flex items-center gap-4">
-          <img src={b.img} className="w-16 h-16 rounded-xl object-cover" />
-          <div>
-            <p className="font-bold text-gray-900">{b.title}</p>
-            <p className="text-sm text-green-600">{b.subtitle}</p>
-
-            <div className="mt-2 flex items-center gap-3 text-sm text-gray-500">
-              <span>{b.guests}</span>
-              <span className="w-1 h-1 bg-gray-300 rounded-full" />
-              <span>{b.duration}</span>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Middle */}
-        <div className="text-sm text-gray-500">
-          <p className="font-semibold text-gray-900">Date & Time</p>
-          <p>{b.date}</p>
-          <p>{b.time}</p>
-        </div>
-
-        {/* Right */}
-        <div className="flex items-center gap-4 relative">
-          <p className="text-lg font-extrabold text-green-600">{b.price}</p>
-
-          {/* 3 dots */}
-          <button
-            type="button"
-            onClick={() =>
-              setOpenBookingMenuId((prev) => (prev === b.id ? null : b.id))
-            }
-            className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center"
-          >
-            •••
-          </button>
-
-          {/* Dropdown */}
-          {openBookingMenuId === b.id && (
-            <div className="absolute right-0 top-12 w-40 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20">
-              <button
-                type="button"
-                onClick={() => {
-                  alert(`Cancel booking: ${b.id} (UI only)`);
-                  setOpenBookingMenuId(null);
+            {/* RIGHT SIDEBAR */}
+            <div className="space-y-6">
+              {/* WALLET */}
+              <div
+                className="rounded-2xl p-6 text-white"
+                style={{
+                  backgroundImage: `url(${walletbkg})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
                 }}
-                className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
               >
-                ⓧ Cancel
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm opacity-90">Your Wallet Balance</p>
+                    <p className="text-3xl font-extrabold mt-1">
+                      {dashboardWalletBalance.toFixed(2)} €
+                    </p>
+                  </div>
 
-  {/* RIGHT SIDEBAR */}
-<div className="space-y-6">
+                  <button
+                    onClick={() => setIsWalletModalOpen(true)}
+                    className="px-4 py-2 rounded-xl border border-lime-300 text-lime-200 font-semibold"
+                  >
+                    Add Payment
+                  </button>
+                </div>
+                {isWalletModalOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    {/* Overlay */}
+                    <button
+                      type="button"
+                      className="absolute inset-0 bg-black/50"
+                      onClick={() => setIsWalletModalOpen(false)}
+                      aria-label="Close modal"
+                    />
 
-  {/* WALLET */}
-  <div
-    className="rounded-2xl p-6 text-white"
-    style={{
-      backgroundImage: `url(${walletbkg})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-    }}
-  >
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm opacity-90">Your Wallet Balance</p>
-        <p className="text-3xl font-extrabold mt-1">{dashboardWalletBalance.toFixed(2)} €</p>
-      </div>
+                    {/* Modal */}
+                    <div className="relative z-10 w-[92%] max-w-md rounded-2xl bg-white shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
+                      {/* Header */}
+                      <div className="flex items-center justify-between px-6 py-4 border-b">
+                        <h3 className="text-lg font-extrabold text-gray-900">
+                          Add Payment to Wallet
+                        </h3>
+                        <button
+                          onClick={() => setIsWalletModalOpen(false)}
+                          className="text-red-500 text-xl font-bold leading-none"
+                        >
+                          ×
+                        </button>
+                      </div>
 
-      <button
-  onClick={() => setIsWalletModalOpen(true)}
-  className="px-4 py-2 rounded-xl border border-lime-300 text-lime-200 font-semibold"
->
-  Add Payment
-</button>
-    </div>
-    {isWalletModalOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-    {/* Overlay */}
-    <button
-  type="button"
-  className="absolute inset-0 bg-black/50"
-  onClick={() => setIsWalletModalOpen(false)}
-  aria-label="Close modal"
-/>
+                      {/* Body */}
+                      <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
+                        {/* Wallet balance card */}
+                        <div className="rounded-2xl bg-emerald-700 text-white p-5">
+                          <p className="text-sm opacity-90 font-semibold">
+                            Your Wallet Balance
+                          </p>
+                          <p className="text-4xl font-extrabold mt-2">
+                            {dashboardWalletBalance.toFixed(2)} €
+                          </p>
+                        </div>
 
-    {/* Modal */}
-    <div className="relative z-10 w-[92%] max-w-md rounded-2xl bg-white shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b">
-        <h3 className="text-lg font-extrabold text-gray-900">Add Payment to Wallet</h3>
-        <button
-          onClick={() => setIsWalletModalOpen(false)}
-          className="text-red-500 text-xl font-bold leading-none"
-        >
-          ×
-        </button>
-      </div>
+                        {/* Amount */}
+                        <div>
+                          <label className="block text-sm font-bold text-gray-900 mb-2">
+                            Amount
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={walletAmount}
+                            onChange={(e) => setWalletAmount(e.target.value)}
+                            placeholder="Enter Amount"
+                            className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-200"
+                          />
+                        </div>
 
-      {/* Body */}
-      <div className="px-6 py-5 space-y-5 overflow-y-auto flex-1">
-        {/* Wallet balance card */}
-        <div className="rounded-2xl bg-emerald-700 text-white p-5">
-          <p className="text-sm opacity-90 font-semibold">Your Wallet Balance</p>
-          <p className="text-4xl font-extrabold mt-2">{dashboardWalletBalance.toFixed(2)} €</p>
-        </div>
+                        {/* OR */}
+                        <div className="text-sm font-extrabold text-gray-900">
+                          OR
+                        </div>
 
-        {/* Amount */}
-        <div>
-          <label className="block text-sm font-bold text-gray-900 mb-2">Amount</label>
-         <input
-  type="number"
-  min="0"
-  value={walletAmount}
-  onChange={(e) => setWalletAmount(e.target.value)}
-  placeholder="Enter Amount"
-  className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-200"
-/>
-        </div>
-
-        {/* OR */}
-        <div className="text-sm font-extrabold text-gray-900">OR</div>
-
-        {/* Quick values */}
-        <div className="space-y-3">
-          {[
-            { key: "v1", label: "Add Value 1", amount: 80 },
-            { key: "v2", label: "Add Value 2", amount: 60 },
-            { key: "v3", label: "Add Value 3", amount: 120 },
-            { key: "v4", label: "Add Value 4", amount: 120 },
-          ].map((v) => {
-            const active = selectedValue === (v.key as any);
-            return (
-              <button
-                key={v.key}
-                type="button"
-                onClick={() => {
-                  setSelectedValue(v.key as any);
-                  setWalletAmount(String(v.amount));
-                }}
-                className={`w-full flex items-center justify-between rounded-xl border px-4 py-4 transition
+                        {/* Quick values */}
+                        <div className="space-y-3">
+                          {(
+                            [
+                              { key: "v1", label: "Add Value 1", amount: 80 },
+                              { key: "v2", label: "Add Value 2", amount: 60 },
+                              { key: "v3", label: "Add Value 3", amount: 120 },
+                              { key: "v4", label: "Add Value 4", amount: 120 },
+                            ] as Array<{
+                              key: QuickValueKey;
+                              label: string;
+                              amount: number;
+                            }>
+                          ).map((v) => {
+                            const active = selectedValue === v.key;
+                            return (
+                              <button
+                                key={v.key}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedValue(v.key);
+                                  setWalletAmount(String(v.amount));
+                                }}
+                                className={`w-full flex items-center justify-between rounded-xl border px-4 py-4 transition
                   ${active ? "border-emerald-600 bg-emerald-50" : "border-gray-200 bg-gray-50"}
                 `}
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`h-5 w-5 rounded border flex items-center justify-center text-white text-xs font-black
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span
+                                    className={`h-5 w-5 rounded border flex items-center justify-center text-white text-xs font-black
                       ${active ? "bg-emerald-600 border-emerald-600" : "bg-white border-gray-300"}
                     `}
-                  >
-                    {active ? "✓" : ""}
-                  </span>
-                  <span className="text-sm font-semibold text-gray-700">{v.label}</span>
-                </div>
+                                  >
+                                    {active ? "✓" : ""}
+                                  </span>
+                                  <span className="text-sm font-semibold text-gray-700">
+                                    {v.label}
+                                  </span>
+                                </div>
 
-                <span
-                  className={`px-4 py-2 rounded-xl text-sm font-extrabold
+                                <span
+                                  className={`px-4 py-2 rounded-xl text-sm font-extrabold
                     ${active ? "bg-sky-500 text-white" : "bg-white text-gray-400 border border-gray-200"}
                   `}
-                >
-                  + ${v.amount}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                                >
+                                  + ${v.amount}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
 
-        {/* Gateway */}
-        <div className="rounded-2xl bg-amber-50/40 border border-amber-100 p-4">
-          <p className="font-extrabold text-gray-900 mb-3">Select Payment Gateway</p>
+                        {/* Gateway */}
+                        <div className="rounded-2xl bg-amber-50/40 border border-amber-100 p-4">
+                          <p className="font-extrabold text-gray-900 mb-3">
+                            Select Payment Gateway
+                          </p>
 
-          <button
-            type="button"
-            onClick={() => setGateway("card")}
-            className={`w-full flex items-center gap-3 rounded-xl border px-4 py-4 bg-white
+                          <button
+                            type="button"
+                            onClick={() => setGateway("card")}
+                            className={`w-full flex items-center gap-3 rounded-xl border px-4 py-4 bg-white
               ${gateway === "card" ? "border-emerald-600" : "border-gray-200"}
             `}
-          >
-            <span className={`h-4 w-4 rounded-full border flex items-center justify-center
+                          >
+                            <span
+                              className={`h-4 w-4 rounded-full border flex items-center justify-center
               ${gateway === "card" ? "border-emerald-600" : "border-gray-300"}
-            `}>
-              {gateway === "card" && <span className="h-2 w-2 rounded-full bg-emerald-600" />}
-            </span>
-            <span className="text-sm font-semibold text-gray-700">Credit Card</span>
-          </button>
+            `}
+                            >
+                              {gateway === "card" && (
+                                <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                              )}
+                            </span>
+                            <span className="text-sm font-semibold text-gray-700">
+                              Credit Card
+                            </span>
+                          </button>
 
-          <button
-            type="button"
-            onClick={() => setGateway("paypal")}
-            className={`mt-3 w-full flex items-center gap-3 rounded-xl border px-4 py-4 bg-white
+                          <button
+                            type="button"
+                            onClick={() => setGateway("paypal")}
+                            className={`mt-3 w-full flex items-center gap-3 rounded-xl border px-4 py-4 bg-white
               ${gateway === "paypal" ? "border-emerald-600" : "border-gray-200"}
             `}
-          >
-            <span className={`h-4 w-4 rounded-full border flex items-center justify-center
+                          >
+                            <span
+                              className={`h-4 w-4 rounded-full border flex items-center justify-center
               ${gateway === "paypal" ? "border-emerald-600" : "border-gray-300"}
-            `}>
-              {gateway === "paypal" && <span className="h-2 w-2 rounded-full bg-emerald-600" />}
-            </span>
-            <span className="text-sm font-semibold text-gray-700">Paypal</span>
-          </button>
-        </div>
-      </div>
+            `}
+                            >
+                              {gateway === "paypal" && (
+                                <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                              )}
+                            </span>
+                            <span className="text-sm font-semibold text-gray-700">
+                              Paypal
+                            </span>
+                          </button>
+                        </div>
+                      </div>
 
-      {/* Footer */}
-      <div className="px-6 py-4 border-t flex items-center justify-end gap-3">
-        <button
-          onClick={() => {
-            setWalletAmount("");
-            setSelectedValue(null);
-            setGateway("paypal");
-          }}
-          className="px-5 py-2 rounded-xl bg-gray-900 text-white font-semibold"
-        >
-          Reset
-        </button>
+                      {/* Footer */}
+                      <div className="px-6 py-4 border-t flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => {
+                            setWalletAmount("");
+                            setSelectedValue(null);
+                            setGateway("paypal");
+                          }}
+                          className="px-5 py-2 rounded-xl bg-gray-900 text-white font-semibold"
+                        >
+                          Reset
+                        </button>
 
-        <button
-          onClick={() => {
-            // UI only for now
-            setIsWalletModalOpen(false);
-          }}
-          className="px-5 py-2 rounded-xl bg-emerald-700 text-white font-semibold"
-        >
-          Submit
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-  </div>
+                        <button
+                          onClick={() => {
+                            // UI only for now
+                            setIsWalletModalOpen(false);
+                          }}
+                          className="px-5 py-2 rounded-xl bg-emerald-700 text-white font-semibold"
+                        >
+                          Submit
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-  {/* NOTIFICATIONS */}
-  <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
-    <div className="flex justify-between items-center">
-      <h3 className="font-extrabold text-gray-900">Notifications</h3>
-      <button className="text-sm font-semibold text-green-600">
-        Mark all as read
-      </button>
-    </div>
+              {/* NOTIFICATIONS */}
+              <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-extrabold text-gray-900">
+                    Notifications
+                  </h3>
+                  <button className="text-sm font-semibold text-green-600">
+                    Unread: {unreadNotificationsCount}
+                  </button>
+                </div>
 
-    <div className="mt-4 space-y-3">
-      <div className="bg-gray-50 rounded-xl p-4">
-        <div className="flex gap-3">
-          <img
-            src={fav3}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-          <div>
-            <p className="font-semibold text-gray-900">
-              John Smith has booked an appointment
-            </p>
-            <p className="text-sm text-gray-500">1h ago</p>
+                <div className="mt-4 space-y-3">
+                  {loadingNotifications && (
+                    <p className="text-sm text-gray-500">
+                      Chargement des notifications...
+                    </p>
+                  )}
 
-            <div className="mt-3 flex gap-2">
-              <button className="px-4 py-2 bg-green-600 text-white rounded-lg">
-                Accept
-              </button>
-              <button className="px-4 py-2 bg-gray-900 text-white rounded-lg hookup">
-                Decline
-              </button>
+                  {!loadingNotifications &&
+                    notificationsPreview.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className="bg-gray-50 rounded-xl p-4 flex gap-3"
+                      >
+                        <img
+                          src={fav3}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">
+                            {notification.title}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {notification.createdAt}
+                          </p>
+
+                          {!notification.read && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                markNotificationAsRead(notification.id)
+                              }
+                              className="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg"
+                            >
+                              Mark as read
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                  {!loadingNotifications &&
+                    notificationsPreview.length === 0 && (
+                      <p className="text-sm text-gray-500">
+                        Aucune notification.
+                      </p>
+                    )}
+                </div>
+              </div>
+
+              {/* RECENT CHATS */}
+              <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-extrabold text-gray-900">Recent Chats</h3>
+                  <button
+                    className="text-sm font-semibold text-green-600"
+                    onClick={() => navigate("/coach/messages")}
+                  >
+                    Open Inbox
+                  </button>
+                </div>
+
+                <div className="mt-4 space-y-4">
+                  {loadingConversations && (
+                    <p className="text-sm text-gray-500">
+                      Chargement des conversations...
+                    </p>
+                  )}
+
+                  {!loadingConversations &&
+                    recentChatsPreview.map((chat, index) => (
+                      <button
+                        key={chat.id}
+                        type="button"
+                        onClick={() =>
+                          navigate(`/coach/messages?conversationId=${chat.id}`)
+                        }
+                        className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-gray-50"
+                      >
+                        <img
+                          src={index % 2 === 0 ? fav4 : fav2}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {chat.name}
+                          </p>
+                          <p className="text-sm text-gray-500">{chat.count}</p>
+                        </div>
+                        <span className="ml-auto text-xs text-gray-400">
+                          {chat.time}
+                        </span>
+                      </button>
+                    ))}
+
+                  {!loadingConversations && recentChatsPreview.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      Aucune conversation recente.
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="bg-gray-50 rounded-xl p-4 flex gap-3">
-        <img
-          src={booking2}
-          className="w-10 h-10 rounded-lg object-cover"
-        />
-        <div>
-          <p className="font-semibold text-gray-900">
-            Admin has approved your “Marsh Academy”
-          </p>
-          <p className="text-sm text-gray-500">1h ago</p>
+          {/* ================= RECENT INVOICES ================= */}
+          <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-extrabold text-gray-900">
+                  Recent Invoices
+                </h2>
+                <p className="text-gray-500 mt-1">
+                  Lorem Ipsum is simply dummy text of the printing
+                </p>
+              </div>
 
-          <button className="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg">
-            View Details
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+              {/* Tabs */}
+              <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setInvoiceTab("court")}
+                  className={
+                    invoiceTab === "court"
+                      ? "px-4 py-2 rounded-lg bg-(--primary) text-white text-sm font-semibold"
+                      : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+                  }
+                >
+                  Court
+                </button>
 
-  {/* RECENT CHATS */}
-  <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
-    <div className="flex justify-between items-center">
-      <h3 className="font-extrabold text-gray-900">Recent Chats</h3>
-      <button className="text-sm font-semibold text-green-600">
-        Go to Chat
-      </button>
-    </div>
+                <button
+                  type="button"
+                  onClick={() => setInvoiceTab("coaching")}
+                  className={
+                    invoiceTab === "coaching"
+                      ? "px-4 py-2 rounded-lg bg-(--primary) text-white text-sm font-semibold"
+                      : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
+                  }
+                >
+                  Coaching
+                </button>
+              </div>
+            </div>
 
-    <div className="mt-4 space-y-4">
-      <div className="flex items-center gap-3">
-        <img
-          src={fav4}
-          className="w-10 h-10 rounded-full object-cover"
-        />
-        <div>
-          <p className="font-semibold text-gray-900">Harry</p>
-          <p className="text-sm text-gray-500">10 Bookings</p>
-        </div>
-        <span className="ml-auto text-xs text-gray-400">2 min ago</span>
-      </div>
+            {/* Table header */}
+            <div className="mt-6 grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl">
+              <div className="col-span-4">Court Name</div>
+              <div className="col-span-2">Invoice</div>
+              <div className="col-span-3">Date & Time</div>
+              <div className="col-span-1">Payment</div>
+              <div className="col-span-1">Paid On</div>
+              <div className="col-span-1">Status</div>
+            </div>
 
-      <div className="flex items-center gap-3">
-        <img
-          src={fav2}
-          className="w-10 h-10 rounded-full object-cover"
-        />
-        <div>
-          <p className="font-semibold text-gray-900">Johnson</p>
-          <p className="text-sm text-gray-500">15 Bookings</p>
-        </div>
-        <span className="ml-auto text-xs text-gray-400">2 min ago</span>
-      </div>
-    </div>
-  </div>
+            {/* Rows */}
+            <div className="divide-y divide-gray-100">
+              {invoicesData.map((row) => (
+                <div
+                  key={row.id}
+                  className="grid grid-cols-12 gap-4 items-center px-4 py-4"
+                >
+                  {/* Name + image */}
+                  <div className="col-span-4 flex items-center gap-3">
+                    <img
+                      src={row.img}
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                    <div>
+                      <p className="font-bold text-gray-900">{row.name}</p>
+                      <p className="text-sm text-green-600">{row.sub}</p>
+                    </div>
+                  </div>
 
-</div>
+                  {/* Invoice type */}
+                  <div className="col-span-2 text-sm text-gray-700">
+                    {invoiceTab === "coaching" ? row.invoice : "—"}
+                  </div>
 
-</div>
+                  {/* Date & time */}
+                  <div className="col-span-3 text-sm text-gray-700">
+                    <p>{row.date}</p>
+                    <p className="text-gray-500">{row.time}</p>
+                  </div>
 
+                  {/* Payment */}
+                  <div className="col-span-1 font-semibold">{row.payment}</div>
 
-{/* ================= RECENT INVOICES ================= */}
-<div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-6">
-  {/* Header */}
-  <div className="flex items-start justify-between gap-4">
-    <div>
-      <h2 className="text-xl font-extrabold text-gray-900">Recent Invoices</h2>
-      <p className="text-gray-500 mt-1">
-        Lorem Ipsum is simply dummy text of the printing
-      </p>
-    </div>
+                  {/* Paid on */}
+                  <div className="col-span-1 text-sm text-gray-700">
+                    {row.paidOn}
+                  </div>
 
-    {/* Tabs */}
-    <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
-      <button
-        type="button"
-        onClick={() => setInvoiceTab("court")}
-        className={
-          invoiceTab === "court"
-            ? "px-4 py-2 rounded-lg bg-[color:var(--primary)] text-white text-sm font-semibold"
-            : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
-        }
-      >
-        Court
-      </button>
-
-      <button
-        type="button"
-        onClick={() => setInvoiceTab("coaching")}
-        className={
-          invoiceTab === "coaching"
-            ? "px-4 py-2 rounded-lg bg-[color:var(--primary)] text-white text-sm font-semibold"
-            : "px-4 py-2 rounded-lg text-gray-700 text-sm font-semibold"
-        }
-      >
-        Coaching
-      </button>
-    </div>
-  </div>
-
-  {/* Table header */}
-  <div className="mt-6 grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl">
-    <div className="col-span-4">Court Name</div>
-    <div className="col-span-2">Invoice</div>
-    <div className="col-span-3">Date & Time</div>
-    <div className="col-span-1">Payment</div>
-    <div className="col-span-1">Paid On</div>
-    <div className="col-span-1">Status</div>
-  </div>
-
-  {/* Rows */}
-  <div className="divide-y divide-gray-100">
-    {invoicesData.map((row) => (
-      <div key={row.id} className="grid grid-cols-12 gap-4 items-center px-4 py-4">
-        {/* Name + image */}
-        <div className="col-span-4 flex items-center gap-3">
-          <img src={row.img} className="w-12 h-12 rounded-lg object-cover" />
-          <div>
-            <p className="font-bold text-gray-900">{row.name}</p>
-            <p className="text-sm text-green-600">{row.sub}</p>
+                  {/* Status */}
+                  <div className="col-span-1">
+                    <span className="px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-bold inline-flex items-center gap-2">
+                      <span className="inline-block w-3 h-3 bg-green-600 rounded-sm" />
+                      {row.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+          {/* ================= END RECENT INVOICES ================= */}
+
+          {/* Footer hint */}
         </div>
-
-        {/* Invoice type */}
-        <div className="col-span-2 text-sm text-gray-700">
-          {invoiceTab === "coaching" ? (row as any).invoice : "—"}
-        </div>
-
-        {/* Date & time */}
-        <div className="col-span-3 text-sm text-gray-700">
-          <p>{row.date}</p>
-          <p className="text-gray-500">{row.time}</p>
-        </div>
-
-        {/* Payment */}
-        <div className="col-span-1 font-semibold">{row.payment}</div>
-
-        {/* Paid on */}
-        <div className="col-span-1 text-sm text-gray-700">{row.paidOn}</div>
-
-        {/* Status */}
-        <div className="col-span-1">
-          <span className="px-3 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-bold inline-flex items-center gap-2">
-            <span className="inline-block w-3 h-3 bg-green-600 rounded-sm" />
-            {row.status}
-          </span>
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
-{/* ================= END RECENT INVOICES ================= */}
-
-
-
-
-
-
-
-        {/* Footer hint */}
-        
-      </div>
       )}
     </div>
-    
   );
 }

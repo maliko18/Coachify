@@ -14,7 +14,14 @@ const stepLabels = [
   "Payment",
 ] as const;
 
-const timeSlots = ["2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM"];
+const timeSlots = [
+  "2:00 PM",
+  "3:00 PM",
+  "4:00 PM",
+  "5:00 PM",
+  "6:00 PM",
+  "7:00 PM",
+];
 const dayColumns = [
   { day: "Monday", date: "Apr 24" },
   { day: "Tuesday", date: "Apr 25" },
@@ -79,42 +86,13 @@ export default function BookCoachPage() {
   const [apiCoach, setApiCoach] = useState<any | null>(null);
   const [loadingCoach, setLoadingCoach] = useState(true);
   const [coachError, setCoachError] = useState("");
-  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<PaiementMethode[]>(PAIEMENT_METHODES);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaiementMethode>("carte_bancaire");
+  const [availablePaymentMethods, setAvailablePaymentMethods] =
+    useState<PaiementMethode[]>(PAIEMENT_METHODES);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<PaiementMethode>("carte_bancaire");
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [checkoutSuccess, setCheckoutSuccess] = useState("");
-
-  useEffect(() => {
-    const loadMethodsFromDb = async () => {
-      try {
-        const res = await axiosClient.get("/coach/paiements", { params: { per_page: 100 } });
-        const payload = res.data?.data ?? res.data;
-        const list: any[] = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.data)
-          ? payload.data
-          : [];
-
-        const methodsFromDb = Array.from(
-          new Set(
-            list
-              .map((p: any) => p?.methode)
-              .filter((m: any): m is PaiementMethode => PAIEMENT_METHODES.includes(m)),
-          ),
-        );
-
-        if (methodsFromDb.length > 0) {
-          setAvailablePaymentMethods(methodsFromDb);
-          setSelectedPaymentMethod(methodsFromDb[0]);
-        }
-      } catch {
-        setAvailablePaymentMethods(PAIEMENT_METHODES);
-      }
-    };
-
-    loadMethodsFromDb();
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -144,15 +122,15 @@ export default function BookCoachPage() {
             for (const coach of mapped) {
               byId[String(coach.id)] = coach;
             }
-            items = Object.values(
-              byId,
-            );
+            items = Object.values(byId);
           } else {
             const rows: any[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
             items = rows.map(normalizeApiCoach);
           }
 
-          const found = items.find((item: any) => Number(item.id) === numericId);
+          const found = items.find(
+            (item: any) => Number(item.id) === numericId,
+          );
           if (found) {
             if (isMounted) setApiCoach(found);
             return;
@@ -164,7 +142,9 @@ export default function BookCoachPage() {
 
       if (isMounted) {
         setApiCoach(null);
-        setCoachError(lastErrorMessage || "Impossible de charger le coach depuis l'API.");
+        setCoachError(
+          lastErrorMessage || "Impossible de charger le coach depuis l'API.",
+        );
       }
     };
 
@@ -187,8 +167,10 @@ export default function BookCoachPage() {
         reviews: 0,
         bio: apiCoach.bio || "Coach profile",
         location: apiCoach.city || "Location not specified",
-        lessonType: (apiCoach.specialties && apiCoach.specialties[0]) || "General",
-        level: (apiCoach.experience_years || 0) >= 5 ? "Professional" : "Rookie",
+        lessonType:
+          (apiCoach.specialties && apiCoach.specialties[0]) || "General",
+        level:
+          (apiCoach.experience_years || 0) >= 5 ? "Professional" : "Rookie",
         image: avatar1,
         offers: [
           {
@@ -211,9 +193,15 @@ export default function BookCoachPage() {
   }, [apiCoach]);
 
   const [step, setStep] = useState(1);
-  const [bookingType, setBookingType] = useState<"session" | "training">("session");
+  const [bookingType, setBookingType] = useState<"session" | "training">(
+    "session",
+  );
   const [selectedDay, setSelectedDay] = useState(dayColumns[2]);
-  const [selectedSlots, setSelectedSlots] = useState<string[]>(["5:00 PM", "6:00 PM", "7:00 PM"]);
+  const [selectedSlots, setSelectedSlots] = useState<string[]>([
+    "5:00 PM",
+    "6:00 PM",
+    "7:00 PM",
+  ]);
 
   const [name, setName] = useState("Rodick Tramliar");
   const [email, setEmail] = useState("contact@example.com");
@@ -222,7 +210,9 @@ export default function BookCoachPage() {
   const [details, setDetails] = useState("");
 
   const getProductsList = async (coachNumericId: number) => {
-    const res = await axiosClient.get("/produits", { params: { coach_id: coachNumericId, per_page: 100 } });
+    const res = await axiosClient.get("/produits", {
+      params: { coach_id: coachNumericId, per_page: 100 },
+    });
     const payload = res.data?.data ?? res.data;
 
     if (Array.isArray(payload)) return payload;
@@ -237,14 +227,6 @@ export default function BookCoachPage() {
     const prev = localStorage.getItem(key);
     const parsed = prev ? JSON.parse(prev) : [];
     const next = [invoiceData, ...parsed].slice(0, 50);
-    localStorage.setItem(key, JSON.stringify(next));
-  };
-
-  const persistCoachBookingRequest = (requestData: any) => {
-    const key = "COACH_BOOKING_REQUESTS";
-    const prev = localStorage.getItem(key);
-    const parsed = prev ? JSON.parse(prev) : [];
-    const next = [requestData, ...parsed].slice(0, 200);
     localStorage.setItem(key, JSON.stringify(next));
   };
 
@@ -263,17 +245,22 @@ export default function BookCoachPage() {
 
     try {
       const quantity = Math.max(selectedSlots.length, 1);
-      const fallbackSubtotal = quantity * (Number(apiCoach?.hourly_rate || 0) || 100);
+      const fallbackSubtotal =
+        quantity * (Number(apiCoach?.hourly_rate || 0) || 100);
       const coachNumericId = Number(coachSnapshot.id);
       const products = await getProductsList(coachNumericId);
 
       if (!Array.isArray(products) || products.length === 0) {
-        setCheckoutError("Aucun produit actif pour ce coach. Impossible de finaliser l'achat.");
+        setCheckoutError(
+          "Aucun produit actif pour ce coach. Impossible de finaliser l'achat.",
+        );
         return;
       }
 
       const selectedProduct =
-        products.find((p: any) => String(p?.type || "").toLowerCase() !== "physique") || products[0];
+        products.find(
+          (p: any) => String(p?.type || "").toLowerCase() !== "physique",
+        ) || products[0];
 
       if (!selectedProduct?.id) {
         setCheckoutError("Produit invalide pour la commande.");
@@ -305,36 +292,25 @@ export default function BookCoachPage() {
       };
 
       persistClientInvoice(invoice);
-      persistCoachBookingRequest({
-        id: `REQ-${order?.id ?? Date.now()}`,
-        source: "order",
-        coach_id: coachNumericId,
-        coach_name: coachSnapshot.name,
-        client_name: name,
-        client_email: email,
-        statut: "attente",
-        total: totalAmount,
-        payment_method: selectedPaymentMethod,
-        payment_method_label: PAYMENT_LABELS[selectedPaymentMethod],
-        date_commande: new Date().toISOString(),
-        booking_date: selectedDay.date,
-        booking_slots: selectedSlots,
-      });
       setCheckoutSuccess(`Paiement confirmé. Facture ${invoice.id} créée.`);
 
       setTimeout(() => {
         navigate("/user/bookings");
       }, 1200);
     } catch (err: any) {
-      const rawMessage = String(err?.response?.data?.message || err?.message || "");
+      const rawMessage = String(
+        err?.response?.data?.message || err?.message || "",
+      );
       const isMissingProductsTable =
         rawMessage.includes("Base table or view not found") ||
-        rawMessage.includes("Table") && rawMessage.includes("produits") ||
+        (rawMessage.includes("Table") && rawMessage.includes("produits")) ||
         rawMessage.includes("SQLSTATE[42S02]");
 
       if (isMissingProductsTable) {
         const localRequestId = Date.now();
-        const totalAmount = Math.max(selectedSlots.length, 1) * (Number(apiCoach?.hourly_rate || 0) || 100);
+        const totalAmount =
+          Math.max(selectedSlots.length, 1) *
+          (Number(apiCoach?.hourly_rate || 0) || 100);
         const invoice = {
           id: `INV-LOCAL-${localRequestId}`,
           commande_id: `LOCAL-${localRequestId}`,
@@ -354,23 +330,10 @@ export default function BookCoachPage() {
         };
 
         persistClientInvoice(invoice);
-        persistCoachBookingRequest({
-          id: `REQ-LOCAL-${localRequestId}`,
-          source: "local-fallback",
-          coach_id: Number(coachSnapshot.id),
-          coach_name: coachSnapshot.name,
-          client_name: name,
-          client_email: email,
-          statut: "attente",
-          total: totalAmount,
-          payment_method: selectedPaymentMethod,
-          payment_method_label: PAYMENT_LABELS[selectedPaymentMethod],
-          date_commande: new Date().toISOString(),
-          booking_date: selectedDay.date,
-          booking_slots: selectedSlots,
-        });
 
-        setCheckoutSuccess(`Paiement confirmé. Facture ${invoice.id} créée (mode fallback).`);
+        setCheckoutSuccess(
+          `Paiement confirmé. Facture ${invoice.id} créée (mode fallback).`,
+        );
         setTimeout(() => {
           navigate("/user/bookings");
         }, 1200);
@@ -386,7 +349,9 @@ export default function BookCoachPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="p-10 text-center text-gray-600">Chargement du coach...</div>
+        <div className="p-10 text-center text-gray-600">
+          Chargement du coach...
+        </div>
       </div>
     );
   }
@@ -404,7 +369,8 @@ export default function BookCoachPage() {
     return <Navigate to="/coaches" replace />;
   }
 
-  const activeOffer = coach.offers.find((offer) => offer.id === bookingType) || coach.offers[0];
+  const activeOffer =
+    coach.offers.find((offer) => offer.id === bookingType) || coach.offers[0];
   const totalHours = Math.max(selectedSlots.length, 1);
   const subtotal = activeOffer.pricePerHour * totalHours;
 
@@ -413,7 +379,9 @@ export default function BookCoachPage() {
 
   const toggleSlot = (slot: string) => {
     setSelectedSlots((prev) =>
-      prev.includes(slot) ? prev.filter((item) => item !== slot) : [...prev, slot]
+      prev.includes(slot)
+        ? prev.filter((item) => item !== slot)
+        : [...prev, slot],
     );
   };
 
@@ -422,14 +390,14 @@ export default function BookCoachPage() {
       <Header />
 
       <div
-        className="relative w-full h-[220px] flex items-center"
+        className="relative w-full h-55 flex items-center"
         style={{
           backgroundImage: `url(${heroBg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/20" />
+        <div className="absolute inset-0 bg-linear-to-r from-black/75 via-black/45 to-black/20" />
         <div className="relative z-10 px-12 text-left">
           <h1 className="text-5xl font-extrabold text-white">Book A Coach</h1>
           <p className="mt-3 text-white/90 text-sm font-semibold">
@@ -452,7 +420,9 @@ export default function BookCoachPage() {
                 >
                   {number}
                 </span>
-                <span className={active ? "text-gray-900" : "text-slate-500"}>{label}</span>
+                <span className={active ? "text-gray-900" : "text-slate-500"}>
+                  {label}
+                </span>
                 {number < 5 && <span className="mx-1 text-slate-400">›</span>}
               </div>
             );
@@ -468,23 +438,31 @@ export default function BookCoachPage() {
             </h2>
             <p className="text-center text-gray-500 mt-2">
               {step === 1 && "Unlock Your Potential with a Personal Coach"}
-              {step === 2 && "Book your training session at a time and date that suits your needs."}
-              {step === 4 && "Booking confirmed. Contact support for changes/inquiries."}
+              {step === 2 &&
+                "Book your training session at a time and date that suits your needs."}
+              {step === 4 &&
+                "Booking confirmed. Contact support for changes/inquiries."}
               {step === 5 && "Securely make your payment for the booking."}
             </p>
 
             <div className="mt-8 rounded-2xl border border-gray-100 bg-gray-50 p-5 flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <img src={coach.image} alt={coach.name} className="w-24 h-24 rounded-xl object-cover" />
+                <img
+                  src={coach.image}
+                  alt={coach.name}
+                  className="w-24 h-24 rounded-xl object-cover"
+                />
                 <div>
                   <p className="text-amber-600 font-semibold">
                     {coach.rating} • {coach.reviews} Reviews
                   </p>
-                  <h3 className="text-4xl font-extrabold text-gray-900">{coach.name}</h3>
+                  <h3 className="text-4xl font-extrabold text-gray-900">
+                    {coach.name}
+                  </h3>
                   <p className="text-gray-600 mt-1">{coach.bio}</p>
                 </div>
               </div>
-              <div className="rounded-xl bg-white px-6 py-5 border border-gray-100 min-w-[170px]">
+              <div className="rounded-xl bg-white px-6 py-5 border border-gray-100 min-w-42.5">
                 <p className="text-gray-500 text-sm">Starts From</p>
                 <p className="text-4xl font-extrabold text-emerald-600">
                   ${activeOffer.pricePerHour}
@@ -497,8 +475,12 @@ export default function BookCoachPage() {
 
         {step === 1 && (
           <div className="rounded-2xl border border-gray-200 bg-white p-10">
-            <h3 className="text-4xl font-extrabold text-center text-gray-900">How do you prefer to book your Coach?</h3>
-            <p className="text-center text-gray-500 mt-2">Please Select the Options below</p>
+            <h3 className="text-4xl font-extrabold text-center text-gray-900">
+              How do you prefer to book your Coach?
+            </h3>
+            <p className="text-center text-gray-500 mt-2">
+              Please Select the Options below
+            </p>
 
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
               <button
@@ -535,7 +517,9 @@ export default function BookCoachPage() {
                     key={column.day}
                     onClick={() => setSelectedDay(column)}
                     className={`rounded-xl border p-3 ${
-                      selectedDay.day === column.day ? "border-emerald-500 bg-emerald-50" : "border-gray-200"
+                      selectedDay.day === column.day
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-gray-200"
                     }`}
                   >
                     <p className="font-extrabold text-gray-900">{column.day}</p>
@@ -565,7 +549,9 @@ export default function BookCoachPage() {
             </div>
 
             <div className="rounded-2xl border border-gray-200 bg-white p-5">
-              <h4 className="text-3xl font-extrabold text-gray-900">Booking Details</h4>
+              <h4 className="text-3xl font-extrabold text-gray-900">
+                Booking Details
+              </h4>
               <div className="mt-4 space-y-3 text-gray-600 text-xl">
                 <p>{selectedDay.date}, 2026</p>
                 <p>
@@ -584,26 +570,58 @@ export default function BookCoachPage() {
 
         {step === 3 && (
           <div className="rounded-2xl border border-gray-200 bg-white p-8">
-            <h2 className="text-5xl font-extrabold text-center text-gray-900">Personal Information</h2>
+            <h2 className="text-5xl font-extrabold text-center text-gray-900">
+              Personal Information
+            </h2>
             <p className="text-center text-gray-500 mt-2">
-              Ensure accurate and complete information for a smooth booking process.
+              Ensure accurate and complete information for a smooth booking
+              process.
             </p>
 
             <div className="mt-7 rounded-xl border border-gray-200 p-5 space-y-4">
-              <h3 className="text-4xl font-extrabold text-gray-900">Enter Details</h3>
+              <h3 className="text-4xl font-extrabold text-gray-900">
+                Enter Details
+              </h3>
 
-              <input className="w-full h-14 px-4 rounded-xl bg-gray-50 border border-gray-200" placeholder="Enter Name" value={name} onChange={(e) => setName(e.target.value)} />
-              <input className="w-full h-14 px-4 rounded-xl bg-gray-50 border border-gray-200" placeholder="Enter Email Address" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <input className="w-full h-14 px-4 rounded-xl bg-gray-50 border border-gray-200" placeholder="Enter Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              <input className="w-full h-14 px-4 rounded-xl bg-gray-50 border border-gray-200" placeholder="Enter Address" value={address} onChange={(e) => setAddress(e.target.value)} />
-              <textarea className="w-full min-h-[90px] p-4 rounded-xl bg-gray-50 border border-gray-200" placeholder="Details" value={details} onChange={(e) => setDetails(e.target.value)} />
+              <input
+                className="w-full h-14 px-4 rounded-xl bg-gray-50 border border-gray-200"
+                placeholder="Enter Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <input
+                className="w-full h-14 px-4 rounded-xl bg-gray-50 border border-gray-200"
+                placeholder="Enter Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <input
+                className="w-full h-14 px-4 rounded-xl bg-gray-50 border border-gray-200"
+                placeholder="Enter Phone Number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <input
+                className="w-full h-14 px-4 rounded-xl bg-gray-50 border border-gray-200"
+                placeholder="Enter Address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+              <textarea
+                className="w-full min-h-22.5 p-4 rounded-xl bg-gray-50 border border-gray-200"
+                placeholder="Details"
+                value={details}
+                onChange={(e) => setDetails(e.target.value)}
+              />
             </div>
           </div>
         )}
 
         {step === 4 && (
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <h3 className="text-4xl font-extrabold text-gray-900 mb-4">Booking Details</h3>
+            <h3 className="text-4xl font-extrabold text-gray-900 mb-4">
+              Booking Details
+            </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xl">
               <div>
                 <p className="font-bold text-gray-900">Coach Name</p>
@@ -611,7 +629,9 @@ export default function BookCoachPage() {
               </div>
               <div>
                 <p className="font-bold text-gray-900">Appointment Date</p>
-                <p className="text-gray-600">{selectedDay.day}, {selectedDay.date}</p>
+                <p className="text-gray-600">
+                  {selectedDay.day}, {selectedDay.date}
+                </p>
               </div>
               <div>
                 <p className="font-bold text-gray-900">Appointment Start</p>
@@ -619,13 +639,17 @@ export default function BookCoachPage() {
               </div>
               <div>
                 <p className="font-bold text-gray-900">Appointment End</p>
-                <p className="text-gray-600">{selectedSlots[selectedSlots.length - 1] || "-"}</p>
+                <p className="text-gray-600">
+                  {selectedSlots[selectedSlots.length - 1] || "-"}
+                </p>
               </div>
             </div>
 
             <hr className="my-5" />
 
-            <h3 className="text-3xl font-extrabold text-gray-900 mb-3">Contact Information</h3>
+            <h3 className="text-3xl font-extrabold text-gray-900 mb-3">
+              Contact Information
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xl">
               <div>
                 <p className="font-bold text-gray-900">Name</p>
@@ -646,22 +670,36 @@ export default function BookCoachPage() {
         {step === 5 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div className="rounded-2xl border border-gray-200 bg-white p-6">
-              <h3 className="text-4xl font-extrabold text-gray-900">Order Summary</h3>
+              <h3 className="text-4xl font-extrabold text-gray-900">
+                Order Summary
+              </h3>
               <div className="mt-5 space-y-3 text-xl text-gray-700">
                 <p>{selectedDay.date}, 2026</p>
-                <p>{selectedSlots[0] || "-"} to {selectedSlots[selectedSlots.length - 1] || "-"}</p>
+                <p>
+                  {selectedSlots[0] || "-"} to{" "}
+                  {selectedSlots[selectedSlots.length - 1] || "-"}
+                </p>
                 <p>Total Hour : {totalHours} Hrs</p>
-                <p className="text-emerald-600 font-extrabold text-3xl">Subtotal : ${subtotal}</p>
+                <p className="text-emerald-600 font-extrabold text-3xl">
+                  Subtotal : ${subtotal}
+                </p>
               </div>
             </div>
 
             <div className="rounded-2xl border border-gray-200 bg-white p-6">
-              <h3 className="text-4xl font-extrabold text-gray-900">Checkout</h3>
-              <label className="mt-6 block text-xl font-bold text-gray-900">Select Payment Gateway</label>
+              <h3 className="text-4xl font-extrabold text-gray-900">
+                Checkout
+              </h3>
+              <label className="mt-6 block text-xl font-bold text-gray-900">
+                Select Payment Gateway
+              </label>
 
               <div className="mt-3 space-y-3">
                 {availablePaymentMethods.map((method) => (
-                  <label key={method} className="rounded-xl border border-gray-200 p-4 text-xl flex items-center gap-3 cursor-pointer">
+                  <label
+                    key={method}
+                    className="rounded-xl border border-gray-200 p-4 text-xl flex items-center gap-3 cursor-pointer"
+                  >
                     <input
                       type="radio"
                       name="payment"
@@ -673,8 +711,16 @@ export default function BookCoachPage() {
                 ))}
               </div>
 
-              {checkoutError && <p className="mt-4 text-red-600 font-semibold">{checkoutError}</p>}
-              {checkoutSuccess && <p className="mt-4 text-emerald-600 font-semibold">{checkoutSuccess}</p>}
+              {checkoutError && (
+                <p className="mt-4 text-red-600 font-semibold">
+                  {checkoutError}
+                </p>
+              )}
+              {checkoutSuccess && (
+                <p className="mt-4 text-emerald-600 font-semibold">
+                  {checkoutSuccess}
+                </p>
+              )}
 
               <button
                 onClick={confirmPaymentAndBook}

@@ -12,12 +12,29 @@ class RateLimit
     public function handle(
         Request $request,
         Closure $next,
-        int $maxAttempts = 60,
-        int $decaySeconds = 60
+        int $maxAttempts = 0,
+        int $decaySeconds = 0
     ): Response {
-        $key = 'api-rate-limit:' . ($request->user()?->id ?? $request->ip());
+        $isReadRequest = in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'], true);
 
-        if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
+        $resolvedMaxAttempts = $maxAttempts > 0
+            ? $maxAttempts
+            : (int) env(
+                $isReadRequest ? 'API_RATE_LIMIT_MAX_ATTEMPTS_READ' : 'API_RATE_LIMIT_MAX_ATTEMPTS_WRITE',
+                $isReadRequest ? 240 : 120
+            );
+
+        $resolvedDecaySeconds = $decaySeconds > 0
+            ? $decaySeconds
+            : (int) env('API_RATE_LIMIT_DECAY_SECONDS', 60);
+
+        $routeKey = $request->route()?->uri() ?? $request->path();
+        $key = 'api-rate-limit:'
+            . ($request->user()?->id ?? $request->ip())
+            . ':' . $request->method()
+            . ':' . $routeKey;
+
+        if (RateLimiter::tooManyAttempts($key, $resolvedMaxAttempts)) {
             $retryAfter = RateLimiter::availableIn($key);
 
             return response()->json([
@@ -30,17 +47,17 @@ class RateLimit
                 ],
             ], 429)
                 ->header('Retry-After', $retryAfter)
-                ->header('X-RateLimit-Limit', $maxAttempts)
+                ->header('X-RateLimit-Limit', $resolvedMaxAttempts)
                 ->header('X-RateLimit-Remaining', 0);
         }
 
-        RateLimiter::hit($key, $decaySeconds);
+        RateLimiter::hit($key, $resolvedDecaySeconds);
 
         $response = $next($request);
 
-        $remaining = max(0, $maxAttempts - RateLimiter::attempts($key));
+        $remaining = max(0, $resolvedMaxAttempts - RateLimiter::attempts($key));
 
-        $response->headers->set('X-RateLimit-Limit', (string) $maxAttempts);
+        $response->headers->set('X-RateLimit-Limit', (string) $resolvedMaxAttempts);
         $response->headers->set('X-RateLimit-Remaining', (string) $remaining);
 
         return $response;

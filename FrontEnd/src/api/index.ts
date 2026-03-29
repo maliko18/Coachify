@@ -6,6 +6,8 @@ export { default as paiementsApi } from "./paiements";
 export { default as seancesApi } from "./seances";
 export { default as programmesApi } from "./programmes";
 export { default as facturesApi } from "./factures";
+export { default as conversationsApi } from "./conversations";
+export { default as coachDashboardApi } from "./coachDashboard";
 export { default as axiosClient } from "./axios";
 
 // Re-export all types
@@ -16,3 +18,5 @@ export type * from "./paiements";
 export type * from "./seances";
 export type * from "./programmes";
 export type * from "./factures";
+export type * from "./conversations";
+export type * from "./coachDashboard";

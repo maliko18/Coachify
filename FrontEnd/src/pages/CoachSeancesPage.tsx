@@ -1,10 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
 import seancesApi from "../api/seances";
-import type { CreateSeancePayload, Seance, SeanceStatut, SeanceType } from "../api/seances";
+import type {
+  CreateSeancePayload,
+  Seance,
+  SeanceStatut,
+  SeanceType,
+} from "../api/seances";
+import axiosClient from "../api/axios";
 
 const SEANCE_TYPES: SeanceType[] = ["individuelle", "collective", "en_ligne"];
-const SEANCE_STATUTS: SeanceStatut[] = ["planifiee", "en_cours", "terminee", "annulee"];
+const SEANCE_STATUTS: SeanceStatut[] = [
+  "planifiee",
+  "en_cours",
+  "terminee",
+  "annulee",
+];
 
 type FormState = {
   titre: string;
@@ -70,7 +81,10 @@ function seanceToForm(seance: Seance): FormState {
 export default function CoachSeancesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exportingIcs, setExportingIcs] = useState(false);
+  const [syncingCalendar, setSyncingCalendar] = useState(false);
   const [error, setError] = useState("");
+  const [calendarInfo, setCalendarInfo] = useState("");
   const [items, setItems] = useState<Seance[]>([]);
 
   const [search, setSearch] = useState("");
@@ -89,7 +103,9 @@ export default function CoachSeancesPage() {
       setItems(normalizeSeancesResponse(res));
     } catch (err: any) {
       console.error(err);
-      setError(err?.response?.data?.message || "Impossible de charger les seances.");
+      setError(
+        err?.response?.data?.message || "Impossible de charger les seances.",
+      );
     } finally {
       setLoading(false);
     }
@@ -113,7 +129,8 @@ export default function CoachSeancesPage() {
         (item.titre || "").toLowerCase().includes(q) ||
         (item.lieu || "").toLowerCase().includes(q);
       const matchesType = typeFilter === "all" || item.type === typeFilter;
-      const matchesStatut = statutFilter === "all" || item.statut === statutFilter;
+      const matchesStatut =
+        statutFilter === "all" || item.statut === statutFilter;
       return matchesSearch && matchesType && matchesStatut;
     });
   }, [items, search, typeFilter, statutFilter]);
@@ -138,7 +155,9 @@ export default function CoachSeancesPage() {
           ...payload,
           statut: form.statut,
         } as any);
-        setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        setItems((prev) =>
+          prev.map((item) => (item.id === updated.id ? updated : item)),
+        );
       } else {
         const created = await seancesApi.create(payload);
         setItems((prev) => [created, ...prev]);
@@ -147,7 +166,9 @@ export default function CoachSeancesPage() {
       resetForm();
     } catch (err: any) {
       console.error(err);
-      setError(err?.response?.data?.message || "Erreur lors de l'enregistrement.");
+      setError(
+        err?.response?.data?.message || "Erreur lors de l'enregistrement.",
+      );
     } finally {
       setSaving(false);
     }
@@ -167,7 +188,56 @@ export default function CoachSeancesPage() {
       setError("");
     } catch (err: any) {
       console.error(err);
-      setError(err?.response?.data?.message || "Erreur lors de la suppression.");
+      setError(
+        err?.response?.data?.message || "Erreur lors de la suppression.",
+      );
+    }
+  };
+
+  const exportIcs = async () => {
+    try {
+      setExportingIcs(true);
+      setCalendarInfo("");
+      const res = await axiosClient.get("/seances/export/ics", {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: "text/calendar" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "coach-seances.ics";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setCalendarInfo("Export ICS termine.");
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          "Impossible d'exporter le calendrier ICS.",
+      );
+    } finally {
+      setExportingIcs(false);
+    }
+  };
+
+  const syncCalendar = async () => {
+    try {
+      setSyncingCalendar(true);
+      setCalendarInfo("");
+      const res = await axiosClient.post("/calendar/sync");
+      const message = String(
+        res.data?.message || "Synchronisation calendrier terminee.",
+      );
+      setCalendarInfo(message);
+      setError("");
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.message ||
+          "Impossible de synchroniser le calendrier.",
+      );
+    } finally {
+      setSyncingCalendar(false);
     }
   };
 
@@ -178,23 +248,49 @@ export default function CoachSeancesPage() {
       <div className="mx-auto max-w-7xl p-8">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900">Module Seance</h1>
+            <h1 className="text-3xl font-extrabold text-slate-900">
+              Module Seance
+            </h1>
             <p className="mt-1 text-slate-600">Gestion des seances coach</p>
           </div>
 
-          <button
-            onClick={() => {
-              if (showForm) {
-                resetForm();
-              } else {
-                setShowForm(true);
-              }
-            }}
-            className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700"
-          >
-            {showForm ? "Fermer" : "Nouvelle seance"}
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={syncCalendar}
+              disabled={syncingCalendar}
+              className="rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+            >
+              {syncingCalendar ? "Sync..." : "Sync calendrier"}
+            </button>
+
+            <button
+              onClick={exportIcs}
+              disabled={exportingIcs}
+              className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+            >
+              {exportingIcs ? "Export..." : "Exporter ICS"}
+            </button>
+
+            <button
+              onClick={() => {
+                if (showForm) {
+                  resetForm();
+                } else {
+                  setShowForm(true);
+                }
+              }}
+              className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700"
+            >
+              {showForm ? "Fermer" : "Nouvelle seance"}
+            </button>
+          </div>
         </div>
+
+        {calendarInfo && (
+          <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {calendarInfo}
+          </div>
+        )}
 
         <div className="mb-6 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-4">
           <input
@@ -253,7 +349,9 @@ export default function CoachSeancesPage() {
             <div className="grid gap-3 md:grid-cols-2">
               <input
                 value={form.titre}
-                onChange={(e) => setForm((prev) => ({ ...prev, titre: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, titre: e.target.value }))
+                }
                 placeholder="Titre *"
                 className="h-11 rounded-lg border border-slate-200 px-3"
               />
@@ -261,14 +359,18 @@ export default function CoachSeancesPage() {
               <input
                 type="date"
                 value={form.date}
-                onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, date: e.target.value }))
+                }
                 className="h-11 rounded-lg border border-slate-200 px-3"
               />
 
               <input
                 type="time"
                 value={form.heure_debut}
-                onChange={(e) => setForm((prev) => ({ ...prev, heure_debut: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, heure_debut: e.target.value }))
+                }
                 className="h-11 rounded-lg border border-slate-200 px-3"
               />
 
@@ -276,14 +378,21 @@ export default function CoachSeancesPage() {
                 type="number"
                 min={1}
                 value={form.duree}
-                onChange={(e) => setForm((prev) => ({ ...prev, duree: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, duree: e.target.value }))
+                }
                 placeholder="Duree (minutes)"
                 className="h-11 rounded-lg border border-slate-200 px-3"
               />
 
               <select
                 value={form.type}
-                onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value as SeanceType }))}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    type: e.target.value as SeanceType,
+                  }))
+                }
                 className="h-11 rounded-lg border border-slate-200 px-3"
               >
                 {SEANCE_TYPES.map((value) => (
@@ -296,7 +405,10 @@ export default function CoachSeancesPage() {
               <select
                 value={form.statut}
                 onChange={(e) =>
-                  setForm((prev) => ({ ...prev, statut: e.target.value as SeanceStatut }))
+                  setForm((prev) => ({
+                    ...prev,
+                    statut: e.target.value as SeanceStatut,
+                  }))
                 }
                 className="h-11 rounded-lg border border-slate-200 px-3"
               >
@@ -311,21 +423,27 @@ export default function CoachSeancesPage() {
                 type="number"
                 min={1}
                 value={form.capacite_max}
-                onChange={(e) => setForm((prev) => ({ ...prev, capacite_max: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, capacite_max: e.target.value }))
+                }
                 placeholder="Capacite max"
                 className="h-11 rounded-lg border border-slate-200 px-3"
               />
 
               <input
                 value={form.lieu}
-                onChange={(e) => setForm((prev) => ({ ...prev, lieu: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, lieu: e.target.value }))
+                }
                 placeholder="Lieu"
                 className="h-11 rounded-lg border border-slate-200 px-3"
               />
 
               <textarea
                 value={form.notes}
-                onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, notes: e.target.value }))
+                }
                 placeholder="Notes"
                 className="min-h-24 rounded-lg border border-slate-200 px-3 py-2 md:col-span-2"
               />
@@ -337,7 +455,11 @@ export default function CoachSeancesPage() {
                 disabled={saving}
                 className="rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
               >
-                {saving ? "Enregistrement..." : editingId ? "Mettre a jour" : "Creer"}
+                {saving
+                  ? "Enregistrement..."
+                  : editingId
+                    ? "Mettre a jour"
+                    : "Creer"}
               </button>
 
               <button
@@ -365,13 +487,19 @@ export default function CoachSeancesPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-slate-500" colSpan={6}>
+                  <td
+                    className="px-4 py-8 text-center text-slate-500"
+                    colSpan={6}
+                  >
                     Chargement des seances...
                   </td>
                 </tr>
               ) : filteredItems.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-slate-500" colSpan={6}>
+                  <td
+                    className="px-4 py-8 text-center text-slate-500"
+                    colSpan={6}
+                  >
                     Aucune seance trouvee.
                   </td>
                 </tr>
@@ -379,8 +507,12 @@ export default function CoachSeancesPage() {
                 filteredItems.map((item) => (
                   <tr key={item.id} className="border-t border-slate-100">
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-slate-900">{item.titre}</p>
-                      <p className="text-xs text-slate-500">{item.lieu || "-"}</p>
+                      <p className="font-semibold text-slate-900">
+                        {item.titre}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {item.lieu || "-"}
+                      </p>
                     </td>
                     <td className="px-4 py-3">
                       {item.date} {String(item.heure_debut || "").slice(0, 5)}

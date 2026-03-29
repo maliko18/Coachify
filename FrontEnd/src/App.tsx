@@ -16,6 +16,8 @@ import BookCoachPage from "./pages/BookCoachPage";
 import CoachProfilePage from "./pages/CoachProfilePage.tsx";
 import CoachProgrammesPage from "./pages/CoachProgrammesPage";
 import CoachPublicProgrammesPage from "./pages/CoachPublicProgrammesPage";
+import CoachMessagesPage from "./pages/CoachMessagesPage";
+import CoachAnalyticsPage from "./pages/CoachAnalyticsPage";
 import MyProgrammeReservationsPage from "./pages/MyProgrammeReservationsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
@@ -25,6 +27,7 @@ import HowItWorks from "./components/HowItWorks";
 import BlogGrid from "./components/BlogGrid";
 import ServicesPage from "./pages/ServicesPage";
 import BlogPage from "./pages/BlogPage";
+import BlogPostPage from "./pages/BlogPostPage";
 import ContactPage from "./pages/ContactPage";
 
 export default function App() {
@@ -44,10 +47,11 @@ export default function App() {
 
       <Route path="/services" element={<ServicesPage />} />
       <Route path="/blog" element={<BlogPage />} />
+      <Route path="/blog/:postId" element={<BlogPostPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/coaches" element={<CoachesPage />} />
-        <Route path="/coaches/:coachId/profile" element={<CoachProfilePage />} />
-        <Route path="/coach/exercices" element={<CoachExercicesPage />} />
+      <Route path="/coaches/:coachId/profile" element={<CoachProfilePage />} />
+      <Route path="/coach/exercices" element={<CoachExercicesPage />} />
 
       <Route element={<GuestRoute />}>
         <Route path="/login" element={<Login />} />
@@ -60,6 +64,7 @@ export default function App() {
         <Route path="/user/wallet" element={<WalletPage />} />
         <Route path="/user/bookings" element={<BookingsPage />} />
         <Route path="/user/profile" element={<UserProfilePage />} />
+        <Route path="/user/messages" element={<CoachMessagesPage />} />
 
         <Route path="/coach/dashboard" element={<CoachDashboard />} />
         <Route path="/coach/profile" element={<CoachProfileSettingsPage />} />
@@ -67,11 +72,22 @@ export default function App() {
         <Route path="/coach/seances" element={<CoachSeancesPage />} />
         <Route path="/coach/exercices" element={<CoachExercicesPage />} />
         <Route path="/coach/programmes" element={<CoachProgrammesPage />} />
+        <Route path="/coach/messages" element={<CoachMessagesPage />} />
+        <Route path="/coach/analytics" element={<CoachAnalyticsPage />} />
 
-        <Route path="/client/programmes/reservations" element={<MyProgrammeReservationsPage />} />
-        <Route path="/client/coaches/:coachId/programmes" element={<CoachPublicProgrammesPage />} />
+        <Route
+          path="/client/programmes/reservations"
+          element={<MyProgrammeReservationsPage />}
+        />
+        <Route
+          path="/client/coaches/:coachId/programmes"
+          element={<CoachPublicProgrammesPage />}
+        />
 
-        <Route path="/book-coach" element={<Navigate to="/coaches" replace />} />
+        <Route
+          path="/book-coach"
+          element={<Navigate to="/coaches" replace />}
+        />
         <Route path="/book-coach/:coachId" element={<BookCoachPage />} />
       </Route>
     </Routes>

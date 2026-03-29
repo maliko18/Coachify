@@ -1,31 +1,63 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useState, useRef, useEffect } from "react";
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isCoach = (user?.roles && user.roles.length > 0 && user.roles.some(role => role.name === "coach")) || user?.selectedRole === "coach";
+  const isCoach =
+    (user?.roles &&
+      user.roles.length > 0 &&
+      user.roles.some((role) => role.name === "coach")) ||
+    user?.selectedRole === "coach";
   const isClient =
-  !!user?.roles?.some((role) => role.name === "client") ||
-  user?.selectedRole === "client";
+    !!user?.roles?.some((role) => role.name === "client") ||
+    user?.selectedRole === "client";
   const isUserRole =
-    !!user?.roles?.some((role) => ["user", "client", "prospect"].includes(role.name)) ||
-    ["user", "client", "prospect"].includes(user?.selectedRole || "");
+    !!user?.roles?.some((role) =>
+      ["user", "client", "prospect"].includes(role.name),
+    ) || ["user", "client", "prospect"].includes(user?.selectedRole || "");
   const isUser = isUserRole || (!!user && !isCoach);
+
+  const navItemClass = (isActive: boolean) =>
+    `cursor-pointer ${isActive ? "text-[color:var(--accent)]" : "hover:text-[color:var(--accent)]"}`;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setDropdownOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const syncUnreadMessagesCount = () => {
+      const raw = window.localStorage.getItem("USER_UNREAD_MESSAGES_COUNT");
+      const parsed = Number(raw ?? "0");
+      setUnreadMessagesCount(
+        Number.isFinite(parsed) && parsed > 0 ? parsed : 0,
+      );
+    };
+
+    syncUnreadMessagesCount();
+    window.addEventListener("storage", syncUnreadMessagesCount);
+    window.addEventListener("focus", syncUnreadMessagesCount);
+
+    return () => {
+      window.removeEventListener("storage", syncUnreadMessagesCount);
+      window.removeEventListener("focus", syncUnreadMessagesCount);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -40,6 +72,18 @@ const Header = () => {
       navigate("/coach/dashboard");
     } else if (isUser) {
       navigate("/user/dashboard");
+    }
+  };
+
+  const handleMessagesClick = () => {
+    setDropdownOpen(false);
+    window.localStorage.setItem("USER_UNREAD_MESSAGES_COUNT", "0");
+    setUnreadMessagesCount(0);
+
+    if (isCoach) {
+      navigate("/coach/messages");
+    } else {
+      navigate("/user/messages");
     }
   };
 
@@ -58,42 +102,49 @@ const Header = () => {
       </div>
 
       <ul className="hidden md:flex items-center gap-8 text-sm font-medium text-white">
-        <li className="text-[color:var(--accent)] cursor-pointer" onClick={() => navigate("/")}>Home</li>
         <li
-          className="cursor-pointer hover:text-[color:var(--accent)]"
+          className={navItemClass(location.pathname === "/")}
+          onClick={() => navigate("/")}
+        >
+          Home
+        </li>
+        <li
+          className={navItemClass(location.pathname.startsWith("/coaches"))}
           onClick={() => navigate("/coaches")}
         >
           Coach
         </li>
         {isClient && (
-  <li
-    className="cursor-pointer hover:text-[color:var(--accent)]"
-    onClick={() => navigate("/client/programmes/reservations")}
-  >
-    My Programmes
-  </li>
-)}
+          <li
+            className={navItemClass(
+              location.pathname === "/client/programmes/reservations",
+            )}
+            onClick={() => navigate("/client/programmes/reservations")}
+          >
+            My Programmes
+          </li>
+        )}
         {!user && (
           <>
             <li className="cursor-pointer hover:text-[color:var(--accent)]">
-              User 
+              User
             </li>
           </>
         )}
         <li
-          className="cursor-pointer hover:text-[color:var(--accent)]"
+          className={navItemClass(location.pathname === "/services")}
           onClick={() => navigate("/services")}
         >
-          Pages 
+          services
         </li>
         <li
-          className="cursor-pointer hover:text-[color:var(--accent)]"
+          className={navItemClass(location.pathname === "/blog")}
           onClick={() => navigate("/blog")}
         >
-          Blog 
+          Blog
         </li>
         <li
-          className="cursor-pointer hover:text-[color:var(--accent)]"
+          className={navItemClass(location.pathname === "/contact")}
           onClick={() => navigate("/contact")}
         >
           Contact Us
@@ -114,18 +165,30 @@ const Header = () => {
                 {/* Signed in section */}
                 <div className="px-6 py-4 border-b border-gray-700">
                   <p className="text-gray-400 text-sm mb-1">Signed in as</p>
-                  <p className="text-white font-medium truncate">{user.email}</p>
+                  <p className="text-white font-medium truncate">
+                    {user.email}
+                  </p>
                 </div>
 
                 {/* Menu items */}
                 <div className="py-2">
-                  
-
                   <button
                     onClick={handleDashboardClick}
                     className="w-full px-6 py-3 text-left text-white hover:bg-gray-700 transition-colors"
                   >
                     {isCoach ? "Coach Dashboard" : "My Dashboard"}
+                  </button>
+
+                  <button
+                    onClick={handleMessagesClick}
+                    className="flex w-full items-center justify-between px-6 py-3 text-left text-white hover:bg-gray-700 transition-colors"
+                  >
+                    <span>Messages</span>
+                    {unreadMessagesCount > 0 && (
+                      <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-bold text-white">
+                        {unreadMessagesCount}
+                      </span>
+                    )}
                   </button>
 
                   <button
@@ -137,7 +200,6 @@ const Header = () => {
                   >
                     List Your Court
                   </button>
-
 
                   <div className="border-t border-gray-700 mt-2 pt-2">
                     <button

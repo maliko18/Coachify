@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Commande;
 use App\Models\CommandeItem;
+use App\Models\Conversation;
+use App\Models\Notification;
 use App\Models\Produit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -139,11 +141,80 @@ class CommandeController extends Controller
         Cache::increment('perf:dashboard:coach:' . $commande->coach_id . ':version');
         Cache::increment('perf:dashboard:client:' . $commande->client_id . ':version');
 
+        try {
+            $this->dispatchPostOrderSignals($commande);
+        } catch (\Throwable $e) {
+            // Ne jamais bloquer la commande en cas d'echec de signalement secondaire.
+            Log::warning('post_order_signals_failed', [
+                'commande_id' => $commande->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Commande créée avec succès.',
             'data' => $commande,
         ], 201);
+    }
+
+    private function dispatchPostOrderSignals(Commande $commande): void
+    {
+        $commande->loadMissing(['client:id,user_id', 'coach:id,user_id']);
+
+        $clientUserId = (int) optional($commande->client)->user_id;
+        $coachUserId = (int) optional($commande->coach)->user_id;
+
+        if ($clientUserId <= 0 || $coachUserId <= 0) {
+            return;
+        }
+
+        Notification::firstOrCreate(
+            ['unique_key' => 'commande_confirmee:client:' . $clientUserId . ':commande:' . $commande->id],
+            [
+                'user_id' => $clientUserId,
+                'type' => 'commande_confirmee',
+                'lue' => false,
+                'data' => [
+                    'commande_id' => $commande->id,
+                    'total' => (float) $commande->total,
+                    'statut' => $commande->statut,
+                ],
+            ]
+        );
+
+        Notification::firstOrCreate(
+            ['unique_key' => 'nouvelle_commande:coach:' . $coachUserId . ':commande:' . $commande->id],
+            [
+                'user_id' => $coachUserId,
+                'type' => 'nouvelle_commande',
+                'lue' => false,
+                'data' => [
+                    'commande_id' => $commande->id,
+                    'total' => (float) $commande->total,
+                    'statut' => $commande->statut,
+                    'client_id' => $commande->client_id,
+                ],
+            ]
+        );
+
+        $conversation = Conversation::firstOrCreate(
+            [
+                'user_id' => $clientUserId,
+                'coach_id' => $coachUserId,
+            ],
+            [
+                'last_message_at' => now(),
+            ]
+        );
+
+        $conversation->messages()->create([
+            'from_id' => $clientUserId,
+            'contenu' => 'Paiement confirmé pour la commande #' . $commande->id . '. Merci.',
+            'sent_at' => now(),
+        ]);
+
+        $conversation->update(['last_message_at' => now()]);
     }
 
     public function updateStatus(Request $request, Commande $commande): JsonResponse

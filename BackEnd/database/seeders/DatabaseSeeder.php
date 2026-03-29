@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             ExerciceSeeder::class,
             SeanceSeeder::class,
             ProgrammeSeeder::class,
+            ProduitSeeder::class,
             FactureSeeder::class,
             PaiementSeeder::class,
         ]);
