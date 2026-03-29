@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import Header from "../components/Header";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import axiosClient from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 
 type Coach = {
   id: number | string;
@@ -50,6 +51,8 @@ const normalizeCoachFromOffre = (offre: any): Coach | null => {
 export default function CoachProfilePage() {
   const { coachId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isGuest = !user;
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -61,7 +64,9 @@ export default function CoachProfilePage() {
       setLoading(true);
       setError("");
 
-      const endpoints = ["/coaches", "/client/offres", "/coach/offres"];
+      const endpoints = isGuest
+        ? ["/coaches"]
+        : ["/coaches", "/client/offres", "/coach/offres"];
       let lastErrorMessage = "";
 
       for (const endpoint of endpoints) {
@@ -113,7 +118,7 @@ export default function CoachProfilePage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isGuest]);
 
   const coach = useMemo(() => {
     return coaches.find((item) => String(item.id) === String(coachId));
@@ -200,14 +205,30 @@ export default function CoachProfilePage() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <button
-              onClick={() => navigate(`/book-coach/${coach.id}`)}
+              onClick={() =>
+                isGuest ? navigate("/login") : navigate(`/book-coach/${coach.id}`)
+              }
               className="h-12 px-6 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800"
+              title={
+                isGuest
+                  ? "Connectez-vous pour reserver une seance"
+                  : "Reserver avec ce coach"
+              }
             >
               Book Now
             </button>
             <button
-              onClick={() => navigate(`/client/coaches/${coach.id}/programmes`)}
+              onClick={() =>
+                isGuest
+                  ? navigate("/login")
+                  : navigate(`/client/coaches/${coach.id}/programmes`)
+              }
               className="h-12 px-6 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700"
+              title={
+                isGuest
+                  ? "Connectez-vous pour consulter les programmes clients"
+                  : "Consulter les programmes"
+              }
             >
               View Programmes
             </button>

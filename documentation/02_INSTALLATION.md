@@ -35,6 +35,20 @@ php artisan migrate
 php artisan db:seed
 ```
 
+Comptes de test pour login (seed local):
+
+| Role | Email | Mot de passe |
+| --- | --- | --- |
+| gym_manager (admin legacy) | admin@coachapp.fr | admin123 |
+| coach | coach.jean@coachapp.fr | coach123 |
+| client | client.sophie@example.com | client123 |
+
+Si besoin de reinitialiser rapidement les comptes de test:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
 Lancer API:
 
 ```bash

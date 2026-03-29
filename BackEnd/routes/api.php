@@ -38,15 +38,15 @@ Route::get('/health', function () {
     ]);
 });
 
+// Annuaire des coachs (consultation publique)
+Route::get('/coaches', [CoachController::class, 'index']);
+
 /*
 |--------------------------------------------------------------------------
 | Routes protégées - Authentification requise
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum', 'api_rate_limit', 'audit_api_actions', 'monitor_api_performance'])->group(function () {
-
-    // Annuaire des coachs
-    Route::get('/coaches', [CoachController::class, 'index']);
 
     // Boutique V3 (catalogue + stock + commandes)
     Route::get('/produits', [ShopController::class, 'index']);

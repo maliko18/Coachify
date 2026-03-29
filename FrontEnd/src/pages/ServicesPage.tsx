@@ -14,6 +14,7 @@ interface Service {
   image: string;
   title: string;
   description: string;
+  details: string;
 }
 
 const services: Service[] = [
@@ -23,6 +24,8 @@ const services: Service[] = [
     image: service1,
     title: "Court Rent",
     description: "Rent a premium court for your sports activities. Check availability, reserve easily, and enjoy state-of-the-art facilities at competitive rates.",
+    details:
+      "Court Rent gives you access to quality facilities with flexible time slots. You can explore available courts, compare schedules, and review practical booking information before deciding to sign in.",
   },
   {
     id: 2,
@@ -30,6 +33,8 @@ const services: Service[] = [
     image: service2,
     title: "Group Lesson",
     description: "Discover the thrill of group lessons in badminton, where you can enhance your skills, connect with others, and enjoy the sport to the fullest.",
+    details:
+      "Group Lesson focuses on collective practice, technique drills, and guided progression in a social setting. You can read the format and objectives freely, then connect only when you want to book.",
   },
   {
     id: 3,
@@ -37,12 +42,15 @@ const services: Service[] = [
     image: service3,
     title: "Training Program",
     description: "Our badminton training program provides a holistic approach to promote your performance and maximize your potential on the court.",
+    details:
+      "Training Program includes structured sessions, performance tracking principles, and a progressive plan. The content overview remains publicly readable; account access is only required for interactive actions.",
   },
 ];
 
 const ServicesPage = () => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<ServiceCategory>("all");
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
 
   const filteredServices = activeFilter === "all" ? services : services.filter((s) => s.category === activeFilter);
 
@@ -141,7 +149,7 @@ const ServicesPage = () => {
                   {service.description}
                 </p>
                 <button
-                  onClick={() => navigate("/coaches")}
+                  onClick={() => setSelectedService(service)}
                   className="rounded-xl bg-[color:var(--navbar)] px-7 py-3 font-semibold text-white transition hover:bg-opacity-90"
                 >
                   Read More
@@ -151,6 +159,42 @@ const ServicesPage = () => {
           ))}
         </div>
       </div>
+
+      {selectedService && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-extrabold text-[color:var(--primary)]">
+                  {selectedService.title}
+                </h2>
+                <p className="mt-2 text-sm font-semibold uppercase tracking-wide text-emerald-700">
+                  {selectedService.category}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedService(null)}
+                className="rounded-lg border border-gray-200 px-3 py-1 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+
+            <p className="mt-5 text-[color:var(--textMuted)] leading-relaxed">
+              {selectedService.details}
+            </p>
+
+            <div className="mt-6 flex items-center justify-end">
+              <button
+                onClick={() => navigate("/coaches")}
+                className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Explore Coaches
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

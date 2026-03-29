@@ -119,6 +119,22 @@ php artisan db:seed
 
 ```
 
+### 8. Comptes de test pour connexion
+
+Ces comptes sont crees par les seeders pour l'environnement local:
+
+| Role | Email | Mot de passe |
+| ---- | ----- | ------------ |
+| gym_manager (admin legacy) | admin@coachapp.fr | admin123 |
+| coach | coach.jean@coachapp.fr | coach123 |
+| client | client.sophie@example.com | client123 |
+
+Reset complet des donnees de test:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
 L'API sera accessible sur : **http://127.0.0.1:8000**
 
 ## 📡 Endpoints API

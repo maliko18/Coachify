@@ -135,13 +135,6 @@ const Header = () => {
             My Programmes
           </li>
         )}
-        {!user && (
-          <>
-            <li className="cursor-pointer hover:text-[color:var(--accent)]">
-              User
-            </li>
-          </>
-        )}
         <li
           className={navItemClass(location.pathname === "/services")}
           onClick={() => navigate("/services")}
