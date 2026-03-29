@@ -80,13 +80,22 @@ const Header = () => {
             </li>
           </>
         )}
-        <li className="cursor-pointer hover:text-[color:var(--accent)]">
+        <li
+          className="cursor-pointer hover:text-[color:var(--accent)]"
+          onClick={() => navigate("/services")}
+        >
           Pages 
         </li>
-        <li className="cursor-pointer hover:text-[color:var(--accent)]">
+        <li
+          className="cursor-pointer hover:text-[color:var(--accent)]"
+          onClick={() => navigate("/blog")}
+        >
           Blog 
         </li>
-        <li className="cursor-pointer hover:text-[color:var(--accent)]">
+        <li
+          className="cursor-pointer hover:text-[color:var(--accent)]"
+          onClick={() => navigate("/contact")}
+        >
           Contact Us
         </li>
       </ul>

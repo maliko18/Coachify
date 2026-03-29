@@ -22,6 +22,10 @@ import GuestRoute from "./components/GuestRoute";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import HowItWorks from "./components/HowItWorks";
+import BlogGrid from "./components/BlogGrid";
+import ServicesPage from "./pages/ServicesPage";
+import BlogPage from "./pages/BlogPage";
+import ContactPage from "./pages/ContactPage";
 
 export default function App() {
   return (
@@ -33,10 +37,14 @@ export default function App() {
             <Header />
             <Hero />
             <HowItWorks />
+            <BlogGrid />
           </>
         }
       />
 
+      <Route path="/services" element={<ServicesPage />} />
+      <Route path="/blog" element={<BlogPage />} />
+      <Route path="/contact" element={<ContactPage />} />
       <Route path="/coaches" element={<CoachesPage />} />
         <Route path="/coaches/:coachId/profile" element={<CoachProfilePage />} />
         <Route path="/coach/exercices" element={<CoachExercicesPage />} />
