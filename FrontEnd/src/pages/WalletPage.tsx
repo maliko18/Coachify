@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axiosClient from "../api/axios";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import dashboardIcon from "../assets/dashboard-icon.svg";
 import bookingsIcon from "../assets/booking-icon.svg";
-import chatIcon from "../assets/chat-icon.svg";
-import invoicesIcon from "../assets/invoice-icon.svg";
 import walletIcon from "../assets/wallet-icon.svg";
 import profileIcon from "../assets/profile-icon.svg";
 import avatar1 from "../assets/avatar-01.jpg";
@@ -23,21 +22,24 @@ type Transaction = {
   date: string;
   time: string;
   payment: string;
+  amount: number;
+  createdAt: string;
   status: TransactionStatus;
 };
 
-const allTransactions: Transaction[] = [
-  { refId: "#CO14", name: "Kevin Anderson",      avatar: avatar1, date: "Mon, Jul 11", time: "04:00 PM - 06:00 PM", payment: "$150", status: "paid"    },
-  { refId: "#CO15", name: "Angela Roudrigez",    avatar: avatar2, date: "Mon, Jul 11", time: "01:00 PM - 04:00 PM", payment: "$200", status: "pending" },
-  { refId: "#CO16", name: "Wing Sports Academy", avatar: avatar3, date: "Mon, Jul 11", time: "05:00 PM - 08:00 PM", payment: "$150", status: "failed"  },
-  { refId: "#CO17", name: "Feather Badminton",   avatar: avatar4, date: "Mon, Jul 11", time: "01:00 PM - 04:00 PM", payment: "$90",  status: "paid"    },
-  { refId: "#CO18", name: "Pete Hill",            avatar: avatar5, date: "Mon, Jul 11", time: "03:00 PM - 08:00 PM", payment: "$180", status: "paid"    },
-  { refId: "#CO11", name: "Kevin Anderson",      avatar: avatar1, date: "Mon, Jul 4",  time: "04:00 PM - 06:00 PM", payment: "$150", status: "paid"    },
-  { refId: "#CO12", name: "Angela Roudrigez",    avatar: avatar2, date: "Mon, Jul 4",  time: "01:00 PM - 04:00 PM", payment: "$200", status: "paid"    },
-  { refId: "#CO13", name: "Wing Sports Academy", avatar: avatar3, date: "Mon, Jul 4",  time: "05:00 PM - 08:00 PM", payment: "$90",  status: "failed"  },
-];
+const formatDate = (iso?: string) => {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "short" });
+};
 
-const thisWeekTransactions = allTransactions.slice(0, 5);
+const formatTime = (iso?: string) => {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+};
 
 function StatusBadge({ status }: { status: TransactionStatus }) {
   if (status === "paid")
@@ -78,7 +80,7 @@ const presetAmounts = [
   { label: "Add Value 4", value: 120 },
 ];
 
-function AddPaymentModal({ onClose }: { onClose: () => void }) {
+function AddPaymentModal({ onClose, balance }: { onClose: () => void; balance: number }) {
   const [amount, setAmount] = useState("");
   const [selected, setSelected] = useState<number | null>(0);
   const [gateway, setGateway] = useState<"credit" | "paypal">("paypal");
@@ -98,7 +100,7 @@ function AddPaymentModal({ onClose }: { onClose: () => void }) {
             <div className="absolute -bottom-6 -left-6 h-28 w-28 rounded-full bg-green-600/50" />
             <div className="absolute -bottom-2 left-16 h-20 w-20 rounded-full bg-green-600/40" />
             <p className="text-xs font-semibold text-green-100 relative z-10">Your Wallet Balance</p>
-            <p className="text-3xl font-extrabold mt-1 relative z-10">$4,544</p>
+            <p className="text-3xl font-extrabold mt-1 relative z-10">{balance.toFixed(2)} €</p>
           </div>
 
           {/* Manual amount */}
@@ -259,15 +261,131 @@ export default function WalletPage() {
   const [txFilter, setTxFilter] = useState<"week" | "all">("week");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCardModal, setShowCardModal] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loadingTx, setLoadingTx] = useState(true);
+  const [errorTx, setErrorTx] = useState("");
 
-  const transactions = txFilter === "week" ? thisWeekTransactions : allTransactions;
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTransactions = async () => {
+      setLoadingTx(true);
+      setErrorTx("");
+
+      const avatarPool = [avatar1, avatar2, avatar3, avatar4, avatar5];
+
+      const mapLocalInvoices = (email?: string) => {
+        const raw = localStorage.getItem("CLIENT_INVOICES");
+        const parsed: any[] = raw ? JSON.parse(raw) : [];
+        const scoped = email
+          ? parsed.filter((inv: any) => String(inv?.customer_email || "").toLowerCase() === email.toLowerCase())
+          : parsed;
+
+        return scoped.map((inv: any, idx: number): Transaction => ({
+          refId: String(inv?.id || `INV-${idx + 1}`),
+          name: String(inv?.coach_name || "Coach"),
+          avatar: avatarPool[idx % avatarPool.length],
+          date: formatDate(inv?.created_at),
+          time: formatTime(inv?.created_at),
+          payment: `${Number(inv?.amount || 0).toFixed(2)} €`,
+          amount: Number(inv?.amount || 0),
+          createdAt: String(inv?.created_at || new Date().toISOString()),
+          status: "paid",
+        }));
+      };
+
+      try {
+        const [userRes, cmdRes] = await Promise.all([
+          axiosClient.get("/user"),
+          axiosClient.get("/commandes", { params: { per_page: 100 } }),
+        ]);
+
+        if (!isMounted) return;
+
+        const user = userRes.data?.data ?? userRes.data;
+        const email = String(user?.email || "");
+
+        const payload = cmdRes.data?.data ?? cmdRes.data;
+        const commandes: any[] = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+
+        const fromCommandes: Transaction[] = commandes.map((c: any, idx: number) => {
+          const coachUser = c?.coach?.user;
+          const coachName = coachUser
+            ? `${coachUser.first_name ?? ""} ${coachUser.last_name ?? ""}`.trim()
+            : `Coach #${c?.coach_id ?? "-"}`;
+          const statut = String(c?.statut || "").toLowerCase();
+          const txStatus: TransactionStatus =
+            statut === "annule" ? "failed" : statut === "attente" ? "pending" : "paid";
+          const createdAt = String(c?.date_commande || c?.created_at || new Date().toISOString());
+
+          return {
+            refId: `CMD-${c?.id ?? idx + 1}`,
+            name: coachName,
+            avatar: avatarPool[idx % avatarPool.length],
+            date: formatDate(createdAt),
+            time: formatTime(createdAt),
+            payment: `${Number(c?.total || 0).toFixed(2)} €`,
+            amount: Number(c?.total || 0),
+            createdAt,
+            status: txStatus,
+          };
+        });
+
+        const fromLocal = mapLocalInvoices(email);
+        const merged = [...fromCommandes, ...fromLocal].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+
+        setTransactions(merged);
+      } catch (err: any) {
+        if (!isMounted) return;
+        const fromLocal = mapLocalInvoices();
+        setTransactions(fromLocal);
+        if (fromLocal.length === 0) {
+          setErrorTx(err?.response?.data?.message || "Impossible de charger le wallet.");
+        }
+      } finally {
+        if (isMounted) setLoadingTx(false);
+      }
+    };
+
+    loadTransactions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const visibleTransactions = useMemo(() => {
+    if (txFilter === "all") return transactions;
+    const now = Date.now();
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    return transactions.filter((t) => now - new Date(t.createdAt).getTime() <= weekMs);
+  }, [transactions, txFilter]);
+
+  const totals = useMemo(() => {
+    const totalCredit = transactions
+      .filter((t) => t.status === "paid")
+      .reduce((acc, t) => acc + t.amount, 0);
+    const totalDebit = transactions
+      .filter((t) => t.status === "failed")
+      .reduce((acc, t) => acc + t.amount, 0);
+    const totalTx = transactions.reduce((acc, t) => acc + t.amount, 0);
+    const balance = totalCredit - totalDebit;
+
+    return { totalCredit, totalDebit, totalTx, balance };
+  }, [transactions]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
       {/* ── MODALS ── */}
-      {showPaymentModal && <AddPaymentModal onClose={() => setShowPaymentModal(false)} />}
+      {showPaymentModal && <AddPaymentModal onClose={() => setShowPaymentModal(false)} balance={totals.balance} />}
       {showCardModal && <AddCardModal onClose={() => setShowCardModal(false)} />}
 
       {/* ── HERO BANNER ── */}
@@ -291,7 +409,7 @@ export default function WalletPage() {
 
       {/* ── NAV TABS ── */}
       <div className="max-w-7xl mx-auto px-6 mt-10">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
           <button onClick={() => navigate("/user/dashboard")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
             <img src={dashboardIcon} alt="Dashboard" className="h-7 w-7" />
             <span className="font-semibold text-sm text-gray-700">Dashboard</span>
@@ -299,14 +417,6 @@ export default function WalletPage() {
           <button onClick={() => navigate("/user/bookings")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
             <img src={bookingsIcon} alt="My Bookings" className="h-7 w-7" />
             <span className="font-semibold text-sm text-gray-700">My Bookings</span>
-          </button>
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={chatIcon} alt="Chat" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Chat</span>
-          </button>
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={invoicesIcon} alt="Invoices" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Invoices</span>
           </button>
           {/* ACTIVE */}
           <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-green-700 text-white p-6 shadow-sm">
@@ -341,20 +451,20 @@ export default function WalletPage() {
                 </button>
               </div>
 
-              <p className="text-4xl font-extrabold mt-3">$4,544</p>
+              <p className="text-4xl font-extrabold mt-3">{totals.balance.toFixed(2)} €</p>
 
               <div className="border-t border-green-600 mt-6 pt-6 grid grid-cols-3 gap-4">
                 <div>
                   <p className="text-xs text-green-200">Total Credit</p>
-                  <p className="text-lg font-extrabold mt-1">$350.40</p>
+                  <p className="text-lg font-extrabold mt-1">{totals.totalCredit.toFixed(2)} €</p>
                 </div>
                 <div>
                   <p className="text-xs text-green-200">Total Debit</p>
-                  <p className="text-lg font-extrabold mt-1">$50.40</p>
+                  <p className="text-lg font-extrabold mt-1">{totals.totalDebit.toFixed(2)} €</p>
                 </div>
                 <div>
                   <p className="text-xs text-green-200">Total transaction</p>
-                  <p className="text-lg font-extrabold mt-1">$480.40</p>
+                  <p className="text-lg font-extrabold mt-1">{totals.totalTx.toFixed(2)} €</p>
                 </div>
               </div>
             </div>
@@ -455,9 +565,21 @@ export default function WalletPage() {
           </div>
 
           {/* Rows */}
-          {transactions.map((tx) => (
+          {loadingTx && (
+            <div className="px-8 py-6 text-gray-500">Chargement des transactions...</div>
+          )}
+
+          {!loadingTx && errorTx && (
+            <div className="px-8 py-6 text-red-600">{errorTx}</div>
+          )}
+
+          {!loadingTx && !errorTx && visibleTransactions.length === 0 && (
+            <div className="px-8 py-6 text-gray-500">Aucune transaction trouvée.</div>
+          )}
+
+          {visibleTransactions.map((tx, idx) => (
             <div
-              key={tx.refId}
+              key={`${tx.refId}-${idx}`}
               className="grid grid-cols-12 gap-4 px-8 py-4 items-center border-b border-gray-50 last:border-b-0 hover:bg-gray-50/50 transition"
             >
               {/* Ref ID */}

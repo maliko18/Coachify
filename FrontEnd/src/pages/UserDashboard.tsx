@@ -1,10 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import dashboardIcon from "../assets/dashboard-icon.svg";
 import bookingsIcon from "../assets/booking-icon.svg"; // temporaire si pas booking
-import chatIcon from "../assets/chat-icon.svg";
-import invoicesIcon from "../assets/invoice-icon.svg";
 import walletIcon from "../assets/wallet-icon.svg";
 import profileIcon from "../assets/profile-icon.svg";
 import stat01 from "../assets/statistics-01.svg";
@@ -63,6 +61,48 @@ type Message = {
   preview: string;
   date: string; // YYYY-MM-DD
   unread: boolean;
+};
+
+type ApiSeance = {
+  id: number;
+  titre?: string;
+  date?: string;
+  heure_debut?: string;
+  heure_fin?: string;
+  duree?: number;
+  statut?: string;
+  lieu?: string;
+  coach?: {
+    user?: {
+      full_name?: string;
+      first_name?: string;
+      last_name?: string;
+    };
+  };
+};
+
+type DashboardTx = {
+  id: string;
+  coachName: string;
+  date: string;
+  time: string;
+  amount: number;
+  paidOn: string;
+  status: "paid" | "pending" | "failed";
+};
+
+const formatDate = (iso?: string) => {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+};
+
+const formatTime = (iso?: string) => {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 };
 
 export default function UserDashboard() {
@@ -219,38 +259,7 @@ function BookingRow({
   const navigate = useNavigate();
 
  
-  const [sessions, setSessions] = useState<Session[]>([
-    {
-      id: "s1",
-      title: "Lower Body Strength",
-      date: "2026-01-28",
-      time: "18:30",
-      type: "individual",
-      location: "Coachify Studio",
-      coachName: "Coach Sarah",
-      status: "upcoming",
-    },
-    {
-      id: "s2",
-      title: "Group HIIT (8 spots)",
-      date: "2026-01-30",
-      time: "19:00",
-      type: "group",
-      location: "City Gym",
-      coachName: "Coach Sarah",
-      status: "upcoming",
-    },
-    {
-      id: "s3",
-      title: "Mobility & Recovery",
-      date: "2026-01-22",
-      time: "18:00",
-      type: "individual",
-      location: "Online",
-      coachName: "Coach Sarah",
-      status: "completed",
-    },
-  ]);
+  const [sessions, setSessions] = useState<Session[]>([]);
 
   const programs: Program[] = useMemo(
     () => [
@@ -283,14 +292,9 @@ function BookingRow({
   );
   const [stravaLoading, setStravaLoading] = useState(false);
 
-  const payments: Payment[] = useMemo(
-    () => [
-      { id: "pay1", date: "2026-01-10", label: "Monthly Subscription", amountEUR: 39.99, status: "paid" },
-      { id: "pay2", date: "2025-12-18", label: "Pack 5 sessions", amountEUR: 75.0, status: "paid" },
-      { id: "pay3", date: "2026-01-25", label: "Group Session Ticket", amountEUR: 8.0, status: "pending" },
-    ],
-    []
-  );
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [transactions, setTransactions] = useState<DashboardTx[]>([]);
+  const [loadingDashboard, setLoadingDashboard] = useState(true);
 
   const messages: Message[] = useMemo(
     () => [
@@ -331,9 +335,134 @@ function BookingRow({
     [sessions]
   );
 
+  const recentBookings = useMemo(() => sessions.slice(0, 5), [sessions]);
+
+  const todayAppointment = useMemo(() => {
+    return upcoming[0] ?? null;
+  }, [upcoming]);
+
   const unreadCount = useMemo(() => messages.filter((m) => m.unread).length, [messages]);
 
   const totalSpent = useMemo(() => payments.filter(p => p.status === "paid").reduce((acc, p) => acc + p.amountEUR, 0), [payments]);
+
+  const walletBalance = useMemo(() => {
+    const paid = payments.filter((p) => p.status === "paid").reduce((acc, p) => acc + p.amountEUR, 0);
+    const failed = payments.filter((p) => p.status === "failed").reduce((acc, p) => acc + p.amountEUR, 0);
+    return paid - failed;
+  }, [payments]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadDashboard = async () => {
+      setLoadingDashboard(true);
+      try {
+        const [userRes, seancesRes, commandesRes] = await Promise.all([
+          axiosClient.get("/user"),
+          axiosClient.get("/client/seances"),
+          axiosClient.get("/commandes", { params: { per_page: 100 } }),
+        ]);
+
+        if (!isMounted) return;
+
+        const user = userRes.data?.data ?? userRes.data;
+        const email = String(user?.email || "");
+
+        const seancesPayload = seancesRes.data?.data ?? seancesRes.data;
+        const seances: ApiSeance[] = Array.isArray(seancesPayload)
+          ? seancesPayload
+          : Array.isArray(seancesPayload?.data)
+          ? seancesPayload.data
+          : [];
+
+        const mappedSessions: Session[] = seances.map((s) => {
+          const coachName =
+            s.coach?.user?.full_name ||
+            `${s.coach?.user?.first_name ?? ""} ${s.coach?.user?.last_name ?? ""}`.trim() ||
+            "Coach";
+          const statut = String(s.statut || "").toLowerCase();
+          const status: SessionStatus =
+            statut.includes("term") ? "completed" : statut.includes("annul") ? "cancelled" : "upcoming";
+
+          return {
+            id: String(s.id),
+            title: s.titre || `Séance #${s.id}`,
+            date: s.date || "",
+            time: (s.heure_debut || "").slice(0, 5),
+            type: String(s.type || "").toLowerCase().includes("group") ? "group" : "individual",
+            location: s.lieu || "Non précisé",
+            coachName,
+            status,
+          };
+        });
+
+        const cmdPayload = commandesRes.data?.data ?? commandesRes.data;
+        const commandes: any[] = Array.isArray(cmdPayload)
+          ? cmdPayload
+          : Array.isArray(cmdPayload?.data)
+          ? cmdPayload.data
+          : [];
+
+        const apiTx: DashboardTx[] = commandes.map((c: any) => {
+          const coachUser = c?.coach?.user;
+          const coachName = coachUser
+            ? `${coachUser.first_name ?? ""} ${coachUser.last_name ?? ""}`.trim()
+            : `Coach #${c?.coach_id ?? "-"}`;
+          const createdAt = String(c?.date_commande || c?.created_at || new Date().toISOString());
+          const statut = String(c?.statut || "").toLowerCase();
+          const status: DashboardTx["status"] = statut === "annule" ? "failed" : statut === "attente" ? "pending" : "paid";
+
+          return {
+            id: `CMD-${c?.id}`,
+            coachName,
+            date: formatDate(createdAt),
+            time: formatTime(createdAt),
+            amount: Number(c?.total || 0),
+            paidOn: formatDate(createdAt),
+            status,
+          };
+        });
+
+        const rawInv = localStorage.getItem("CLIENT_INVOICES");
+        const parsedInv: any[] = rawInv ? JSON.parse(rawInv) : [];
+        const localTx: DashboardTx[] = parsedInv
+          .filter((inv: any) => !email || String(inv?.customer_email || "").toLowerCase() === email.toLowerCase())
+          .map((inv: any) => ({
+            id: String(inv?.id || `INV-${Date.now()}`),
+            coachName: String(inv?.coach_name || "Coach"),
+            date: formatDate(inv?.created_at),
+            time: formatTime(inv?.created_at),
+            amount: Number(inv?.amount || 0),
+            paidOn: formatDate(inv?.created_at),
+            status: "paid",
+          }));
+
+        const mergedTx = [...apiTx, ...localTx].sort((a, b) => b.id.localeCompare(a.id));
+
+        setSessions(mappedSessions);
+        setTransactions(mergedTx);
+        setPayments(
+          mergedTx.map((tx) => ({
+            id: tx.id,
+            date: tx.paidOn,
+            label: tx.coachName,
+            amountEUR: tx.amount,
+            status: tx.status,
+          })),
+        );
+      } catch {
+        if (!isMounted) return;
+      } finally {
+        if (isMounted) setLoadingDashboard(false);
+      }
+    };
+
+    loadDashboard();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const cancelSession = (id: string) => {
     setSessions((prev) =>
@@ -416,26 +545,6 @@ function BookingRow({
       </span>
     </button>
 
-    {/* Chat */}
-    <button
-      onClick={() => alert("Chat — coming soon")}
-      className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-    >
-      <img src={chatIcon} alt="Chat" className="h-7 w-7" />
-      <span className="font-semibold text-sm text-gray-700">Chat</span>
-    </button>
-
-    {/* Invoices */}
-    <button
-      onClick={() => alert("Invoices — coming soon")}
-      className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition"
-    >
-      <img src={invoicesIcon} alt="Invoices" className="h-7 w-7" />
-      <span className="font-semibold text-sm text-gray-700">
-        Invoices
-      </span>
-    </button>
-
     {/* Wallet */}
     <button
       onClick={() => navigate("/user/wallet")}
@@ -504,7 +613,7 @@ function BookingRow({
       {/* Total Court Booked */}
       <div className="rounded-2xl bg-[#FAFAF7] p-6 flex items-center justify-between">
         <div>
-          <p className="text-3xl font-extrabold text-green-700">78</p>
+          <p className="text-3xl font-extrabold text-green-700">{loadingDashboard ? "..." : sessions.length}</p>
           <p className="text-sm font-semibold text-gray-700 mt-1">
             Total Court Booked
           </p>
@@ -517,7 +626,7 @@ function BookingRow({
       {/* Total Coaches Booked */}
       <div className="rounded-2xl bg-[#FAFAF7] p-6 flex items-center justify-between">
         <div>
-          <p className="text-3xl font-extrabold text-green-700">45</p>
+          <p className="text-3xl font-extrabold text-green-700">{loadingDashboard ? "..." : new Set(sessions.map((s) => s.coachName)).size}</p>
           <p className="text-sm font-semibold text-gray-700 mt-1">
             Total Coaches Booked
           </p>
@@ -530,7 +639,7 @@ function BookingRow({
       {/* Total Lessons */}
       <div className="rounded-2xl bg-[#FAFAF7] p-6 flex items-center justify-between">
         <div>
-          <p className="text-3xl font-extrabold text-green-700">06</p>
+          <p className="text-3xl font-extrabold text-green-700">{loadingDashboard ? "..." : sessions.filter((s) => s.status === "completed").length}</p>
           <p className="text-sm font-semibold text-gray-700 mt-1">
             Total Lessons
           </p>
@@ -543,7 +652,7 @@ function BookingRow({
       {/* Payments */}
       <div className="rounded-2xl bg-[#FAFAF7] p-6 flex items-center justify-between">
         <div>
-          <p className="text-3xl font-extrabold text-green-700">$45,056</p>
+          <p className="text-3xl font-extrabold text-green-700">{loadingDashboard ? "..." : `${totalSpent.toFixed(2)} €`}</p>
           <p className="text-sm font-semibold text-gray-700 mt-1">
             Payments
           </p>
@@ -586,12 +695,8 @@ function BookingRow({
           className="h-12 w-12 rounded-xl object-cover"
         />
         <div>
-          <p className="text-sm font-semibold text-gray-900">
-            Court Name
-          </p>
-          <p className="text-sm text-gray-500">
-            Standard Synthetic Court 1
-          </p>
+          <p className="text-sm font-semibold text-gray-900">{todayAppointment?.title || "Aucun rendez-vous"}</p>
+          <p className="text-sm text-gray-500">{todayAppointment?.location || "-"}</p>
         </div>
       </div>
 
@@ -600,9 +705,7 @@ function BookingRow({
         <p className="text-sm font-semibold text-gray-900">
           Appointment Date
         </p>
-        <p className="text-sm text-gray-500">
-          Mon, Jul 11
-        </p>
+        <p className="text-sm text-gray-500">{todayAppointment?.date || "-"}</p>
       </div>
 
       {/* Start Time */}
@@ -610,9 +713,7 @@ function BookingRow({
         <p className="text-sm font-semibold text-gray-900">
           Start Time
         </p>
-        <p className="text-sm text-gray-500">
-          05:25 AM
-        </p>
+        <p className="text-sm text-gray-500">{todayAppointment?.time || "-"}</p>
       </div>
 
       {/* End Time */}
@@ -620,9 +721,7 @@ function BookingRow({
         <p className="text-sm font-semibold text-gray-900">
           Appointment End Time
         </p>
-        <p className="text-sm text-gray-500">
-          06:25 AM
-        </p>
+        <p className="text-sm text-gray-500">-</p>
       </div>
 
       {/* Guests */}
@@ -630,9 +729,7 @@ function BookingRow({
         <p className="text-sm font-semibold text-gray-900">
           Additional Guests
         </p>
-        <p className="text-sm text-gray-500">
-          4
-        </p>
+        <p className="text-sm text-gray-500">-</p>
       </div>
 
       {/* Location */}
@@ -640,9 +737,7 @@ function BookingRow({
         <p className="text-sm font-semibold text-gray-900">
           Location
         </p>
-        <p className="text-sm text-gray-500">
-          Sant Marco
-        </p>
+        <p className="text-sm text-gray-500">{todayAppointment?.location || "-"}</p>
       </div>
 
     </div>
@@ -683,61 +778,23 @@ function BookingRow({
       {/* Booking rows */}
       <div className="mt-6 space-y-6">
 
-        <BookingRow
-          img={booking}
-          academy="Leap Sports Academy"
-          court="Court 1"
-          guests="4"
-          duration="2 Hrs"
-          date="Mon, Jul 11"
-          time="06:00 PM - 08:00 PM"
-          price="$400"
-        />
+        {recentBookings.map((b, idx) => (
+          <BookingRow
+            key={b.id}
+            img={[booking, booking2, booking3, booking4, booking5][idx % 5]}
+            academy={b.title}
+            court={b.location || "-"}
+            guests="-"
+            duration={b.time ? `${b.time}` : "-"}
+            date={b.date || "-"}
+            time={b.time || "-"}
+            price="-"
+          />
+        ))}
 
-        <BookingRow
-          img={booking2}
-          academy="Wing Sports Academy"
-          court="Court 2"
-          guests="3"
-          duration="1 Hr"
-          date="Tue, Jul 12"
-          time="07:00 PM - 08:00 PM"
-          price="$240"
-        />
-
-        <BookingRow
-          img={booking3}
-          academy="Feather Badminton"
-          court="Court 1"
-          guests="1"
-          duration="4 Hrs"
-          date="Wed, Jul 13"
-          time="10:00 PM - 11:00 PM"
-          price="$320"
-        />
-
-        <BookingRow
-          img={booking4}
-          academy="Bwing Sports Academy"
-          court="Court 3"
-          guests="5"
-          duration="6 Hrs"
-          date="Thu, Jul 14"
-          time="09:00 AM - 10:00 AM"
-          price="$710"
-        />
-
-        {/* ✅ FIFTH BOOKING */}
-        <BookingRow
-          img={booking5}
-          academy="Marsh Academy"
-          court="Court 2"
-          guests="3"
-          duration="2 Hrs"
-          date="Fri, Jul 15"
-          time="11:00 AM - 12:00 PM"
-          price="$820"
-        />
+        {recentBookings.length === 0 && (
+          <p className="text-sm text-gray-500">Aucune réservation trouvée.</p>
+        )}
 
       </div>
     </div>
@@ -757,7 +814,7 @@ function BookingRow({
     <div className="relative z-10 flex items-center justify-between">
       <div>
         <p className="text-sm opacity-90">Your Wallet Balance</p>
-        <p className="text-2xl font-extrabold mt-1">$4,544</p>
+        <p className="text-2xl font-extrabold mt-1">{walletBalance.toFixed(2)} €</p>
       </div>
 
       <button className="px-4 py-2 rounded-xl bg-lime-400 text-green-900 font-semibold text-sm">
@@ -796,12 +853,8 @@ function BookingRow({
           className="h-10 w-10 rounded-lg object-cover"
         />
         <div>
-          <p className="font-semibold text-gray-900 text-sm">
-            Leap Sports Academy
-          </p>
-          <p className="text-sm text-gray-500">
-            Court 1 • 06:00 PM to 08:00 PM
-          </p>
+          <p className="font-semibold text-gray-900 text-sm">{todayAppointment?.title || "Aucun rendez-vous"}</p>
+          <p className="text-sm text-gray-500">{todayAppointment?.location || "-"} • {todayAppointment?.time || "-"}</p>
         </div>
       </div>
 
@@ -900,55 +953,22 @@ function BookingRow({
     {/* Rows */}
     <div className="divide-y divide-gray-100 mt-2">
 
-      <InvoiceRow
-        img={booking}
-        academy="Leap Sports Academy"
-        court="Court 1"
-        date="Mon, Jul 11"
-        time="06:00 PM - 08:00 PM"
-        amount="$800"
-        paidOn="Jul 11, 2023"
-      />
+      {transactions.slice(0, 5).map((tx, idx) => (
+        <InvoiceRow
+          key={tx.id}
+          img={[booking, booking2, booking3, booking4, booking5][idx % 5]}
+          academy={tx.coachName}
+          court="Booking"
+          date={tx.date}
+          time={tx.time}
+          amount={`${tx.amount.toFixed(2)} €`}
+          paidOn={tx.paidOn}
+        />
+      ))}
 
-      <InvoiceRow
-        img={booking2}
-        academy="Wing Sports Academy"
-        court="Court 2"
-        date="Tue, Jul 12"
-        time="05:00 PM - 06:00 PM"
-        amount="$120"
-        paidOn="Jul 12, 2023"
-      />
-
-      <InvoiceRow
-        img={booking3}
-        academy="Feather Badminton"
-        court="Court 3"
-        date="Wed, Jul 13"
-        time="10:00 AM - 11:00 AM"
-        amount="$470"
-        paidOn="Jul 13, 2023"
-      />
-
-      <InvoiceRow
-        img={booking4}
-        academy="Bwing Sports Academy"
-        court="Court 4"
-        date="Thu, Jul 14"
-        time="12:00 PM - 01:00 PM"
-        amount="$200"
-        paidOn="Jul 14, 2023"
-      />
-
-      <InvoiceRow
-        img={booking5}
-        academy="Marsh Academy"
-        court="Court 5"
-        date="Fri, Jul 15"
-        time="08:00 AM - 09:00 AM"
-        amount="$150"
-        paidOn="Jul 15, 2023"
-      />
+      {transactions.length === 0 && (
+        <p className="px-5 py-4 text-sm text-gray-500">Aucune facture trouvée.</p>
+      )}
 
     </div>
   </div>

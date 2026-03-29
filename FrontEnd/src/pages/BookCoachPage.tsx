@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import axiosClient from "../api/axios";
 import avatar1 from "../assets/avatar-01.jpg";
+import { PAIEMENT_METHODES, type PaiementMethode } from "../api/paiements";
 
 const stepLabels = [
   "Type of Booking",
@@ -20,6 +21,17 @@ const dayColumns = [
   { day: "Wednesday", date: "Apr 26" },
   { day: "Thursday", date: "Apr 27" },
 ];
+
+const PAYMENT_LABELS: Record<PaiementMethode, string> = {
+  carte_bancaire: "Credit Card",
+  virement: "Bank Transfer",
+  especes: "Cash",
+  cheque: "Cheque",
+  paypal: "PayPal",
+  stripe: "Stripe",
+  prelevement: "Direct Debit",
+  autre: "Other",
+};
 
 type CoachLookupItem = {
   id: number | string;
@@ -67,6 +79,42 @@ export default function BookCoachPage() {
   const [apiCoach, setApiCoach] = useState<any | null>(null);
   const [loadingCoach, setLoadingCoach] = useState(true);
   const [coachError, setCoachError] = useState("");
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<PaiementMethode[]>(PAIEMENT_METHODES);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaiementMethode>("carte_bancaire");
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutSuccess, setCheckoutSuccess] = useState("");
+
+  useEffect(() => {
+    const loadMethodsFromDb = async () => {
+      try {
+        const res = await axiosClient.get("/coach/paiements", { params: { per_page: 100 } });
+        const payload = res.data?.data ?? res.data;
+        const list: any[] = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+
+        const methodsFromDb = Array.from(
+          new Set(
+            list
+              .map((p: any) => p?.methode)
+              .filter((m: any): m is PaiementMethode => PAIEMENT_METHODES.includes(m)),
+          ),
+        );
+
+        if (methodsFromDb.length > 0) {
+          setAvailablePaymentMethods(methodsFromDb);
+          setSelectedPaymentMethod(methodsFromDb[0]);
+        }
+      } catch {
+        setAvailablePaymentMethods(PAIEMENT_METHODES);
+      }
+    };
+
+    loadMethodsFromDb();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -172,6 +220,167 @@ export default function BookCoachPage() {
   const [phone, setPhone] = useState("+15656 556558");
   const [address, setAddress] = useState("");
   const [details, setDetails] = useState("");
+
+  const getProductsList = async (coachNumericId: number) => {
+    const res = await axiosClient.get("/produits", { params: { coach_id: coachNumericId, per_page: 100 } });
+    const payload = res.data?.data ?? res.data;
+
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(res.data?.data?.data)) return res.data.data.data;
+
+    return [] as any[];
+  };
+
+  const persistClientInvoice = (invoiceData: any) => {
+    const key = "CLIENT_INVOICES";
+    const prev = localStorage.getItem(key);
+    const parsed = prev ? JSON.parse(prev) : [];
+    const next = [invoiceData, ...parsed].slice(0, 50);
+    localStorage.setItem(key, JSON.stringify(next));
+  };
+
+  const persistCoachBookingRequest = (requestData: any) => {
+    const key = "COACH_BOOKING_REQUESTS";
+    const prev = localStorage.getItem(key);
+    const parsed = prev ? JSON.parse(prev) : [];
+    const next = [requestData, ...parsed].slice(0, 200);
+    localStorage.setItem(key, JSON.stringify(next));
+  };
+
+  const confirmPaymentAndBook = async () => {
+    if (isSubmittingOrder) return;
+
+    const coachSnapshot = coach;
+    if (!coachSnapshot) {
+      setCheckoutError("Coach introuvable.");
+      return;
+    }
+
+    setCheckoutError("");
+    setCheckoutSuccess("");
+    setIsSubmittingOrder(true);
+
+    try {
+      const quantity = Math.max(selectedSlots.length, 1);
+      const fallbackSubtotal = quantity * (Number(apiCoach?.hourly_rate || 0) || 100);
+      const coachNumericId = Number(coachSnapshot.id);
+      const products = await getProductsList(coachNumericId);
+
+      if (!Array.isArray(products) || products.length === 0) {
+        setCheckoutError("Aucun produit actif pour ce coach. Impossible de finaliser l'achat.");
+        return;
+      }
+
+      const selectedProduct =
+        products.find((p: any) => String(p?.type || "").toLowerCase() !== "physique") || products[0];
+
+      if (!selectedProduct?.id) {
+        setCheckoutError("Produit invalide pour la commande.");
+        return;
+      }
+
+      const orderRes = await axiosClient.post("/commandes", {
+        items: [{ produit_id: selectedProduct.id, quantite: quantity }],
+      });
+
+      const order = orderRes.data?.data ?? orderRes.data;
+      const totalAmount = Number(order?.total ?? fallbackSubtotal);
+
+      const invoice = {
+        id: `INV-${order?.id ?? Date.now()}`,
+        commande_id: order?.id,
+        coach_id: coachNumericId,
+        coach_name: coachSnapshot.name,
+        amount: totalAmount,
+        currency: "EUR",
+        payment_method: selectedPaymentMethod,
+        payment_method_label: PAYMENT_LABELS[selectedPaymentMethod],
+        status: "paid",
+        created_at: new Date().toISOString(),
+        booking_date: selectedDay.date,
+        booking_slots: selectedSlots,
+        customer_name: name,
+        customer_email: email,
+      };
+
+      persistClientInvoice(invoice);
+      persistCoachBookingRequest({
+        id: `REQ-${order?.id ?? Date.now()}`,
+        source: "order",
+        coach_id: coachNumericId,
+        coach_name: coachSnapshot.name,
+        client_name: name,
+        client_email: email,
+        statut: "attente",
+        total: totalAmount,
+        payment_method: selectedPaymentMethod,
+        payment_method_label: PAYMENT_LABELS[selectedPaymentMethod],
+        date_commande: new Date().toISOString(),
+        booking_date: selectedDay.date,
+        booking_slots: selectedSlots,
+      });
+      setCheckoutSuccess(`Paiement confirmé. Facture ${invoice.id} créée.`);
+
+      setTimeout(() => {
+        navigate("/user/bookings");
+      }, 1200);
+    } catch (err: any) {
+      const rawMessage = String(err?.response?.data?.message || err?.message || "");
+      const isMissingProductsTable =
+        rawMessage.includes("Base table or view not found") ||
+        rawMessage.includes("Table") && rawMessage.includes("produits") ||
+        rawMessage.includes("SQLSTATE[42S02]");
+
+      if (isMissingProductsTable) {
+        const localRequestId = Date.now();
+        const totalAmount = Math.max(selectedSlots.length, 1) * (Number(apiCoach?.hourly_rate || 0) || 100);
+        const invoice = {
+          id: `INV-LOCAL-${localRequestId}`,
+          commande_id: `LOCAL-${localRequestId}`,
+          coach_id: Number(coachSnapshot.id),
+          coach_name: coachSnapshot.name,
+          amount: totalAmount,
+          currency: "EUR",
+          payment_method: selectedPaymentMethod,
+          payment_method_label: PAYMENT_LABELS[selectedPaymentMethod],
+          status: "paid",
+          created_at: new Date().toISOString(),
+          booking_date: selectedDay.date,
+          booking_slots: selectedSlots,
+          customer_name: name,
+          customer_email: email,
+          source: "local-fallback",
+        };
+
+        persistClientInvoice(invoice);
+        persistCoachBookingRequest({
+          id: `REQ-LOCAL-${localRequestId}`,
+          source: "local-fallback",
+          coach_id: Number(coachSnapshot.id),
+          coach_name: coachSnapshot.name,
+          client_name: name,
+          client_email: email,
+          statut: "attente",
+          total: totalAmount,
+          payment_method: selectedPaymentMethod,
+          payment_method_label: PAYMENT_LABELS[selectedPaymentMethod],
+          date_commande: new Date().toISOString(),
+          booking_date: selectedDay.date,
+          booking_slots: selectedSlots,
+        });
+
+        setCheckoutSuccess(`Paiement confirmé. Facture ${invoice.id} créée (mode fallback).`);
+        setTimeout(() => {
+          navigate("/user/bookings");
+        }, 1200);
+      } else {
+        setCheckoutError(rawMessage || "Impossible de finaliser le paiement.");
+      }
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
 
   if (loadingCoach) {
     return (
@@ -449,17 +658,30 @@ export default function BookCoachPage() {
             <div className="rounded-2xl border border-gray-200 bg-white p-6">
               <h3 className="text-4xl font-extrabold text-gray-900">Checkout</h3>
               <label className="mt-6 block text-xl font-bold text-gray-900">Select Payment Gateway</label>
-              <div className="mt-3 rounded-xl border border-gray-200 p-4 text-xl">
-                <label className="flex items-center gap-3">
-                  <input type="radio" name="payment" defaultChecked />
-                  Credit Card
-                </label>
+
+              <div className="mt-3 space-y-3">
+                {availablePaymentMethods.map((method) => (
+                  <label key={method} className="rounded-xl border border-gray-200 p-4 text-xl flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={selectedPaymentMethod === method}
+                      onChange={() => setSelectedPaymentMethod(method)}
+                    />
+                    {PAYMENT_LABELS[method]}
+                  </label>
+                ))}
               </div>
+
+              {checkoutError && <p className="mt-4 text-red-600 font-semibold">{checkoutError}</p>}
+              {checkoutSuccess && <p className="mt-4 text-emerald-600 font-semibold">{checkoutSuccess}</p>}
+
               <button
-                onClick={() => navigate("/user/bookings")}
-                className="mt-6 h-12 px-6 rounded-xl bg-emerald-600 text-white font-extrabold"
+                onClick={confirmPaymentAndBook}
+                disabled={isSubmittingOrder}
+                className="mt-6 h-12 px-6 rounded-xl bg-emerald-600 text-white font-extrabold disabled:opacity-50"
               >
-                Confirm Payment
+                {isSubmittingOrder ? "Processing..." : "Confirm Payment"}
               </button>
             </div>
           </div>

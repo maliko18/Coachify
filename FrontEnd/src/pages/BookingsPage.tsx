@@ -4,8 +4,6 @@ import axiosClient from "../api/axios";
 import heroBg from "../assets/breadcrumb-bg2.jpg";
 import dashboardIcon from "../assets/dashboard-icon.svg";
 import bookingsIcon from "../assets/booking-icon.svg";
-import chatIcon from "../assets/chat-icon.svg";
-import invoicesIcon from "../assets/invoice-icon.svg";
 import walletIcon from "../assets/wallet-icon.svg";
 import profileIcon from "../assets/profile-icon.svg";
 import booking1 from "../assets/booking-01.jpg";
@@ -369,100 +367,169 @@ export default function BookingsPage() {
   useEffect(() => {
     let isMounted = true;
 
+    const loadLocalBookings = (customerEmail?: string): { courts: Booking[]; coaches: CoachBooking[] } => {
+      const rawInvoices = localStorage.getItem("CLIENT_INVOICES");
+      const parsedInvoices: any[] = rawInvoices ? JSON.parse(rawInvoices) : [];
+
+      const filteredInvoices = customerEmail
+        ? parsedInvoices.filter((inv: any) => String(inv?.customer_email || "").toLowerCase() === customerEmail.toLowerCase())
+        : parsedInvoices;
+
+      const imagePool = [booking1, booking2, booking3, booking4, booking5, booking6];
+      const avatarPool = [avatar1, avatar2, avatar3, avatar4, avatar5];
+
+      const localCourts: Booking[] = filteredInvoices.map((inv: any, index: number) => ({
+        id: Number(String(inv?.commande_id || Date.now()).replace(/\D/g, "")) || Date.now() + index,
+        image: imagePool[index % imagePool.length],
+        courtName: String(inv?.coach_name || "Coach booking"),
+        dateTime: `${inv?.booking_date || "-"} ${Array.isArray(inv?.booking_slots) ? inv.booking_slots.join(", ") : ""}`.trim(),
+        payment: `${Number(inv?.amount || 0).toFixed(2)} €`,
+        status: "Upcoming",
+        coachName: String(inv?.coach_name || "Coach"),
+        coachAvatar: "",
+        reviewCount: 0,
+        stars: 5,
+        location: "-",
+        pricePerHour: "-",
+        rank: "Coach",
+        bookedOn: String(inv?.booking_date || "-"),
+        bookingType: "Booking",
+        totalHours: Array.isArray(inv?.booking_slots) ? inv.booking_slots.length : 1,
+        bookingAmount: `${Number(inv?.amount || 0).toFixed(2)} €`,
+        serviceCharge: "0.00 €",
+        totalPaid: `${Number(inv?.amount || 0).toFixed(2)} €`,
+        paidOn: String(inv?.created_at || "-"),
+        transactionId: String(inv?.id || `INV-${index + 1}`),
+        paymentType: String(inv?.payment_method_label || inv?.payment_method || "-"),
+      }));
+
+      const localCoaches: CoachBooking[] = filteredInvoices.map((inv: any, index: number) => ({
+        id: Number(String(inv?.commande_id || Date.now()).replace(/\D/g, "")) || Date.now() + index,
+        avatar: avatarPool[index % avatarPool.length],
+        coachName: String(inv?.coach_name || "Coach"),
+        bookedOn: String(inv?.booking_date || "-"),
+        bookingType: "Booking",
+        dateTime: `${inv?.booking_date || "-"} ${Array.isArray(inv?.booking_slots) ? inv.booking_slots.join(", ") : ""}`.trim(),
+        payment: `${Number(inv?.amount || 0).toFixed(2)} €`,
+        status: "Accepted",
+        stars: 5,
+        location: "-",
+        pricePerHour: "-",
+        rank: "Coach",
+        totalHours: Array.isArray(inv?.booking_slots) ? inv.booking_slots.length : 1,
+        bookingAmount: `${Number(inv?.amount || 0).toFixed(2)} €`,
+        serviceCharge: "0.00 €",
+        totalPaid: `${Number(inv?.amount || 0).toFixed(2)} €`,
+        paidOn: String(inv?.created_at || "-"),
+        transactionId: String(inv?.id || `INV-${index + 1}`),
+        paymentType: String(inv?.payment_method_label || inv?.payment_method || "-"),
+      }));
+
+      return { courts: localCourts, coaches: localCoaches };
+    };
+
     const loadFromApi = async () => {
       setLoadingData(true);
       setLoadingError("");
-      const endpoints = ["/client/seances", "/coach/seances"];
-      let lastError = "";
+      try {
+        const [userRes, seancesRes] = await Promise.all([
+          axiosClient.get("/user"),
+          axiosClient.get("/client/seances"),
+        ]);
 
-      for (const endpoint of endpoints) {
-        try {
-          const res = await axiosClient.get(endpoint);
-          const items: ApiSeance[] = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+        if (!isMounted) return;
 
-          if (!isMounted) return;
+        const user = userRes.data?.data ?? userRes.data;
+        const userEmail = String(user?.email || "");
+        const local = loadLocalBookings(userEmail);
 
-          const mappedBookings: Booking[] = items.map((seance, index) => {
-            const imgPool = [booking1, booking2, booking3, booking4, booking5, booking6];
-            const image = imgPool[index % imgPool.length];
-            const coachName =
-              seance.coach?.user?.full_name ||
-              `${seance.coach?.user?.first_name ?? ""} ${seance.coach?.user?.last_name ?? ""}`.trim() ||
-              "Coach";
-            const dateTime = formatDateTime(seance.date, seance.heure_debut);
-            const durationHours = Number(seance.duree || 60) / 60;
+        const items: ApiSeance[] = Array.isArray(seancesRes.data)
+          ? seancesRes.data
+          : (seancesRes.data?.data ?? []);
 
-            return {
-              id: seance.id,
-              image,
-              courtName: seance.titre || `Séance #${seance.id}`,
-              dateTime,
-              payment: "-",
-              status: seanceToBookingStatus(seance.statut),
-              coachName,
-              coachAvatar: "",
-              reviewCount: 0,
-              stars: 5,
-              location: seance.lieu || "Non précisé",
-              pricePerHour: "-",
-              rank: "Coach",
-              bookedOn: seance.date || "-",
-              bookingType: "Séance",
-              totalHours: durationHours,
-              bookingAmount: "-",
-              serviceCharge: "-",
-              totalPaid: "-",
-              paidOn: "-",
-              transactionId: `SEANCE-${seance.id}`,
-              paymentType: "-",
-            };
-          });
+        const mappedBookings: Booking[] = items.map((seance, index) => {
+          const imgPool = [booking1, booking2, booking3, booking4, booking5, booking6];
+          const image = imgPool[index % imgPool.length];
+          const coachName =
+            seance.coach?.user?.full_name ||
+            `${seance.coach?.user?.first_name ?? ""} ${seance.coach?.user?.last_name ?? ""}`.trim() ||
+            "Coach";
+          const dateTime = formatDateTime(seance.date, seance.heure_debut);
+          const durationHours = Number(seance.duree || 60) / 60;
 
-          const mappedCoachBookings: CoachBooking[] = items.map((seance, index) => {
-            const avatarPool = [avatar1, avatar2, avatar3, avatar4, avatar5];
-            const avatar = avatarPool[index % avatarPool.length];
-            const coachName =
-              seance.coach?.user?.full_name ||
-              `${seance.coach?.user?.first_name ?? ""} ${seance.coach?.user?.last_name ?? ""}`.trim() ||
-              "Coach";
+          return {
+            id: seance.id,
+            image,
+            courtName: seance.titre || `Séance #${seance.id}`,
+            dateTime,
+            payment: "-",
+            status: seanceToBookingStatus(seance.statut),
+            coachName,
+            coachAvatar: "",
+            reviewCount: 0,
+            stars: 5,
+            location: seance.lieu || "Non précisé",
+            pricePerHour: "-",
+            rank: "Coach",
+            bookedOn: seance.date || "-",
+            bookingType: "Séance",
+            totalHours: durationHours,
+            bookingAmount: "-",
+            serviceCharge: "-",
+            totalPaid: "-",
+            paidOn: "-",
+            transactionId: `SEANCE-${seance.id}`,
+            paymentType: "-",
+          };
+        });
 
-            return {
-              id: seance.id,
-              avatar,
-              coachName,
-              bookedOn: seance.date || "-",
-              bookingType: "Séance",
-              dateTime: formatDateTime(seance.date, seance.heure_debut),
-              payment: "-",
-              status: seanceToCoachBookingStatus(seance.statut),
-              stars: 5,
-              location: seance.lieu || "Non précisé",
-              pricePerHour: "-",
-              rank: "Coach",
-              totalHours: Number(seance.duree || 60) / 60,
-              bookingAmount: "-",
-              serviceCharge: "-",
-              totalPaid: "-",
-              paidOn: "-",
-              transactionId: `SEANCE-${seance.id}`,
-              paymentType: "-",
-            };
-          });
+        const mappedCoachBookings: CoachBooking[] = items.map((seance, index) => {
+          const avatarPool = [avatar1, avatar2, avatar3, avatar4, avatar5];
+          const avatar = avatarPool[index % avatarPool.length];
+          const coachName =
+            seance.coach?.user?.full_name ||
+            `${seance.coach?.user?.first_name ?? ""} ${seance.coach?.user?.last_name ?? ""}`.trim() ||
+            "Coach";
 
-          setBookings(mappedBookings);
-          setCoachBookings(mappedCoachBookings);
-          setLoadingData(false);
-          return;
-        } catch (error: any) {
-          lastError = error?.response?.data?.message || "";
+          return {
+            id: seance.id,
+            avatar,
+            coachName,
+            bookedOn: seance.date || "-",
+            bookingType: "Séance",
+            dateTime: formatDateTime(seance.date, seance.heure_debut),
+            payment: "-",
+            status: seanceToCoachBookingStatus(seance.statut),
+            stars: 5,
+            location: seance.lieu || "Non précisé",
+            pricePerHour: "-",
+            rank: "Coach",
+            totalHours: Number(seance.duree || 60) / 60,
+            bookingAmount: "-",
+            serviceCharge: "-",
+            totalPaid: "-",
+            paidOn: "-",
+            transactionId: `SEANCE-${seance.id}`,
+            paymentType: "-",
+          };
+        });
+
+        setBookings([...local.courts, ...mappedBookings]);
+        setCoachBookings([...local.coaches, ...mappedCoachBookings]);
+        setLoadingData(false);
+      } catch (error: any) {
+        if (!isMounted) return;
+        const msg = error?.response?.data?.message || "";
+        const local = loadLocalBookings();
+        setBookings(local.courts);
+        setCoachBookings(local.coaches);
+        if (local.courts.length === 0 && local.coaches.length === 0) {
+          setLoadingError(msg || "Impossible de charger les réservations client.");
+        } else {
+          setLoadingError("");
         }
+        setLoadingData(false);
       }
-
-      if (!isMounted) return;
-      setBookings([]);
-      setCoachBookings([]);
-      setLoadingError(lastError || "Impossible de charger les réservations depuis l'API.");
-      setLoadingData(false);
     };
 
     loadFromApi();
@@ -519,7 +586,7 @@ export default function BookingsPage() {
 
       {/* ── NAV TABS ── */}
       <div className="max-w-7xl mx-auto px-6 mt-10">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
           <button onClick={() => navigate("/user/dashboard")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
             <img src={dashboardIcon} alt="Dashboard" className="h-7 w-7" />
             <span className="font-semibold text-sm text-gray-700">Dashboard</span>
@@ -528,14 +595,6 @@ export default function BookingsPage() {
           <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-green-700 text-white p-6 shadow-sm">
             <img src={bookingsIcon} alt="My Bookings" className="h-7 w-7 brightness-0 invert" />
             <span className="font-semibold text-sm">My Bookings</span>
-          </button>
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={chatIcon} alt="Chat" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Chat</span>
-          </button>
-          <button className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
-            <img src={invoicesIcon} alt="Invoices" className="h-7 w-7" />
-            <span className="font-semibold text-sm text-gray-700">Invoices</span>
           </button>
           <button onClick={() => navigate("/user/wallet")} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-white border border-gray-200 p-6 hover:bg-gray-50 transition">
             <img src={walletIcon} alt="Wallet" className="h-7 w-7" />

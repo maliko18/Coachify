@@ -135,15 +135,59 @@ const [bookingsSearch, setBookingsSearch] = useState("");
 const [seances, setSeances] = useState<any[]>([]);
 const [loadingSeances, setLoadingSeances] = useState(false);
 const [errorSeances, setErrorSeances] = useState("");
+const [commandes, setCommandes] = useState<any[]>([]);
+const [localBookingRequests, setLocalBookingRequests] = useState<any[]>([]);
 
   // Booking Requests tabs
   const [bookingTab, setBookingTab] = useState<"court" | "coaching">("court");
 
   const bookingRequestsData = useMemo(() => {
+    const pendingLocal = localBookingRequests
+      .filter((r: any) => String(r?.statut ?? "").toLowerCase() === "attente")
+      .slice(0, 3);
+
+    if (pendingLocal.length > 0) {
+      return pendingLocal.map((r: any, index: number) => {
+        const imagePool = bookingTab === "court"
+          ? [booking2, booking3, booking4]
+          : [coachImg, fav2, fav3];
+
+        return {
+          img: imagePool[index % imagePool.length],
+          name: String(r?.client_name || "Client"),
+          court: `Request • ${Number(r?.total ?? 0).toFixed(2)} €`,
+          date: String(r?.date_commande ?? "").slice(0, 10),
+        };
+      });
+    }
+
+    const pendingCommandes = commandes
+      .filter((c: any) => String(c?.statut ?? "").toLowerCase() === "attente")
+      .slice(0, 3);
+
+    if (pendingCommandes.length > 0) {
+      return pendingCommandes.map((c: any, index: number) => {
+        const imagePool = bookingTab === "court"
+          ? [booking2, booking3, booking4]
+          : [coachImg, fav2, fav3];
+
+        const clientName = c?.client?.user
+          ? `${c.client.user.first_name ?? ""} ${c.client.user.last_name ?? ""}`.trim()
+          : `Client #${c?.client_id ?? index + 1}`;
+
+        return {
+          img: imagePool[index % imagePool.length],
+          name: clientName || "Client",
+          court: `Commande #${c?.id ?? "-"} • ${Number(c?.total ?? 0).toFixed(2)} €`,
+          date: String(c?.date_commande ?? "").slice(0, 10),
+        };
+      });
+    }
+
     const source = seances.slice(0, 3);
 
     if (source.length === 0) {
-      return [] as Array<{ img: string; name: string; court: string }>;
+      return [] as Array<{ img: string; name: string; court: string; date?: string }>;
     }
 
     return source.map((s: any, index: number) => {
@@ -157,9 +201,16 @@ const [errorSeances, setErrorSeances] = useState("");
           ? String(s?.titre ?? `Séance #${s?.id ?? index + 1}`)
           : "Coach",
         court: String(s?.lieu ?? s?.type ?? "-"),
+        date: String(s?.date ?? ""),
       };
     });
-  }, [bookingTab, seances]);
+  }, [bookingTab, seances, commandes, localBookingRequests]);
+
+  const pendingRequestsCount = useMemo(() => {
+    const commandesCount = commandes.filter((c: any) => String(c?.statut ?? "").toLowerCase() === "attente").length;
+    const localCount = localBookingRequests.filter((r: any) => String(r?.statut ?? "").toLowerCase() === "attente").length;
+    return localCount > 0 ? localCount : commandesCount;
+  }, [commandes, localBookingRequests]);
   
   const [earningsHover, setEarningsHover] = useState<null | "court" | "coaching">(null);
 
@@ -227,13 +278,43 @@ const fetchSeances = async () => {
   }
 };
 
+const fetchCommandes = async () => {
+  try {
+    const res = await axiosClient.get("/commandes", { params: { per_page: 100 } });
+    const payload = res.data?.data;
+    const list = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.data)
+      ? payload.data
+      : [];
+    setCommandes(list);
+  } catch {
+    setCommandes([]);
+  }
+};
+
+const fetchLocalBookingRequests = () => {
+  const key = "COACH_BOOKING_REQUESTS";
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : [];
+    setLocalBookingRequests(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    setLocalBookingRequests([]);
+  }
+};
+
 useEffect(() => {
   fetchSeances();
+  fetchCommandes();
+  fetchLocalBookingRequests();
 }, []);
 
 useEffect(() => {
   if (activeSection === "dashboard") {
     fetchSeances();
+    fetchCommandes();
+    fetchLocalBookingRequests();
     fetchEarnings();
     fetchFactures();
     fetchFacturesStats();
@@ -841,7 +922,7 @@ const currentAppointment = upcomingSeances[0] ?? null;
       <QuickNavCard
         title="Requests"
         icon={requestsIcon}
-        badge="03"
+        badge={String(pendingRequestsCount)}
       />
 
       <QuickNavCard
@@ -1897,7 +1978,7 @@ const currentAppointment = upcomingSeances[0] ?? null;
           </div>
         </div>
 
-        <p className="text-xs text-gray-500">Date: {formatDateUI(seances[i]?.date)}</p>
+        <p className="text-xs text-gray-500">Date: {formatDateUI(b.date || seances[i]?.date)}</p>
       </div>
     ))}
   </div>
