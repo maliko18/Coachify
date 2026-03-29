@@ -13,6 +13,17 @@ type Programme = {
   type?: string;
 };
 
+type Offre = {
+  id: number;
+  nom: string;
+  description?: string;
+  type?: string;
+  prix?: any;
+  prix_effectif?: any;
+  duree_jours?: number;
+  coach?: any;
+};
+
 type Coach = {
   id: number;
   full_name: string;
@@ -29,25 +40,134 @@ export default function CoachPublicProgrammesPage() {
   const [coach, setCoach] = useState<Coach | null>(null);
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [error, setError] = useState("");
-  const [reservedProgrammeIds, setReservedProgrammeIds] = useState<number[]>([]);
-  const [reservingId, setReservingId] = useState<number | null>(null);
+
+  const extractPriceAmount = (value: any): number => {
+    if (typeof value === "number") return value;
+    if (typeof value === "string") return Number(value) || 0;
+    if (value && typeof value === "object" && typeof value.amount === "number") {
+      return value.amount;
+    }
+    return 0;
+  };
+
+  const normalizeCoach = (rawCoach: any): Coach | null => {
+    if (!rawCoach) return null;
+    return {
+      id: Number(rawCoach.id),
+      full_name:
+        rawCoach.full_name ||
+        `${rawCoach.user?.first_name ?? ""} ${rawCoach.user?.last_name ?? ""}`.trim() ||
+        "Coach",
+      email: rawCoach.email || rawCoach.user?.email || "",
+      bio: rawCoach.bio || "",
+      specialties: rawCoach.specialties || [],
+      experience_years: Number(rawCoach.experience_years || 0),
+      hourly_rate: extractPriceAmount(rawCoach.hourly_rate),
+      city: rawCoach.city || rawCoach.user?.city || null,
+    };
+  };
+
+  const mapOffreToProgramme = (offre: Offre): Programme => {
+    const dureeSemaines = offre.duree_jours ? Math.max(1, Math.ceil(Number(offre.duree_jours) / 7)) : undefined;
+    return {
+      id: offre.id,
+      titre: offre.nom,
+      description: offre.description || "",
+      prix: extractPriceAmount(offre.prix_effectif ?? offre.prix),
+      duree_semaines: dureeSemaines,
+      type: offre.type || "programme",
+      statut: "active",
+    };
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [coachProgrammesRes, reservationsRes] = await Promise.all([
-          axiosClient.get(`/client/coaches/${coachId}/programmes`),
-          axiosClient.get("/client/programmes/reservations"),
-        ]);
+        const numericCoachId = Number(coachId);
+        if (Number.isNaN(numericCoachId)) {
+          setError("Coach invalide.");
+          setProgrammes([]);
+          return;
+        }
 
-        setCoach(coachProgrammesRes.data.coach);
-        setProgrammes(coachProgrammesRes.data.data || []);
+        const endpoints = ["/client/offres", "/coach/offres", "/coach/programmes"];
+        let lastErrorMessage = "";
+        let fetchedAnyList = false;
+        let loadedProgrammes: Programme[] = [];
+        let loadedCoach: Coach | null = null;
 
-        const reservations = reservationsRes.data.data || [];
-        setReservedProgrammeIds(reservations.map((item: Programme) => item.id));
+        for (const endpoint of endpoints) {
+          try {
+            const res = await axiosClient.get(endpoint);
+            fetchedAnyList = true;
+            const raw = res.data?.data ?? res.data;
+            const rows: any[] = Array.isArray(raw) ? raw : [];
+
+            if (endpoint === "/coach/programmes") {
+              const filteredProgrammes = rows
+                .filter((item) => Number(item?.coach_id) === numericCoachId)
+                .map((item) => ({
+                  id: Number(item.id),
+                  titre: item.titre || "Programme",
+                  description: item.description || "",
+                  prix: extractPriceAmount(item.prix),
+                  duree_semaines: item.duree_semaines,
+                  type: item.type,
+                  statut: item.statut,
+                }));
+
+              if (filteredProgrammes.length > 0) {
+                loadedProgrammes = filteredProgrammes;
+                break;
+              }
+            } else {
+              const coachOffers = rows.filter((offre: Offre) => Number(offre?.coach?.id) === numericCoachId);
+              const programmeOffers = coachOffers.filter((offre: Offre) => {
+                const type = String(offre?.type || "").toLowerCase();
+                return type.includes("programme");
+              });
+              const source = programmeOffers.length > 0 ? programmeOffers : coachOffers;
+
+              if (source.length > 0) {
+                loadedProgrammes = source.map(mapOffreToProgramme);
+                const coachFromOffre = normalizeCoach(source[0]?.coach);
+                if (coachFromOffre) loadedCoach = coachFromOffre;
+                break;
+              }
+            }
+          } catch (err: any) {
+            lastErrorMessage = err?.response?.data?.message || "";
+            continue;
+          }
+        }
+
+        setProgrammes(loadedProgrammes);
+        if (loadedCoach) {
+          setCoach(loadedCoach);
+        }
+
+        if (!loadedCoach) {
+          try {
+            const coachesRes = await axiosClient.get("/coaches");
+            const coachRows: any[] = Array.isArray(coachesRes.data?.data)
+              ? coachesRes.data.data
+              : Array.isArray(coachesRes.data)
+              ? coachesRes.data
+              : [];
+            const foundCoach = coachRows.find((c) => Number(c?.id) === numericCoachId);
+            const mappedCoach = normalizeCoach(foundCoach);
+            if (mappedCoach) setCoach(mappedCoach);
+          } catch {
+            // Ignore: /coaches may not be available in current backend.
+          }
+        }
+
+        if (!fetchedAnyList && loadedProgrammes.length === 0) {
+          setError(lastErrorMessage || "Impossible de charger les programmes du coach.");
+        } else {
+          setError("");
+        }
       } catch (err) {
         console.error(err);
         setError("Impossible de charger les programmes du coach.");
@@ -58,34 +178,6 @@ export default function CoachPublicProgrammesPage() {
 
     fetchData();
   }, [coachId]);
-
-  const handleReserve = async (programmeId: number) => {
-    if (reservedProgrammeIds.includes(programmeId)) {
-      setMessage("Vous avez déjà réservé ce programme.");
-      setMessageType("error");
-      return;
-    }
-
-    try {
-      setReservingId(programmeId);
-
-      const res = await axiosClient.post(
-        `/client/programmes/${programmeId}/reserve`
-      );
-
-      setMessage(res.data.message || "Programme réservé avec succès.");
-      setMessageType("success");
-      setReservedProgrammeIds((prev) => [...prev, programmeId]);
-    } catch (err: any) {
-      console.error(err);
-      setMessage(
-        err.response?.data?.message || "Erreur lors de la réservation."
-      );
-      setMessageType("error");
-    } finally {
-      setReservingId(null);
-    }
-  };
 
   if (loading) {
     return (
@@ -133,23 +225,13 @@ export default function CoachPublicProgrammesPage() {
             </div>
           )}
 
-          {message && (
-            <div
-              className={`mb-6 px-4 py-3 rounded-xl border font-medium ${
-                messageType === "success"
-                  ? "bg-green-50 text-green-700 border-green-200"
-                  : "bg-red-50 text-red-700 border-red-200"
-              }`}
-            >
-              {message}
-            </div>
-          )}
-
           <div className="grid md:grid-cols-2 gap-6">
+            {programmes.length === 0 && (
+              <div className="md:col-span-2 bg-white rounded-3xl shadow-md border border-slate-200 p-6 text-slate-600">
+                Aucun programme trouve pour ce coach.
+              </div>
+            )}
             {programmes.map((programme) => {
-              const isReserved = reservedProgrammeIds.includes(programme.id);
-              const isLoadingThisOne = reservingId === programme.id;
-
               return (
                 <div
                   key={programme.id}
@@ -159,12 +241,6 @@ export default function CoachPublicProgrammesPage() {
                     <h2 className="text-xl font-bold text-slate-900">
                       {programme.titre}
                     </h2>
-
-                    {isReserved && (
-                      <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-semibold">
-                        Already reserved
-                      </span>
-                    )}
                   </div>
 
                   <p className="text-slate-600 mb-4">{programme.description}</p>
@@ -178,21 +254,10 @@ export default function CoachPublicProgrammesPage() {
                   </div>
 
                   <button
-                    onClick={() => handleReserve(programme.id)}
-                    disabled={isReserved || isLoadingThisOne}
-                    className={`w-full py-3 rounded-xl font-semibold transition ${
-                      isReserved
-                        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                        : isLoadingThisOne
-                        ? "bg-green-300 text-white cursor-wait"
-                        : "bg-[#15803d] hover:bg-[#166534] text-white"
-                    }`}
+                    disabled
+                    className="w-full py-3 rounded-xl font-semibold bg-gray-300 text-gray-600 cursor-not-allowed"
                   >
-                    {isReserved
-                      ? "Déjà réservé"
-                      : isLoadingThisOne
-                      ? "Réservation..."
-                      : "Réserver ce programme"}
+                    Réservation indisponible sur cette page
                   </button>
                 </div>
               );

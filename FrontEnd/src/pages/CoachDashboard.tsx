@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosClient from "../api/axios";
 import paiementsApi, { type Paiement as Payment, type PaiementStatistiques as PaymentStats } from "../api/paiements";
@@ -34,124 +34,6 @@ import Header from "../components/Header";
 
 
 export default function CoachDashboard() {
-
-  function BookingRow({
-  id,
-  img,
-  name,
-  type,
-  date,
-  time,
-  price,
-}: {
-  id: string;
-  img: string;
-  name: string;
-  type: string;
-  date: string;
-  time: string;
-  price: string;
-}) {
-  return (
-    <div className="py-4 flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <img src={img} className="w-14 h-14 rounded-xl object-cover" />
-        <div>
-          <p className="font-bold text-gray-900">{name}</p>
-          <p className="text-sm text-green-600">{type}</p>
-        </div>
-      </div>
-
-      <div className="text-sm text-gray-500">
-        <p className="font-semibold text-gray-900">Date & Time</p>
-        <p>{date}</p>
-        <p>{time}</p>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <p className="text-lg font-extrabold text-green-600">{price}</p>
-        <div className="relative">
-  <button
-    type="button"
-    onClick={() =>
-      setOpenBookingMenuId(openBookingMenuId === id ? null : id)
-    }
-    className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center"
-  >
-    •••
-  </button>
-
-  {openBookingMenuId === id && (
-    <div className="absolute right-0 top-12 w-40 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20">
-      <button
-  type="button"
-  onClick={() => {
-    alert("Cancel clicked (UI only)");
-    setOpenBookingMenuId(null);
-  }}
-  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
->
-  ⓧ Cancel
-</button>
-    </div>
-  )}
-</div>
-      </div>
-    </div>
-  );
-}
-
-
-  function RequestRow({
-  img,
-  name,
-  court,
-}: {
-  img: string;
-  name: string;
-  court: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex items-center gap-4">
-        <img src={img} className="w-12 h-12 rounded-xl object-cover" />
-        <div>
-          <p className="font-bold text-gray-900">{name}</p>
-          <p className="text-sm text-gray-500">{court} • 06:00 PM to 08:00 PM</p>
-        </div>
-      </div>
-
-      <button className="w-8 h-8 rounded-full border border-gray-200 text-gray-400">
-        •••
-      </button>
-    </div>
-  );
-}
-
-function FavouriteRow({
-  img,
-  name,
-  count,
-}: {
-  img: string;
-  name: string;
-  count: string;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <img src={img} className="w-12 h-12 rounded-xl object-cover" />
-        <div>
-          <p className="font-bold text-gray-900">{name}</p>
-          <p className="text-sm text-gray-500">{count}</p>
-        </div>
-      </div>
-
-      <span className="text-gray-400 text-xl">›</span>
-    </div>
-  );
-}
-
   function StatCard({
   icon,
   value,
@@ -289,128 +171,48 @@ const [gateway, setGateway] = useState<"card" | "paypal">("paypal");
 const [myBookingsTab, setMyBookingsTab] = useState<"court" | "coaching">("court");
 const [openBookingMenuId, setOpenBookingMenuId] = useState<string | null>(null);
 
-const myBookingsCourt = [
-  { id: "court-1", img: booking2, title: "Leap Sports Academy", subtitle: "Court 1", guests: "Guests : 4", duration: "2 Hrs", date: "Mon, Jul 11", time: "06:00 PM - 08:00 PM", price: "$400" },
-  { id: "court-2", img: booking3, title: "Wing Sports Academy", subtitle: "Court 2", guests: "Guests : 3", duration: "1 Hr",  date: "Tue, Jul 12", time: "07:00 PM - 08:00 PM", price: "$240" },
-  { id: "court-3", img: booking4, title: "Feather Badminton",   subtitle: "Court 1", guests: "Guests : 1", duration: "4 Hrs", date: "Wed, Jul 13", time: "10:00 PM - 11:00 PM", price: "$320" },
-  { id: "court-4", img: booking5, title: "Bwing Sports Academy", subtitle: "Court 3", guests: "Guests : 5", duration: "6 Hrs", date: "Thu, Jul 14", time: "09:00 AM - 10:00 AM", price: "$710" },
-  { id: "court-5", img: booking6, title: "Wing Sports Academy",  subtitle: "Court 2", guests: "Guests : 3", duration: "1 Hr",  date: "Tue, Jul 12", time: "07:00 PM - 08:00 PM", price: "$240" },
-  { id: "court-6", img: bookingImg, title: "Marsh Academy",      subtitle: "Court 2", guests: "Guests : 3", duration: "2 Hrs", date: "Fri, Jul 15", time: "11:00 AM - 12:00 PM", price: "$820" },
-];
+const formatDateUI = (isoDate?: string) => {
+  if (!isoDate) return "-";
+  const d = new Date(isoDate);
+  if (Number.isNaN(d.getTime())) return isoDate;
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+};
 
-const myBookingsCoaching = [
-  { id: "coach-1", img: coachImg, title: "Kevin Anderson",    subtitle: "Onetime",        guests: "Guests : 4", duration: "2 Hrs", date: "Mon, Jul 11", time: "06:00 PM - 08:00 PM", price: "$400" },
-  { id: "coach-2", img: fav2,     title: "Angela Roudrigez",  subtitle: "Single Lesson",  guests: "Guests : 3", duration: "1 Hr",  date: "Tue, Jul 12", time: "07:00 PM - 08:00 PM", price: "$240" },
-  { id: "coach-3", img: fav3,     title: "Evon Raddick",      subtitle: "Onetime",        guests: "Guests : 1", duration: "4 Hrs", date: "Wed, Jul 13", time: "10:00 PM - 11:00 PM", price: "$320" },
-  { id: "coach-4", img: fav2,     title: "Angela Roudrigez",  subtitle: "Single Lesson",  guests: "Guests : 3", duration: "1 Hr",  date: "Tue, Jul 12", time: "07:00 PM - 08:00 PM", price: "$240" },
-  { id: "coach-5", img: fav4,     title: "Harry Richardson",  subtitle: "Onetime",        guests: "Guests : 5", duration: "6 Hrs", date: "Thu, Jul 14", time: "09:00 AM - 10:00 AM", price: "$710" },
-  { id: "coach-6", img: fav1,     title: "Pete Hill",         subtitle: "Onetime",        guests: "Guests : 3", duration: "2 Hrs", date: "Fri, Jul 15", time: "11:00 AM - 12:00 PM", price: "$820" },
-];
+const formatTimeUI = (value?: string) => {
+  if (!value) return "--:--";
+  return value.length >= 5 ? value.slice(0, 5) : value;
+};
 
-const myBookingsData = myBookingsTab === "court" ? myBookingsCourt : myBookingsCoaching;
+const seancesSorted = useMemo(() => {
+  return [...seances].sort((a, b) => {
+    const aKey = `${a?.date ?? ""}T${a?.heure_debut ?? "00:00:00"}`;
+    const bKey = `${b?.date ?? ""}T${b?.heure_debut ?? "00:00:00"}`;
+    return new Date(aKey).getTime() - new Date(bKey).getTime();
+  });
+}, [seances]);
+
+const myBookingsData = useMemo(() => {
+  const imagePool = myBookingsTab === "court"
+    ? [booking2, booking3, booking4, booking5, booking6, bookingImg]
+    : [coachImg, fav1, fav2, fav3, fav4, fav5];
+
+  return seancesSorted.slice(0, 6).map((s: any, idx: number) => {
+    const estimatedPrice = Number(s?.prix ?? s?.montant ?? 0);
+    return {
+      id: `${myBookingsTab}-${s?.id ?? idx}`,
+      img: imagePool[idx % imagePool.length],
+      title: String(s?.titre ?? `Séance #${s?.id ?? idx + 1}`),
+      subtitle: myBookingsTab === "court" ? String(s?.lieu ?? "Session") : String(s?.type ?? "Coaching"),
+      guests: `Guests : ${Number(s?.capacite_max ?? 1)}`,
+      duration: `${Number(s?.duree ?? 0)} min`,
+      date: formatDateUI(s?.date),
+      time: `${formatTimeUI(s?.heure_debut)} - ${formatTimeUI(s?.heure_fin)}`,
+      price: estimatedPrice > 0 ? `${estimatedPrice.toFixed(2)} €` : "-",
+    };
+  });
+}, [myBookingsTab, seancesSorted]);
 
 const [invoiceTab, setInvoiceTab] = useState<"court" | "coaching">("court");
-
-const invoicesCourt = [
-  {
-    id: "inv-court-1",
-    img: bookingImg,
-    name: "Leap Sports Academy",
-    sub: "Court 1",
-    date: "Mon, Jul 11",
-    time: "06:00 PM - 08:00 PM",
-    payment: "$800",
-    paidOn: "Jul 11, 2023",
-    status: "Paid",
-  },
-  {
-    id: "inv-court-2",
-    img: booking2,
-    name: "Wing Sports Academy",
-    sub: "Court 2",
-    date: "Tue, Jul 12",
-    time: "05:00 PM - 06:00 PM",
-    payment: "$120",
-    paidOn: "Jul 12, 2023",
-    status: "Paid",
-  },
-  {
-    id: "inv-court-3",
-    img: booking3,
-    name: "Feather Badminton",
-    sub: "Court 3",
-    date: "Wed, Jul 13",
-    time: "10:00 AM - 11:00 AM",
-    payment: "$470",
-    paidOn: "Jul 13, 2023",
-    status: "Paid",
-  },
-  {
-    id: "inv-court-4",
-    img: booking4,
-    name: "Bwing Sports Academy",
-    sub: "Court 4",
-    date: "Thu, Jul 14",
-    time: "12:00 PM - 01:00 PM",
-    payment: "$200",
-    paidOn: "Jul 14, 2023",
-    status: "Paid",
-  },
-];
-
-const invoicesCoaching = [
-  {
-    id: "inv-coach-1",
-    img: coachImg,
-    name: "Kevin Anderson",
-    sub: "Booked on : 25 May 2023",
-    invoice: "Onetime",
-    date: "Mon, Jul 11",
-    time: "06:00 PM - 08:00 PM",
-    payment: "$800",
-    paidOn: "Jul 11, 2023",
-    status: "Paid",
-  },
-  {
-    id: "inv-coach-2",
-    img: fav2,
-    name: "Angela Roudrigez",
-    sub: "Booked on : 26 May 2023",
-    invoice: "Single Lesson",
-    date: "Tue, Jul 12",
-    time: "05:00 PM - 06:00 PM",
-    payment: "$120",
-    paidOn: "Jul 12, 2023",
-    status: "Paid",
-  },
-  {
-    id: "inv-coach-3",
-    img: fav3,
-    name: "Evon Raddickz",
-    sub: "Booked on : 27 May 2023",
-    invoice: "Onetime",
-    date: "Wed, Jul 13",
-    time: "10:00 AM - 11:00 AM",
-    payment: "$470",
-    paidOn: "Jul 13, 2023",
-    status: "Paid",
-  },
-  {
-    id: "inv-coach-4",
-    img: fav4,
-    name: "Harry Richardson",
-    sub: "Booked on : 28 May 2023",
-    invoice: "Onetime",
-    date: "Thu, Jul 14",
-    time: "12:00 PM - 01:00 PM",
-    payment: "$200",
-    paidOn: "Jul 14, 2023",
-    status: "Paid",
-  },
-];
-
-const invoicesData = invoiceTab === "court" ? invoicesCourt : invoicesCoaching;
-
 const fetchSeances = async () => {
   setLoadingSeances(true);
   setErrorSeances("");
@@ -425,11 +227,19 @@ const fetchSeances = async () => {
   }
 };
 
-useMemo(() => {
+useEffect(() => {
   fetchSeances();
-  return null;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
+
+useEffect(() => {
+  if (activeSection === "dashboard") {
+    fetchSeances();
+    fetchEarnings();
+    fetchFactures();
+    fetchFacturesStats();
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [activeSection]);
 
 type Seance = {
   id: number;
@@ -475,34 +285,6 @@ const openViewSeance = async (id: number) => {
     const data: Seance = res.data;
     setSelectedSeance(data);
     setModalMode("view");
-    setIsModalOpen(true);
-  } catch (e: any) {
-    alert(e?.response?.data?.message || "Impossible de charger la séance");
-  } finally {
-    setActionLoading(false);
-  }
-};
-
-const openEditSeance = async (id: number) => {
-  setActionLoading(true);
-  try {
-    const res = await axiosClient.get(`/coach/seances/${id}`);
-    const data: Seance = res.data;
-
-    setSelectedSeance(data);
-    setEditForm({
-      titre: data.titre || "",
-      date: data.date || "",
-      heure_debut: (data.heure_debut || "").slice(0, 5), // HH:MM
-      duree: data.duree ?? 60,
-      type: data.type || "individuelle",
-      statut: data.statut || "planifiee",
-      capacite_max: data.capacite_max ?? 1,
-      lieu: data.lieu ?? "",
-      notes: data.notes ?? "",
-    });
-
-    setModalMode("edit");
     setIsModalOpen(true);
   } catch (e: any) {
     alert(e?.response?.data?.message || "Impossible de charger la séance");
@@ -611,7 +393,7 @@ const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 const startOfYear = (d: Date) => new Date(d.getFullYear(), 0, 1);
 
 // set default dates when period changes
-useMemo(() => {
+useEffect(() => {
   const now = new Date();
   let a = new Date(now);
   let b = new Date(now);
@@ -628,13 +410,12 @@ useMemo(() => {
     b = new Date(now.getFullYear(), 11, 31);
   } else {
     // custom: keep current values
-    return null;
+    return;
   }
 
   // update states safely (only if empty or changing period)
   setEarningsDateDebut(toISODate(a));
   setEarningsDateFin(toISODate(b));
-  return null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [earningsPeriod]);
 
@@ -668,11 +449,10 @@ const fetchEarnings = async () => {
 };
 
 // auto fetch when entering earnings + when date range changes
-useMemo(() => {
+useEffect(() => {
   if (activeSection === "earnings" && earningsDateDebut && earningsDateFin) {
     fetchEarnings();
   }
-  return null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [activeSection, earningsDateDebut, earningsDateFin, earningsStatus]);
 
@@ -780,7 +560,7 @@ const chartData = useMemo(() => {
       return { ...r, label: `${m}/${y}` };
     }
     // dd/mm
-    const [y, m, d] = r.label.split("-");
+    const [, m, d] = r.label.split("-");
     return { ...r, label: `${d}/${m}` };
   });
 
@@ -881,6 +661,28 @@ const [walletDateFin, setWalletDateFin] = useState<string>("");
 
 const [openFactureActionId, setOpenFactureActionId] = useState<number | null>(null);
 
+const invoicesData = useMemo(() => {
+  const imagePool = invoiceTab === "court"
+    ? [bookingImg, booking2, booking3, booking4, booking5, booking6]
+    : [coachImg, fav1, fav2, fav3, fav4, fav5];
+
+  return factures.slice(0, 6).map((f, idx) => {
+    const clientName = `${f?.client?.first_name ?? ""} ${f?.client?.last_name ?? ""}`.trim() || `Client #${f?.client?.id ?? "-"}`;
+    return {
+      id: `inv-${f.id}`,
+      img: imagePool[idx % imagePool.length],
+      name: clientName,
+      sub: f.numero ?? `FAC-${f.id}`,
+      invoice: f.statut_label ?? f.statut,
+      date: formatDateUI(f.date_emission),
+      time: formatDateUI(f.date_echeance),
+      payment: `${Number(f.montant_ttc ?? 0).toFixed(2)} €`,
+      paidOn: f.statut === "payee" ? formatDateUI(f.updated_at) : "-",
+      status: f.statut_label ?? f.statut,
+    };
+  });
+}, [factures, invoiceTab]);
+
 
 
 const fetchFactures = async () => {
@@ -955,6 +757,39 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
     setOpenFactureActionId(null);
   }
 };
+
+const upcomingSeances = useMemo(() => {
+  const now = new Date();
+  return seancesSorted.filter((s) => {
+    const key = `${s?.date ?? ""}T${s?.heure_debut ?? "00:00:00"}`;
+    const d = new Date(key);
+    return !Number.isNaN(d.getTime()) && d >= now && String(s?.statut ?? "").toLowerCase() !== "annulee";
+  });
+}, [seancesSorted]);
+
+const completedLessonsCount = useMemo(() => {
+  return seances.filter((s: any) => {
+    const st = String(s?.statut ?? "").toLowerCase();
+    return st.includes("term") || st.includes("complete") || st.includes("done");
+  }).length;
+}, [seances]);
+
+const paymentsTotalAmount = useMemo(() => {
+  if (paymentStats) return Number(paymentStats.ca_net ?? 0);
+  return payments.reduce((acc, p) => {
+    if (p?.statut === "valide") {
+      return acc + Number(p?.montant?.amount ?? 0);
+    }
+    return acc;
+  }, 0);
+}, [paymentStats, payments]);
+
+const dashboardWalletBalance = useMemo(() => {
+  if (facturesStats) return Number(facturesStats.montant_paye ?? 0);
+  return Number(paymentsTotalAmount || 0);
+}, [facturesStats, paymentsTotalAmount]);
+
+const currentAppointment = upcomingSeances[0] ?? null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1180,6 +1015,7 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
           </div>
 
           {loadingSeances && <p className="mt-4 text-gray-500">Loading…</p>}
+          {actionLoading && <p className="mt-2 text-sm text-gray-500">Traitement de la séance…</p>}
           {errorSeances && <p className="mt-4 text-red-600">{errorSeances}</p>}
 
           <div className="divide-y divide-gray-100">
@@ -1874,22 +1710,22 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
     <div className="mt-6 grid gap-4 sm:grid-cols-2">
       <StatCard
         icon={stat01}
-        value="78"
+        value={String(seances.length)}
         label="Total Courts Booked"
       />
       <StatCard
         icon={stat02}
-        value="06"
+        value={String(upcomingSeances.length)}
         label="Upcoming Bookings"
       />
       <StatCard
         icon={stat03}
-        value="45"
+        value={String(completedLessonsCount)}
         label="Total Lessons Taken"
       />
       <StatCard
         icon={stat04}
-        value="$45,056"
+        value={`${paymentsTotalAmount.toFixed(2)} €`}
         label="Payments"
       />
     </div>
@@ -1962,8 +1798,8 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
         className="w-14 h-14 rounded-xl object-cover"
       />
       <div>
-        <p className="font-bold text-gray-900">Leap Sports Academy</p>
-        <p className="text-sm text-gray-500">Standard Synthetic Court 1</p>
+        <p className="font-bold text-gray-900">{currentAppointment?.titre ?? "Aucun rendez-vous"}</p>
+        <p className="text-sm text-gray-500">{currentAppointment?.lieu ?? "-"}</p>
       </div>
     </div>
 
@@ -1974,25 +1810,25 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
         alt="Client"
         className="w-10 h-10 rounded-full object-cover"
       />
-      <p className="font-semibold text-gray-900">Harry</p>
+      <p className="font-semibold text-gray-900">Coach</p>
     </div>
 
     {/* Date */}
     <div>
       <p className="text-sm font-semibold text-gray-900">Appointment Date</p>
-      <p className="text-sm text-gray-500">Mon, Jul 11</p>
+      <p className="text-sm text-gray-500">{formatDateUI(currentAppointment?.date)}</p>
     </div>
 
     {/* Start */}
     <div>
       <p className="text-sm font-semibold text-gray-900">Start Time</p>
-      <p className="text-sm text-gray-500">05:25 AM</p>
+      <p className="text-sm text-gray-500">{formatTimeUI(currentAppointment?.heure_debut)}</p>
     </div>
 
     {/* End */}
     <div>
       <p className="text-sm font-semibold text-gray-900">End Time</p>
-      <p className="text-sm text-gray-500">06:25 AM</p>
+      <p className="text-sm text-gray-500">{formatTimeUI(currentAppointment?.heure_fin)}</p>
     </div>
 
     {/* Guests */}
@@ -2000,7 +1836,7 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
       <p className="text-sm font-semibold text-gray-900">
         Additional Guests
       </p>
-      <p className="text-sm text-gray-500">4</p>
+      <p className="text-sm text-gray-500">{Number(currentAppointment?.capacite_max ?? 1)}</p>
     </div>
   </div>
 </div>
@@ -2015,7 +1851,7 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
       <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
         Booking Requests
         <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-          03
+          {String(bookingRequestsData.length).padStart(2, "0")}
         </span>
       </h2>
       <p className="text-gray-500 text-sm mt-1">
@@ -2061,7 +1897,7 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
           </div>
         </div>
 
-        <p className="text-xs text-gray-500">Date: Tue, Jul 11</p>
+        <p className="text-xs text-gray-500">Date: {formatDateUI(seances[i]?.date)}</p>
       </div>
     ))}
   </div>
@@ -2367,7 +2203,7 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
     <div className="flex items-center justify-between">
       <div>
         <p className="text-sm opacity-90">Your Wallet Balance</p>
-        <p className="text-3xl font-extrabold mt-1">$4,544</p>
+        <p className="text-3xl font-extrabold mt-1">{dashboardWalletBalance.toFixed(2)} €</p>
       </div>
 
       <button
@@ -2405,7 +2241,7 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
         {/* Wallet balance card */}
         <div className="rounded-2xl bg-emerald-700 text-white p-5">
           <p className="text-sm opacity-90 font-semibold">Your Wallet Balance</p>
-          <p className="text-4xl font-extrabold mt-2">$4,544</p>
+          <p className="text-4xl font-extrabold mt-2">{dashboardWalletBalance.toFixed(2)} €</p>
         </div>
 
         {/* Amount */}
@@ -2730,19 +2566,5 @@ const actionFacture = async (id: number, action: "emettre" | "payer" | "annuler"
       )}
     </div>
     
-  );
-}
-
-function ActionCard({ title }: { title: string }) {
-  return (
-    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5 flex items-center justify-between">
-      <p className="font-bold text-gray-900">{title}</p>
-      <button
-        className="px-4 py-2 rounded-xl bg-[color:var(--primary)] text-white font-semibold hover:bg-[color:var(--accent)]"
-        onClick={() => alert(`${title} (UI)`)}
-      >
-        Open
-      </button>
-    </div>
   );
 }
