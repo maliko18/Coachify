@@ -40,35 +40,19 @@ class LoginRequest extends FormRequest
      * @throws \Illuminate\Validation\ValidationException
      */
     public function authenticate(): void
-    {
-        $this->ensureIsNotRateLimited();
+{
+    $this->ensureIsNotRateLimited();
 
-        $trashedUser = User::withTrashed()
-            ->where('email', (string) $this->input('email'))
-            ->first();
+    if (! Auth::attempt($this->only('email', 'password'))) {
+        RateLimiter::hit($this->throttleKey());
 
-        if (
-            $trashedUser &&
-            $trashedUser->trashed() &&
-            Hash::check((string) $this->input('password'), (string) $trashedUser->password)
-        ) {
-            RateLimiter::hit($this->throttleKey());
-
-            throw ValidationException::withMessages([
-                'email' => 'Votre compte a ete banni. Contactez le responsable de la salle.',
-            ]);
-        }
-
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey());
-
-            throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
-            ]);
-        }
-
-        RateLimiter::clear($this->throttleKey());
+        throw ValidationException::withMessages([
+            'email' => __('auth.failed'),
+        ]);
     }
+
+    RateLimiter::clear($this->throttleKey());
+}
 
     /**
      * Ensure the login request is not rate limited.
