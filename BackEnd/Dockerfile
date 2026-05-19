@@ -34,8 +34,13 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction || true
 # Permissions (storage + cache)
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache || true
 
+# Copier et configurer le script d'entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Configurer Apache : DocumentRoot vers public/
 RUN echo '<VirtualHost *:80>\n\
+    ServerName localhost\n\
     DocumentRoot /var/www/html/public\n\
     <Directory /var/www/html/public>\n\
         AllowOverride All\n\
@@ -53,7 +58,11 @@ RUN echo '<VirtualHost *:80>\n\
 
 RUN a2ensite laravel.conf
 
+# Activer les logs d'erreur PHP
+RUN echo "php_value error_log /var/www/html/storage/logs/php-error.log" > /var/www/html/public/.htaccess.php \
+ && echo "php_value display_errors Off" >> /var/www/html/public/.htaccess.php
+
 EXPOSE 80
 
-# Lancer Apache (commande par défaut de l'image php:apache)
-CMD ["apache2-foreground"]
+# Utiliser le script d'entrypoint pour les migrations et démarrage
+ENTRYPOINT ["docker-entrypoint.sh"]
