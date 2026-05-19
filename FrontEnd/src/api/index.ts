@@ -17,7 +17,7 @@ export type * from "./contrats";
 export type * from "./exercices";
 export type * from "./paiements";
 export type * from "./seances";
-export type * from "./programmes";
+// export type * from "./programmes";
 export type * from "./factures";
 export type * from "./conversations";
 export type * from "./coachDashboard";

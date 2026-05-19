@@ -2,13 +2,23 @@ import axiosClient from "./axios";
 import type { ExerciceCategorie, ExerciceNiveau } from "./exercices";
 
 export type ProgrammeType =
-  | "perte_de_poids" | "prise_de_masse" | "remise_en_forme"
-  | "endurance" | "force" | "personnalise";
+  | "perte_de_poids"
+  | "prise_de_masse"
+  | "remise_en_forme"
+  | "endurance"
+  | "force"
+  | "personnalise";
 
 export type ProgrammeStatut = "brouillon" | "publie" | "archive";
 
 export type JourSemaine =
-  | "lundi" | "mardi" | "mercredi" | "jeudi" | "vendredi" | "samedi" | "dimanche";
+  | "lundi"
+  | "mardi"
+  | "mercredi"
+  | "jeudi"
+  | "vendredi"
+  | "samedi"
+  | "dimanche";
 
 export interface ProgrammeExercice {
   id: number;
@@ -72,14 +82,18 @@ export interface AddExercicePayload {
   ordre?: number;
 }
 
-export type UpdateExercicePayload = Partial<Omit<AddExercicePayload, "exercice_id">>;
+export type UpdateExercicePayload = Partial<
+  Omit<AddExercicePayload, "exercice_id">
+>;
 // Alias pour éviter les conflits d'export avec exercices.ts
 export type UpdateProgrammeExercicePayload = UpdateExercicePayload;
 
 const programmesApi = {
   /** GET /api/coach/programmes */
   list: (filters?: { type?: ProgrammeType; statut?: ProgrammeStatut }) =>
-    axiosClient.get<ProgrammeCollection>("/coach/programmes", { params: filters }).then((r) => r.data),
+    axiosClient
+      .get<ProgrammeCollection>("/coach/programmes", { params: filters })
+      .then((r) => r.data),
 
   /** GET /api/coach/programmes/:id */
   get: (id: number) =>
@@ -87,11 +101,15 @@ const programmesApi = {
 
   /** POST /api/coach/programmes */
   create: (payload: CreateProgrammePayload) =>
-    axiosClient.post<Programme>("/coach/programmes", payload).then((r) => r.data),
+    axiosClient
+      .post<Programme>("/coach/programmes", payload)
+      .then((r) => r.data),
 
   /** PUT /api/coach/programmes/:id */
   update: (id: number, payload: UpdateProgrammePayload) =>
-    axiosClient.put<Programme>(`/coach/programmes/${id}`, payload).then((r) => r.data),
+    axiosClient
+      .put<Programme>(`/coach/programmes/${id}`, payload)
+      .then((r) => r.data),
 
   /** DELETE /api/coach/programmes/:id */
   delete: (id: number) =>
@@ -99,33 +117,52 @@ const programmesApi = {
 
   /** POST /api/coach/programmes/:id/exercices */
   addExercice: (programmeId: number, payload: AddExercicePayload) =>
-    axiosClient.post<Programme>(`/coach/programmes/${programmeId}/exercices`, payload).then((r) => r.data),
+    axiosClient
+      .post<Programme>(`/coach/programmes/${programmeId}/exercices`, payload)
+      .then((r) => r.data),
 
   /** PUT /api/coach/programmes/:id/exercices/:exerciceId */
-  updateExercice: (programmeId: number, exerciceId: number, payload: UpdateExercicePayload) =>
+  updateExercice: (
+    programmeId: number,
+    exerciceId: number,
+    payload: UpdateExercicePayload,
+  ) =>
     axiosClient
-      .put<Programme>(`/coach/programmes/${programmeId}/exercices/${exerciceId}`, payload)
+      .put<Programme>(
+        `/coach/programmes/${programmeId}/exercices/${exerciceId}`,
+        payload,
+      )
       .then((r) => r.data),
 
   /** DELETE /api/coach/programmes/:id/exercices/:exerciceId */
   removeExercice: (programmeId: number, exerciceId: number) =>
-    axiosClient.delete(`/coach/programmes/${programmeId}/exercices/${exerciceId}`).then((r) => r.data),
+    axiosClient
+      .delete(`/coach/programmes/${programmeId}/exercices/${exerciceId}`)
+      .then((r) => r.data),
 
   /** POST /api/coach/programmes/:id/publier */
   publier: (id: number) =>
-    axiosClient.post<Programme>(`/coach/programmes/${id}/publier`).then((r) => r.data),
+    axiosClient
+      .post<Programme>(`/coach/programmes/${id}/publier`)
+      .then((r) => r.data),
 
   /** POST /api/coach/programmes/:id/depublier */
   depublier: (id: number) =>
-    axiosClient.post<Programme>(`/coach/programmes/${id}/depublier`).then((r) => r.data),
+    axiosClient
+      .post<Programme>(`/coach/programmes/${id}/depublier`)
+      .then((r) => r.data),
 
   /** POST /api/coach/programmes/:id/archiver */
   archiver: (id: number) =>
-    axiosClient.post<Programme>(`/coach/programmes/${id}/archiver`).then((r) => r.data),
+    axiosClient
+      .post<Programme>(`/coach/programmes/${id}/archiver`)
+      .then((r) => r.data),
 
   /** POST /api/coach/programmes/:id/dupliquer */
   dupliquer: (id: number) =>
-    axiosClient.post<Programme>(`/coach/programmes/${id}/dupliquer`).then((r) => r.data),
+    axiosClient
+      .post<Programme>(`/coach/programmes/${id}/dupliquer`)
+      .then((r) => r.data),
 };
 
 export default programmesApi;
