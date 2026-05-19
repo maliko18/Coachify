@@ -35,5 +35,9 @@ return [
     'max_age' => 3600,
 
     'supports_credentials' => false,
+    
+    'allowed_origins_patterns' => [
+    '/^https:\/\/.*\.vercel\.app$/',
+],
 
 ];
