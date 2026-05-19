@@ -1076,6 +1076,26 @@ export default function CoachDashboard() {
     }
   };
 
+  // Download PDF via paiement ID
+  const downloadPdfFromPaiement = async (paiementId: number) => {
+    try {
+      const res = await axiosClient.get(`/coach/paiements/${paiementId}/pdf`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `facture-paiement-${paiementId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      alert(getApiErrorMessage(e, "Téléchargement PDF impossible"));
+    }
+  };
+
   // Actions facture (cycle de vie) :contentReference[oaicite:7]{index=7}
   const actionFacture = async (
     id: number,
@@ -2027,6 +2047,15 @@ export default function CoachDashboard() {
                                   className="w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 text-left"
                                 >
                                   🗑️ Delete
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setOpenPaymentActionId(null);
+                                    downloadPdfFromPaiement(p.id);
+                                  }}
+                                  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                                >
+                                  📄 Download PDF
                                 </button>
                               </div>
                             )}

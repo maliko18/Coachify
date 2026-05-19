@@ -23,10 +23,10 @@ const timeSlots = [
   "7:00 PM",
 ];
 const dayColumns = [
-  { day: "Monday", date: "Apr 24" },
-  { day: "Tuesday", date: "Apr 25" },
-  { day: "Wednesday", date: "Apr 26" },
-  { day: "Thursday", date: "Apr 27" },
+  { day: "Monday", date: "Apr 24", iso: "2026-04-24" },
+  { day: "Tuesday", date: "Apr 25", iso: "2026-04-25" },
+  { day: "Wednesday", date: "Apr 26", iso: "2026-04-26" },
+  { day: "Thursday", date: "Apr 27", iso: "2026-04-27" },
 ];
 
 const PAYMENT_LABELS: Record<PaiementMethode, string> = {
@@ -86,8 +86,8 @@ export default function BookCoachPage() {
   const [apiCoach, setApiCoach] = useState<any | null>(null);
   const [loadingCoach, setLoadingCoach] = useState(true);
   const [coachError, setCoachError] = useState("");
-  const [availablePaymentMethods, setAvailablePaymentMethods] =
-    useState<PaiementMethode[]>(PAIEMENT_METHODES);
+  // const [availablePaymentMethods, setAvailablePaymentMethods] =
+  //   useState<PaiementMethode[]>(PAIEMENT_METHODES); // Unused - using PAIEMENT_METHODES directly
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
     useState<PaiementMethode>("carte_bancaire");
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
@@ -269,6 +269,10 @@ export default function BookCoachPage() {
 
       const orderRes = await axiosClient.post("/commandes", {
         items: [{ produit_id: selectedProduct.id, quantite: quantity }],
+        booking_date: selectedDay.iso,
+        booking_slots: selectedSlots,
+        booking_type: bookingType,
+        payment_method: selectedPaymentMethod,
       });
 
       const order = orderRes.data?.data ?? orderRes.data;
@@ -695,7 +699,7 @@ export default function BookCoachPage() {
               </label>
 
               <div className="mt-3 space-y-3">
-                {availablePaymentMethods.map((method) => (
+                {PAIEMENT_METHODES.map((method: PaiementMethode) => (
                   <label
                     key={method}
                     className="rounded-xl border border-gray-200 p-4 text-xl flex items-center gap-3 cursor-pointer"
