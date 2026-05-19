@@ -9,10 +9,11 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libicu-dev \
     zlib1g-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Extensions PHP requises
-RUN docker-php-ext-install pdo pdo_mysql mbstring zip intl
+RUN docker-php-ext-install pdo pdo_mysql pdo_pgsql mbstring zip intl
 
 # Copier Composer depuis l'image officielle
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
