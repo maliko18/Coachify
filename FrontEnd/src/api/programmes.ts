@@ -73,6 +73,8 @@ export interface AddExercicePayload {
 }
 
 export type UpdateExercicePayload = Partial<Omit<AddExercicePayload, "exercice_id">>;
+// Alias pour éviter les conflits d'export avec exercices.ts
+export type UpdateProgrammeExercicePayload = UpdateExercicePayload;
 
 const programmesApi = {
   /** GET /api/coach/programmes */

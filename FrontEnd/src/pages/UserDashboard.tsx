@@ -28,14 +28,14 @@ type Session = {
   status: SessionStatus;
 };
 
-type Program = {
-  id: string;
-  name: string;
-  level: "Beginner" | "Intermediate" | "Advanced";
-  progressPct: number; // 0-100
-  nextWorkout?: string;
-  access: "owned" | "trial";
-};
+// type Program = {
+//   id: string;
+//   name: string;
+//   level: "Beginner" | "Intermediate" | "Advanced";
+//   progressPct: number; // 0-100
+//   nextWorkout?: string;
+//   access: "owned" | "trial";
+// };
 
 type Payment = {
   id: string;
@@ -74,6 +74,7 @@ type ApiSeance = {
 
 type DashboardTx = {
   id: string;
+  commandeId: number | null;
   coachName: string;
   date: string;
   time: string;
@@ -121,7 +122,32 @@ const formatTime = (iso?: string) => {
 };
 
 export default function UserDashboard() {
+  const [openInvoiceMenuId, setOpenInvoiceMenuId] = useState<string | null>(
+    null,
+  );
+
+  const downloadClientPdf = async (commandeId: number) => {
+    try {
+      const res = await axiosClient.get(`/client/commandes/${commandeId}/pdf`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `facture-commande-${commandeId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("Téléchargement PDF impossible.");
+    }
+  };
+
   function InvoiceRow({
+    txId,
+    commandeId,
     img,
     academy,
     court,
@@ -130,6 +156,8 @@ export default function UserDashboard() {
     amount,
     paidOn,
   }: {
+    txId: string;
+    commandeId: number | null;
     img: string;
     academy: string;
     court: string;
@@ -165,14 +193,38 @@ export default function UserDashboard() {
         {/* Paid On */}
         <div className="col-span-2 text-gray-600">{paidOn}</div>
 
-        {/* Status */}
-        <div className="col-span-1 flex items-center gap-2">
+        {/* Status + Menu */}
+        <div className="col-span-1 flex items-center gap-2 relative">
           <span className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-green-100 text-green-700 font-semibold text-xs">
             ✓ Paid
           </span>
-          <button className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400">
+          <button
+            onClick={() =>
+              setOpenInvoiceMenuId(openInvoiceMenuId === txId ? null : txId)
+            }
+            className="h-8 w-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-100"
+          >
             ⋯
           </button>
+          {openInvoiceMenuId === txId && (
+            <div className="absolute right-0 top-10 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+              {commandeId ? (
+                <button
+                  onClick={() => {
+                    setOpenInvoiceMenuId(null);
+                    downloadClientPdf(commandeId);
+                  }}
+                  className="w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                >
+                  📄 Télécharger PDF
+                </button>
+              ) : (
+                <p className="px-4 py-3 text-sm text-gray-400">
+                  PDF non disponible
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -266,41 +318,42 @@ export default function UserDashboard() {
 
   const [sessions, setSessions] = useState<Session[]>([]);
 
-  const programs: Program[] = useMemo(
-    () => [
-      {
-        id: "p1",
-        name: "Glutes & Quads Builder",
-        level: "Intermediate",
-        progressPct: 42,
-        nextWorkout: "Day 3 — Quads Focus",
-        access: "owned",
-      },
-      {
-        id: "p2",
-        name: "Core & Posture Fix",
-        level: "Beginner",
-        progressPct: 65,
-        nextWorkout: "Session — Plank Variations",
-        access: "owned",
-      },
-      {
-        id: "p3",
-        name: "Fat Loss Starter Pack",
-        level: "Beginner",
-        progressPct: 20,
-        nextWorkout: "Day 2 — Full Body",
-        access: "trial",
-      },
-    ],
-    [],
-  );
+  // Unused - programs for future implementation
+  // const programs: Program[] = useMemo(
+  //   () => [
+  //     {
+  //       id: "p1",
+  //       name: "Glutes & Quads Builder",
+  //       level: "Intermediate",
+  //       progressPct: 42,
+  //       nextWorkout: "Day 3 — Quads Focus",
+  //       access: "owned",
+  //     },
+  //     {
+  //       id: "p2",
+  //       name: "Core & Posture Fix",
+  //       level: "Beginner",
+  //       progressPct: 65,
+  //       nextWorkout: "Session — Plank Variations",
+  //       access: "owned",
+  //     },
+  //     {
+  //       id: "p3",
+  //       name: "Fat Loss Starter Pack",
+  //       level: "Beginner",
+  //       progressPct: 20,
+  //       nextWorkout: "Day 2 — Full Body",
+  //       access: "trial",
+  //     },
+  //   ],
+  //   [],
+  // );
   const [stravaLoading, setStravaLoading] = useState(false);
 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [transactions, setTransactions] = useState<DashboardTx[]>([]);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
-  const [messages, setMessages] = useState<Message[]>(() => {
+  const [messages] = useState<Message[]>(() => {
     const raw = localStorage.getItem("USER_UNREAD_MESSAGES_COUNT");
     if (!raw) return INITIAL_MESSAGES;
 
@@ -315,16 +368,16 @@ export default function UserDashboard() {
     }));
   });
 
-  const progress = useMemo(
-    () => ({
-      weeklyWorkouts: 4,
-      caloriesWeek: 1870,
-      stepsAvg: 8200,
-      streakDays: 11,
-      chart: [3, 4, 2, 5, 4, 3, 4],
-    }),
-    [],
-  );
+  // const progress = useMemo(
+  //   () => ({
+  //     weeklyWorkouts: 4,
+  //     caloriesWeek: 1870,
+  //     stepsAvg: 8200,
+  //     streakDays: 11,
+  //     chart: [3, 4, 2, 5, 4, 3, 4],
+  //   }),
+  //   [],
+  // );
 
   const upcoming = useMemo(
     () => sessions.filter((s) => s.status === "upcoming").slice(0, 4),
@@ -405,7 +458,7 @@ export default function UserDashboard() {
             title: s.titre || `Séance #${s.id}`,
             date: s.date || "",
             time: (s.heure_debut || "").slice(0, 5),
-            type: String(s.type || "")
+            type: String((s as any).type || "")
               .toLowerCase()
               .includes("group")
               ? "group"
@@ -441,6 +494,7 @@ export default function UserDashboard() {
 
           return {
             id: `CMD-${c?.id}`,
+            commandeId: c?.id ? Number(c.id) : null,
             coachName,
             date: formatDate(createdAt),
             time: formatTime(createdAt),
@@ -461,6 +515,9 @@ export default function UserDashboard() {
           )
           .map((inv: any) => ({
             id: String(inv?.id || `INV-${Date.now()}`),
+            commandeId: inv?.commande_id
+              ? Number(String(inv.commande_id).replace(/\D/g, ""))
+              : null,
             coachName: String(inv?.coach_name || "Coach"),
             date: formatDate(inv?.created_at),
             time: formatTime(inv?.created_at),
@@ -498,11 +555,11 @@ export default function UserDashboard() {
     };
   }, []);
 
-  const cancelSession = (id: string) => {
-    setSessions((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: "cancelled" } : s)),
-    );
-  };
+  // const cancelSession = (id: string) => {
+  //   setSessions((prev) =>
+  //     prev.map((s) => (s.id === id ? { ...s, status: "cancelled" } : s)),
+  //   );
+  // };
 
   const handleConnectStrava = async () => {
     try {
@@ -953,6 +1010,8 @@ export default function UserDashboard() {
               {transactions.slice(0, 5).map((tx, idx) => (
                 <InvoiceRow
                   key={tx.id}
+                  txId={tx.id}
+                  commandeId={tx.commandeId}
                   img={
                     [booking, booking2, booking3, booking4, booking5][idx % 5]
                   }
@@ -978,6 +1037,7 @@ export default function UserDashboard() {
   );
 }
 
+/*
 function KpiCard({
   title,
   value,
@@ -1024,3 +1084,4 @@ function MiniBarChart({ values }: { values: number[] }) {
     </div>
   );
 }
+*/
