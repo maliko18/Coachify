@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import axiosClient from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 
 type Role = "prospect" | "coach";
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+
 export default function Signup() {
   const navigate = useNavigate();
-  const { setUser, setToken } = useAuth();
+  const { setUser, setToken, loginWithGoogle } = useAuth();
   const [role, setRole] = useState<Role>("prospect");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -77,9 +80,52 @@ export default function Signup() {
     }
   };
 
-  const onGoogleSignup = () => {
-    console.log("GOOGLE SIGN UP", role);
-    alert(`Google sign up as ${role}`);
+  const redirectAfterAuth = (user: { roles?: Array<{ name: string }> }) => {
+    // Si l'utilisateur a déjà des rôles côté serveur (compte existant fusionné),
+    // on respecte ces rôles ; sinon on utilise le rôle choisi sur cette page.
+    const hasCoachRole = user.roles?.some((r) => r.name === "coach");
+    if (hasCoachRole || role === "coach") {
+      navigate("/coach/dashboard");
+    } else {
+      navigate("/user/dashboard");
+    }
+  };
+
+  const onGoogleSuccess = async (response: CredentialResponse) => {
+    setError("");
+    if (!response.credential) {
+      setError("Inscription Google annulée.");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const user = await loginWithGoogle(response.credential, role);
+      localStorage.setItem("role", role);
+      redirectAfterAuth(user);
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosError = err as {
+          response?: {
+            data?: { message?: string; errors?: Record<string, string[]> };
+          };
+        };
+        const errors = axiosError.response?.data?.errors;
+        const firstError = errors ? Object.values(errors)[0]?.[0] : undefined;
+        setError(
+          firstError ||
+            axiosError.response?.data?.message ||
+            "Google sign-up failed",
+        );
+      } else {
+        setError("An error occurred. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onGoogleError = () => {
+    setError("Connexion Google indisponible. Réessaie ou crée un compte manuel.");
   };
 
   return (
@@ -223,13 +269,25 @@ export default function Signup() {
             </div>
 
             <div className="mt-6 flex justify-center">
-              <button
-                onClick={onGoogleSignup}
-                className="w-44 py-3 rounded-xl border border-gray-200
-                           font-semibold text-gray-700 hover:bg-gray-50 transition"
-              >
-                Google
-              </button>
+              {GOOGLE_CLIENT_ID ? (
+                <GoogleLogin
+                  onSuccess={onGoogleSuccess}
+                  onError={onGoogleError}
+                  text="signup_with"
+                  shape="rectangular"
+                  theme="outline"
+                  size="large"
+                />
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  title="Configure VITE_GOOGLE_CLIENT_ID to enable Google sign-up"
+                  className="w-56 py-3 rounded-xl border border-gray-200 font-semibold text-gray-400 cursor-not-allowed"
+                >
+                  Google (non configuré)
+                </button>
+              )}
             </div>
 
             <p className="mt-8 text-center text-gray-500">

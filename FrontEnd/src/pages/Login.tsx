@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "../context/AuthContext";
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login, loginWithGoogle, isLoading } = useAuth();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -69,8 +72,32 @@ export default function Login() {
     }
   };
 
-  const onGoogleSignIn = () => {
-    console.log("GOOGLE SIGN IN");
+  const redirectByRole = (roles?: Array<{ name: string }>) => {
+    if (roles?.some((r) => r.name === "gym_manager" || r.name === "admin")) {
+      navigate("/gym/dashboard");
+    } else if (roles?.some((r) => r.name === "coach")) {
+      navigate("/coach/dashboard");
+    } else {
+      navigate("/user/dashboard");
+    }
+  };
+
+  const onGoogleSuccess = async (response: CredentialResponse) => {
+    setError("");
+    if (!response.credential) {
+      setError("Connexion Google annulée.");
+      return;
+    }
+    try {
+      const user = await loginWithGoogle(response.credential);
+      redirectByRole(user.roles);
+    } catch (err) {
+      setError(getLoginErrorMessage(err));
+    }
+  };
+
+  const onGoogleError = () => {
+    setError("Connexion Google indisponible. Réessaie ou utilise ton email.");
   };
 
   return (
@@ -179,13 +206,25 @@ export default function Login() {
             </div>
 
             <div className="mt-6 flex justify-center">
-              <button
-                type="button"
-                onClick={onGoogleSignIn}
-                className="w-44 py-3 rounded-xl border border-gray-200 font-semibold text-gray-700 hover:bg-gray-50 transition"
-              >
-                Google
-              </button>
+              {GOOGLE_CLIENT_ID ? (
+                <GoogleLogin
+                  onSuccess={onGoogleSuccess}
+                  onError={onGoogleError}
+                  text="continue_with"
+                  shape="rectangular"
+                  theme="outline"
+                  size="large"
+                />
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  title="Configure VITE_GOOGLE_CLIENT_ID to enable Google sign-in"
+                  className="w-56 py-3 rounded-xl border border-gray-200 font-semibold text-gray-400 cursor-not-allowed"
+                >
+                  Google (non configuré)
+                </button>
+              )}
             </div>
 
             <p className="mt-8 text-center text-gray-500">

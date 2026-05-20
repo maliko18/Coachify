@@ -23,11 +23,14 @@ interface User {
   selectedRole?: string;
 }
 
+type SignupRole = "prospect" | "coach";
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
+  loginWithGoogle: (credential: string, role?: SignupRole) => Promise<User>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
@@ -103,6 +106,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithGoogle = async (
+    credential: string,
+    role?: SignupRole,
+  ): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const response = await axiosClient.post("/auth/google", {
+        credential,
+        ...(role ? { role } : {}),
+      });
+      const accessToken = response.data.token;
+
+      setToken(accessToken);
+
+      const fullUser = await fetchCurrentUser();
+      return fullUser;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     setIsLoading(true);
     try {
@@ -137,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         isLoading,
         login,
+        loginWithGoogle,
         logout,
         setUser: setUserAndPersist,
         setToken,

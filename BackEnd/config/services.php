@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'google' => [
+        // OAuth 2.0 Web Client ID issued by Google Cloud Console.
+        // Used to verify the audience claim of ID tokens received from the SPA.
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+    ],
+
 ];

@@ -2,6 +2,7 @@
 
 
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -15,6 +16,10 @@ Route::middleware('guest:sanctum')->group(function () {
 
     Route::post('/login', [LoginController::class, 'store'])
         ->name('login');
+
+    Route::post('/auth/google', [GoogleAuthController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('auth.google');
 
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
         ->name('password.email');

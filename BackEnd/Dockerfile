@@ -31,7 +31,10 @@ WORKDIR /var/www/html
 COPY . /var/www/html
 
 # Installer les dépendances PHP
-RUN composer install --no-dev --optimize-autoloader --no-interaction || true
+# Si composer.lock est synchronisé avec composer.json on fait un install (rapide, déterministe),
+# sinon on retombe sur update pour régénérer le lock (utile après ajout d'une dépendance).
+RUN (composer install --no-dev --optimize-autoloader --no-interaction \
+        || composer update --no-dev --optimize-autoloader --no-interaction)
 
 # Permissions (storage + cache)
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache || true
