@@ -20,6 +20,12 @@ mkdir -p /var/www/html/bootstrap/cache
 # Donner les permissions correctes
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
+# Régénérer le cache de packages (équivalent du post-autoload-dump Composer
+# qui a été désactivé dans le Dockerfile via --no-scripts pour éviter des
+# soucis de permissions au build).
+echo "Discovering packages..."
+php artisan package:discover --ansi 2>&1 || echo "⚠️ package:discover failed, continuing anyway..."
+
 # Nettoyer les caches
 echo "Clearing caches..."
 php artisan config:clear || true
