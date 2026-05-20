@@ -426,20 +426,37 @@ export default function BookingsPage() {
       setLoadingData(true);
       setLoadingError("");
       try {
-        const [userRes, seancesRes] = await Promise.all([
+        // /client/seances peut renvoyer 403 si l'utilisateur n'a pas encore
+        // le rôle client : on tolère l'échec et on continue avec les autres
+        // sources (commandes serveur + invoices locales).
+        const [userRes, seancesRes, commandesRes] = await Promise.allSettled([
           axiosClient.get("/user"),
           axiosClient.get("/client/seances"),
+          axiosClient.get("/commandes"),
         ]);
 
         if (!isMounted) return;
 
-        const user = userRes.data?.data ?? userRes.data;
-        const userEmail = String(user?.email || "");
+        const userData = userRes.status === "fulfilled"
+          ? (userRes.value.data?.data ?? userRes.value.data)
+          : null;
+        const userEmail = String(userData?.email || "");
         const local = loadLocalBookings(userEmail);
 
-        const items: ApiSeance[] = Array.isArray(seancesRes.data)
-          ? seancesRes.data
-          : (seancesRes.data?.data ?? []);
+        const items: ApiSeance[] = seancesRes.status === "fulfilled"
+          ? (Array.isArray(seancesRes.value.data)
+              ? seancesRes.value.data
+              : (seancesRes.value.data?.data ?? []))
+          : [];
+
+        // Commandes serveur (source de vérité, cross-device).
+        const commandeRows: any[] = (() => {
+          if (commandesRes.status !== "fulfilled") return [];
+          const raw = commandesRes.value.data?.data ?? commandesRes.value.data;
+          if (Array.isArray(raw)) return raw;
+          if (Array.isArray(raw?.data)) return raw.data;
+          return [];
+        })();
 
         const mappedBookings: Booking[] = items.map((seance, index) => {
           const imgPool = [booking1, booking2, booking3, booking4, booking5, booking6];
@@ -508,8 +525,101 @@ export default function BookingsPage() {
           };
         });
 
-        setBookings([...local.courts, ...mappedBookings]);
-        setCoachBookings([...local.coaches, ...mappedCoachBookings]);
+        const imgPool = [booking1, booking2, booking3, booking4, booking5, booking6];
+        const avPool = [avatar1, avatar2, avatar3, avatar4, avatar5];
+
+        const commandeStatusToBooking = (statut?: string): BookingStatus => {
+          if (statut === "terminee" || statut === "livree") return "Completed";
+          if (statut === "en_cours") return "On Going";
+          if (statut === "annule" || statut === "annulee") return "Cancelled";
+          return "Upcoming";
+        };
+        const commandeStatusToCoach = (statut?: string): CoachBookingStatus => {
+          if (statut === "terminee" || statut === "livree") return "Completed";
+          if (statut === "en_cours" || statut === "validee") return "Accepted";
+          if (statut === "annule" || statut === "annulee") return "Cancelled";
+          return "Awaiting";
+        };
+
+        const apiOrderCourts: Booking[] = commandeRows.map((cmd: any, i: number) => {
+          const coachUser = cmd?.coach?.user;
+          const coachName =
+            coachUser?.full_name ||
+            `${coachUser?.first_name ?? ""} ${coachUser?.last_name ?? ""}`.trim() ||
+            "Coach";
+          const total = Number(cmd?.total ?? 0);
+          const dateStr = cmd?.date_commande || cmd?.created_at || "";
+          const dateLabel = dateStr
+            ? new Date(dateStr).toLocaleString("fr-FR")
+            : "-";
+          const quantite = Array.isArray(cmd?.items)
+            ? cmd.items.reduce((s: number, it: any) => s + Number(it?.quantite || 0), 0)
+            : 1;
+          return {
+            id: Number(cmd?.id ?? Date.now() + i),
+            image: imgPool[i % imgPool.length],
+            courtName: `Commande #${cmd?.id ?? "?"} — ${coachName}`,
+            dateTime: dateLabel,
+            payment: `${total.toFixed(2)} €`,
+            status: commandeStatusToBooking(cmd?.statut),
+            coachName,
+            coachAvatar: "",
+            reviewCount: 0,
+            stars: 5,
+            location: "-",
+            pricePerHour: "-",
+            rank: "Coach",
+            bookedOn: dateStr || "-",
+            bookingType: "Commande",
+            totalHours: quantite || 1,
+            bookingAmount: `${total.toFixed(2)} €`,
+            serviceCharge: "0.00 €",
+            totalPaid: `${total.toFixed(2)} €`,
+            paidOn: dateStr || "-",
+            transactionId: `CMD-${cmd?.id ?? i}`,
+            paymentType: "-",
+          } as Booking;
+        });
+
+        const apiOrderCoaches: CoachBooking[] = commandeRows.map((cmd: any, i: number) => {
+          const coachUser = cmd?.coach?.user;
+          const coachName =
+            coachUser?.full_name ||
+            `${coachUser?.first_name ?? ""} ${coachUser?.last_name ?? ""}`.trim() ||
+            "Coach";
+          const total = Number(cmd?.total ?? 0);
+          const dateStr = cmd?.date_commande || cmd?.created_at || "";
+          const dateLabel = dateStr
+            ? new Date(dateStr).toLocaleString("fr-FR")
+            : "-";
+          const quantite = Array.isArray(cmd?.items)
+            ? cmd.items.reduce((s: number, it: any) => s + Number(it?.quantite || 0), 0)
+            : 1;
+          return {
+            id: Number(cmd?.id ?? Date.now() + i),
+            avatar: avPool[i % avPool.length],
+            coachName,
+            bookedOn: dateStr || "-",
+            bookingType: "Commande",
+            dateTime: dateLabel,
+            payment: `${total.toFixed(2)} €`,
+            status: commandeStatusToCoach(cmd?.statut),
+            stars: 5,
+            location: "-",
+            pricePerHour: "-",
+            rank: "Coach",
+            totalHours: quantite || 1,
+            bookingAmount: `${total.toFixed(2)} €`,
+            serviceCharge: "0.00 €",
+            totalPaid: `${total.toFixed(2)} €`,
+            paidOn: dateStr || "-",
+            transactionId: `CMD-${cmd?.id ?? i}`,
+            paymentType: "-",
+          } as CoachBooking;
+        });
+
+        setBookings([...apiOrderCourts, ...local.courts, ...mappedBookings]);
+        setCoachBookings([...apiOrderCoaches, ...local.coaches, ...mappedCoachBookings]);
         setLoadingData(false);
       } catch (error: any) {
         if (!isMounted) return;

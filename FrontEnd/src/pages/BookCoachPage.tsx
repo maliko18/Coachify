@@ -5,6 +5,7 @@ import heroBg from "../assets/breadcrumb-bg2.jpg";
 import axiosClient from "../api/axios";
 import avatar1 from "../assets/avatar-01.jpg";
 import { PAIEMENT_METHODES, type PaiementMethode } from "../api/paiements";
+import { useAuth } from "../context/AuthContext";
 
 const stepLabels = [
   "Type of Booking",
@@ -203,11 +204,22 @@ export default function BookCoachPage() {
     "7:00 PM",
   ]);
 
-  const [name, setName] = useState("Rodick Tramliar");
-  const [email, setEmail] = useState("contact@example.com");
-  const [phone, setPhone] = useState("+15656 556558");
+  const { user } = useAuth();
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [details, setDetails] = useState("");
+
+  // Pré-remplir le formulaire avec les infos du user authentifié dès qu'il est dispo.
+  // On ne touche pas aux champs déjà saisis manuellement par l'utilisateur.
+  useEffect(() => {
+    if (!user) return;
+    const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+    setName((prev) => prev || fullName);
+    setEmail((prev) => prev || user.email || "");
+  }, [user]);
 
   const getProductsList = async (coachNumericId: number) => {
     const res = await axiosClient.get("/produits", {
@@ -278,6 +290,13 @@ export default function BookCoachPage() {
       const order = orderRes.data?.data ?? orderRes.data;
       const totalAmount = Number(order?.total ?? fallbackSubtotal);
 
+      // Source de vérité pour l'identification du client = user authentifié.
+      // On garde le name/email du formulaire en fallback uniquement.
+      const authFullName =
+        [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
+      const customerName = authFullName || name;
+      const customerEmail = user?.email || email;
+
       const invoice = {
         id: `INV-${order?.id ?? Date.now()}`,
         commande_id: order?.id,
@@ -291,8 +310,8 @@ export default function BookCoachPage() {
         created_at: new Date().toISOString(),
         booking_date: selectedDay.date,
         booking_slots: selectedSlots,
-        customer_name: name,
-        customer_email: email,
+        customer_name: customerName,
+        customer_email: customerEmail,
       };
 
       persistClientInvoice(invoice);
@@ -315,6 +334,8 @@ export default function BookCoachPage() {
         const totalAmount =
           Math.max(selectedSlots.length, 1) *
           (Number(apiCoach?.hourly_rate || 0) || 100);
+        const authFullName =
+          [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim();
         const invoice = {
           id: `INV-LOCAL-${localRequestId}`,
           commande_id: `LOCAL-${localRequestId}`,
@@ -328,8 +349,8 @@ export default function BookCoachPage() {
           created_at: new Date().toISOString(),
           booking_date: selectedDay.date,
           booking_slots: selectedSlots,
-          customer_name: name,
-          customer_email: email,
+          customer_name: authFullName || name,
+          customer_email: user?.email || email,
           source: "local-fallback",
         };
 
