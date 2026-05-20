@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Client;
 use App\Models\Commande;
 use App\Models\CommandeItem;
 use App\Models\Conversation;
 use App\Models\Notification;
 use App\Models\Produit;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -54,6 +57,10 @@ class CommandeController extends Controller
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        // Promotion automatique prospect -> client lors de la première commande.
+        // Un coach reste un coach (il ne peut pas commander en tant que client).
+        $this->ensureClientProfile($user);
 
         if (!$user->hasRole('client') || !$user->client) {
             return response()->json([
@@ -250,5 +257,39 @@ class CommandeController extends Controller
             'message' => 'Statut de commande mis à jour.',
             'data' => $commande->fresh(['items.produit', 'client.user', 'coach.user']),
         ]);
+    }
+
+    /**
+     * Promotion automatique prospect -> client lors de la première commande.
+     *
+     * Garantit que l'utilisateur courant possède :
+     *   - le rôle `client`
+     *   - une ligne dans la table `clients` reliée à son user_id
+     *
+     * Un coach n'est jamais promu (il ne peut pas être client de lui-même).
+     * L'opération est idempotente : un utilisateur déjà client n'est pas modifié.
+     */
+    private function ensureClientProfile(User $user): void
+    {
+        if ($user->hasRole(Role::COACH)) {
+            return;
+        }
+
+        DB::transaction(function () use ($user) {
+            if (!$user->hasRole(Role::CLIENT)) {
+                $user->assignRole(Role::CLIENT);
+            }
+
+            if (!$user->client) {
+                Client::create([
+                    'user_id'             => $user->id,
+                    'fitness_level'       => 'beginner',
+                    'subscription_status' => 'active',
+                    'start_date'          => now()->toDateString(),
+                    'sessions_remaining'  => 0,
+                ]);
+                $user->load('client');
+            }
+        });
     }
 }
