@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\UserResources;
 use App\Models\Coach;
+use App\Models\Produit;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -31,7 +32,23 @@ class RegisterController extends Controller
             // 2. Assigner le rôle et créer le profil si coach
             if ($data['role'] === Role::COACH) {
                 $user->assignRole(Role::COACH);
-                Coach::create(['user_id' => $user->id]);
+                $coach = Coach::create(['user_id' => $user->id]);
+
+                // Produit "service" par défaut pour permettre les réservations
+                // immédiatement après l'inscription (la page Book A Coach
+                // requiert au moins un produit actif pour ce coach).
+                Produit::create([
+                    'coach_id' => $coach->id,
+                    'nom' => 'Séance de coaching',
+                    'description' => 'Séance individuelle de coaching avec '
+                        . trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) . '.',
+                    'type' => 'service',
+                    'prix' => 60.00,
+                    'stock_quantite' => 0,
+                    'alerte_stock' => 0,
+                    'visible' => true,
+                ]);
+
                 $user->load('coach');
             } else {
                 $user->assignRole(Role::PROSPECT);
